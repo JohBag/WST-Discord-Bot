@@ -153,8 +153,8 @@ function findParse(url, callback) {
 
 			var tables = doc.querySelector('.report-rankings-tab-content').querySelectorAll('table');
 			var msg = 'Top Parses\n';
-			msg += '[Damage]' + getBestParse(tables[0]) + '\n'; // Damage
-			msg += '[Healing]' + getBestParse(tables[4]) + '\n'; // Healing
+			msg += '[Damage] ' + getBestParse(tables[0]) + '\n'; // Damage
+			msg += '[Healing] ' + getBestParse(tables[4]) + '\n'; // Healing
 			callback(msg);
 		});
 	});
