@@ -176,7 +176,7 @@ async function getLog(id, callback) {
 		dom.window.addEventListener('load', (event) => {
 			var doc = dom.window.document;
 
-			var message = "WST - " + getRaidName(doc) + '\n\n';
+			var message = getRaidName(doc) + '\n\n';
 			message += getBossData(doc) + '\n';
 
 			findParse(url, function (msg) {
