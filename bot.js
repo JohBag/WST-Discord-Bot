@@ -20,16 +20,10 @@ function debugMessage(str) {
 bot.on('ready', function (evt) {
 	debugMessage('Connected');
 	debugMessage(bot.username + ' - (' + bot.id + ')');
-	/*
+
 	logTool.fetchMostRecent(function (msg) {
-		debugMessage("Send:\n" + msg);
+		debugMessage(msg);
 	});
-	*/
-	/*
-	logTool.getLogMessage('zFfXapynBLWCKNxH', function (msg) {
-		debugMessage("Send:\n" + msg);
-	});
-	*/
 });
 
 function send(chID, msg) {

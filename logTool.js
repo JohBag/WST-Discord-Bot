@@ -161,6 +161,8 @@ function findParse(url, callback) {
 }
 
 async function getLog(id, callback) {
+	debugMessage("Collecting data...");
+
 	var url = 'https://www.warcraftlogs.com/reports/' + id + '/';
 
 	fetchHTML(url, '', function (content) {
@@ -193,8 +195,11 @@ async function getLog(id, callback) {
 exports.fetchMostRecent = function (callback) {
 	var url = 'https://www.warcraftlogs.com/user/reports-list/1751707/';
 
+	debugMessage("Searching for reports...");
+
 	fetchHTML(url, '#reports-table', function (content) {
 		if (content == -1) {
+			debugMessage("Error (Timeout): Search failed");
 			callback(-1);
 			return;
 		}
