@@ -1,1 +1,17 @@
-{"name":"W5T","version":"1.0.0","description":"","main":"bot.js","author":"Elethia","dependencies":{"cheerio":"^1.0.0-rc.10","discord.io":"https://github.com/woor/discord.io/tarball/gateway_v6","jquery":"^3.6.0","jsdom":"^19.0.0","puppeteer":"^13.6.0","request":"^2.88.2","request-promise":"^4.2.6","winston":"^3.7.2"}}
+{
+    "name": "w5t",
+    "version": "1.0.0",
+    "description": "",
+    "main": "bot.js",
+    "author": "deacon",
+    "dependencies": {
+        "cheerio": "^1.0.0-rc.10",
+        "discord.io": "https://github.com/woor/discord.io/tarball/gateway_v6",
+        "jquery": "^3.6.0",
+        "jsdom": "^19.0.0",
+        "puppeteer": "^13.6.0",
+        "request": "^2.88.2",
+        "request-promise": "^4.2.6",
+        "winston": "^3.7.2"
+    }
+}
