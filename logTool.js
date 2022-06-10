@@ -1,30 +1,22 @@
+const { debug } = require('console');
 const https = require("https");
 const jsdom = require('jsdom');
-const { debug } = require('console');
 const { JSDOM } = jsdom;
-
-
-const { window } = new JSDOM();
-const { document } = (new JSDOM('')).window;
-global.document = document;
-var $ = jQuery = require('jquery')(window);
-
 const puppeteer = require('puppeteer');
-
 const run_headless = false;
 
 process.on('uncaughtException', function (err) {
 	console.log('Caught exception: ' + err);
 });
 
-function debugMessage(str) {
-	console.log(str);
-}
-
 exports.getLogMessage = function (id, callback) {
 	getLog(id, function (msg) {
 		callback(msg);
 	});
+}
+
+function debugMessage(str) {
+	console.log(str);
 }
 
 async function fetchHTML(url, loadSelector, callback) {
@@ -37,13 +29,16 @@ async function fetchHTML(url, loadSelector, callback) {
 		}
 		catch (e) {
 			if (e instanceof puppeteer.errors.TimeoutError) {
+				await browser.close();
 				debugMessage("Error (Timeout): Failed to fetch HTML");
 				callback(-1);
 				return;
 			}
 		}
 	}
-	callback(await page.evaluate(() => document.querySelector('*').outerHTML));
+	var msg = await page.evaluate(() => document.querySelector('*').outerHTML);
+	await browser.close();
+	callback(msg);
 };
 
 function clearNewLines(str) {
@@ -137,7 +132,7 @@ function getBestParse(table) {
 	return msg;
 }
 
-function findParse(url, callback) {
+function findParse(url, byIlvl, callback) {
 	url += '#view=rankings&boss=-2&playermetric=dps';
 
 	fetchHTML(url, '.report-rankings-tab-content', function (content) {
@@ -147,48 +142,46 @@ function findParse(url, callback) {
 		}
 
 		const dom = new JSDOM(content);
+		//dom.window.addEventListener('load', (event) => {
+		var doc = dom.window.document;
 
-		dom.window.addEventListener('load', (event) => {
-			var doc = dom.window.document;
-
-			var tables = doc.querySelector('.report-rankings-tab-content').querySelectorAll('table');
-			var msg = 'Top Parses\n';
-			msg += '[Damage] ' + getBestParse(tables[0]) + '\n'; // Damage
-			msg += '[Healing] ' + getBestParse(tables[4]) + '\n'; // Healing
-			callback(msg);
-		});
+		var tables = doc.querySelector('.report-rankings-tab-content').querySelectorAll('table');
+		var msg = 'Top Parses\n';
+		msg += '[Damage] ' + getBestParse(tables[0 + byIlvl]) + '\n'; // Damage (1 for ilvl)
+		msg += '[Healing] ' + getBestParse(tables[4 + byIlvl]) + '\n'; // Healing (5 for ilvl)
+		callback(msg);
+		//});
 	});
 }
 
-async function getLog(id, callback) {
+function getLog(id, callback) {
 	debugMessage("Collecting data...");
 
 	var url = 'https://www.warcraftlogs.com/reports/' + id + '/';
 
-	fetchHTML(url, '', function (content) {
+	fetchHTML(url, '#report-fight-selection-area', function (content) {
 		if (content == -1) {
 			callback(-1);
 			return;
 		}
 
 		const dom = new JSDOM(content);
+		//dom.window.addEventListener('load', (event) => {
+		var doc = dom.window.document;
 
-		dom.window.addEventListener('load', (event) => {
-			var doc = dom.window.document;
+		var message = getRaidName(doc) + '\n\n';
+		message += getBossData(doc) + '\n';
 
-			var message = getRaidName(doc) + '\n\n';
-			message += getBossData(doc) + '\n';
+		findParse(url, 1, function (msg) {
+			if (msg != -1) {
+				message += msg + '\n';
+			}
 
-			findParse(url, function (msg) {
-				if (msg != -1) {
-					message += msg + '\n';
-				}
-
-				message += url;
-				debugMessage("Data collection finished");
-				callback(message);
-			});
+			message += url;
+			debugMessage("Data collection finished");
+			callback(message);
 		});
+		//});
 	});
 }
 
@@ -205,20 +198,19 @@ exports.fetchMostRecent = function (callback) {
 		}
 
 		const dom = new JSDOM(content);
+		//dom.window.addEventListener('load', (event) => {
+		var doc = dom.window.document;
 
-		dom.window.addEventListener('load', (event) => {
-			var doc = dom.window.document;
+		var rows = doc.querySelector('#reports-table').rows;
+		var mostRecent = rows[1]; // Skip header
+		var link = mostRecent.querySelector('a').getAttribute('href');
 
-			var rows = doc.querySelector('#reports-table').rows;
-			var mostRecent = rows[1]; // Skip header
-			var link = mostRecent.querySelector('a').getAttribute('href');
+		var id = link.replace('/reports/', '');
+		debugMessage("ID fetched: " + id);
 
-			var id = link.replace('/reports/', '');
-			debugMessage("ID fetched: " + id);
-
-			getLog(id, function (msg) {
-				callback(msg);
-			});
+		getLog(id, function (msg) {
+			callback(msg);
 		});
+		//});
 	});
 }

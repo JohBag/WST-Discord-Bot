@@ -20,14 +20,21 @@ function debugMessage(str) {
 bot.on('ready', function (evt) {
 	debugMessage('Connected');
 	debugMessage(bot.username + ' - (' + bot.id + ')');
-	/*
+	debugMessage('Ready for input');
 	logTool.fetchMostRecent(function (msg) {
 		debugMessage(msg);
 	});
-	*/
+	/*
+		logTool.getLogMessage("---", function (msg) {
+			debugMessage(msg);
+		});
+		*/
 });
 
 function send(chID, msg) {
+	if (msg == -1) {
+		return;
+	}
 	debugMessage("Send:\n" + msg);
 	bot.sendMessage({
 		to: chID,
