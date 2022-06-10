@@ -2,6 +2,7 @@ var Discord = require('discord.io');
 var auth = require('./auth.json');
 const { debug } = require('console');
 const logTool = require('./logTool');
+const rollModule = require('./rollModule');
 
 process.on('uncaughtException', function (err) {
 	console.log('Caught exception: ' + err);
@@ -21,9 +22,11 @@ bot.on('ready', function (evt) {
 	debugMessage('Connected');
 	debugMessage(bot.username + ' - (' + bot.id + ')');
 	debugMessage('Ready for input');
+	/*
 	logTool.fetchMostRecent(function (msg) {
 		debugMessage(msg);
 	});
+	*/
 	/*
 		logTool.getLogMessage("---", function (msg) {
 			debugMessage(msg);
@@ -33,6 +36,7 @@ bot.on('ready', function (evt) {
 
 function send(chID, msg) {
 	if (msg == -1) {
+		debugMessage("Error: Invalid message");
 		return;
 	}
 	debugMessage("Send:\n" + msg);
@@ -42,38 +46,25 @@ function send(chID, msg) {
 	});
 }
 
-function random(min, max) {
-	return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
 bot.on('message', function (user, userID, channelID, message, evt) {
-	// Our bot needs to know if it will execute a command
-	// It will listen for messages that will start with `!`
-
+	// The bot listens to commands that starts with '!'
 	if (message.substring(0, 1) == '!') {
-		var args = message.substring(1).split(' ');
-		var cmd = args[0];
-
 		// Commands
-		switch (cmd) {
+		var args = message.substring(1).split(' ');
+		switch (args[0]) {
 			case 'help':
-			case 'commands':
 				var str = "Commands:\n";
-				str += "1. help/commands\n";
+				str += "1) help - Show commands\n";
+				str += "2) roll (max optional) - Rolls a number between 1-100\n";
+				str += "3) coin - Flips a coin\n";
+				str += "4) log (id optional) - Returns the most recent log data from warcraftlogs\n";
 				send(channelID, str);
 				break;
 			case 'roll':
-				var max = 100;
-				if (args.length > 1) {
-					var n = parseInt(args[1]);
-					if (Number.isInteger(n)) {
-						max = n;
-					}
-				}
-				send(channelID, random(1, max));
+				send(channelID, rollModule.roll(100));
 				break;
 			case 'coin':
-				send(channelID, random(0, 1) == 1 ? "Heads" : "Tails");
+				send(channelID, rollModule.roll(0, 1) == 1 ? "Heads" : "Tails");
 				break;
 			case 'log':
 				if (args.length == 2) { // Specific ID
