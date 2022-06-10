@@ -1,4 +1,8 @@
-var Discord = require('discord.io');
+const { Client, Intents } = require('discord.js');
+const { token } = require('./config.json');
+//const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
+const client = new Client({ intents: ['DIRECT_MESSAGES', 'DIRECT_MESSAGE_REACTIONS', 'GUILD_MESSAGES', 'GUILD_MESSAGE_REACTIONS', 'GUILDS'] });
+
 var auth = require('./auth.json');
 const { debug } = require('console');
 const logTool = require('./logTool');
@@ -8,73 +12,79 @@ process.on('uncaughtException', function (err) {
 	console.log('Caught exception: ' + err);
 });
 
-// Initialize Discord Bot
-var bot = new Discord.Client({
-	token: auth.token,
-	autorun: true
-});
-
 function debugMessage(str) {
 	console.log(str);
 }
 
-bot.on('ready', function (evt) {
-	debugMessage('Connected');
-	debugMessage(bot.username + ' - (' + bot.id + ')');
-	debugMessage('Ready for input');
-	/*
-	logTool.fetchMostRecent(function (msg) {
-		debugMessage(msg);
-	});
-	*/
-	/*
-		logTool.getLogMessage("---", function (msg) {
-			debugMessage(msg);
-		});
-		*/
+client.once('ready', () => {
+	debugMessage('Ready!');
 });
+client.login(token);
 
-function send(chID, msg) {
+function send(channel, msg) {
 	if (msg == -1) {
 		debugMessage("Error: Invalid message");
 		return;
 	}
-	debugMessage("Send:\n" + msg);
-	bot.sendMessage({
-		to: chID,
-		message: msg
-	});
+	debugMessage("Send:\n" + msg + '\n');
+	channel.send(msg);
 }
 
-bot.on('message', function (user, userID, channelID, message, evt) {
+async function getNickname(user, guild, callback) {
+	var member = await guild.members.fetch(user);
+	callback(member ? member.displayName : user.username);
+}
+
+client.on('messageCreate', function (message) {
 	// The bot listens to commands that starts with '!'
-	if (message.substring(0, 1) == '!') {
+
+	var content = message.content;
+	var channel = message.channel;
+	if (content.substring(0, 1) == '!') {
 		// Commands
-		var args = message.substring(1).split(' ');
+		var args = content.substring(1).split(' ');
 		switch (args[0]) {
 			case 'help':
 				var str = "Commands:\n";
-				str += "1) help - Show commands\n";
-				str += "2) roll (max optional) - Rolls a number between 1-100\n";
-				str += "3) coin - Flips a coin\n";
-				str += "4) log (id optional) - Returns the most recent log data from warcraftlogs\n";
-				send(channelID, str);
+				str += "1) !help\n";
+				str += "2) !roll\n";
+				str += "3) !coin\n";
+				str += "4) !log\n";
+				send(channel, str);
 				break;
 			case 'roll':
-				send(channelID, rollModule.roll(100));
+				var num1 = 100, num2 = 1;
+
+				var roll = -1;
+				if (args.length > 1) {
+					num1 = Number(args[1]);
+				}
+				if (args.length > 2) {
+					num2 = Number(args[2]);
+				}
+
+				roll = (num1 >= num2 ? rollModule.roll(num1, num2) : rollModule.roll(num2, num1));
+				if (roll == -1) {
+					break;
+				}
+
+				getNickname(message.author, message.guild, function (msg) {
+					msg += ' rolls ' + roll;
+					send(channel, msg);
+				});
 				break;
 			case 'coin':
-				send(channelID, rollModule.roll(0, 1) == 1 ? "Heads" : "Tails");
+				send(channel, rollModule.roll(0, 1) == 1 ? "Heads" : "Tails");
 				break;
 			case 'log':
 				if (args.length == 2) { // Specific ID
 					logTool.getLogMessage(args[1], function (msg) {
-						send(channelID, msg);
+						send(channel, msg);
 					});
 				}
 				else { // Most recent
 					logTool.fetchMostRecent(function (msg) {
-						send(channelID, msg);
+						send(channel, msg);
 					});
 				}
 				break;

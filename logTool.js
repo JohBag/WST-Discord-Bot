@@ -5,6 +5,8 @@ const { JSDOM } = jsdom;
 const puppeteer = require('puppeteer');
 const run_headless = false;
 
+const useIlvlParse = 0; // Set to 1 to receive rankings by bracket (ilvl)
+
 process.on('uncaughtException', function (err) {
 	console.log('Caught exception: ' + err);
 });
@@ -102,8 +104,6 @@ function getBossData(doc) {
 					if (bestPerc == -1 || perc < bestPerc) {
 						bestPerc = perc;
 					}
-
-					//debugMessage(perc);
 				}
 			}
 			if (bestPerc != -1) {
@@ -132,7 +132,7 @@ function getBestParse(table) {
 	return msg;
 }
 
-function findParse(url, byIlvl, callback) {
+function findParse(url, callback) {
 	url += '#view=rankings&boss=-2&playermetric=dps';
 
 	fetchHTML(url, '.report-rankings-tab-content', function (content) {
@@ -142,15 +142,15 @@ function findParse(url, byIlvl, callback) {
 		}
 
 		const dom = new JSDOM(content);
-		//dom.window.addEventListener('load', (event) => {
-		var doc = dom.window.document;
+		dom.window.addEventListener('load', (event) => {
+			var doc = dom.window.document;
 
-		var tables = doc.querySelector('.report-rankings-tab-content').querySelectorAll('table');
-		var msg = 'Top Parses\n';
-		msg += '[Damage] ' + getBestParse(tables[0 + byIlvl]) + '\n'; // Damage (1 for ilvl)
-		msg += '[Healing] ' + getBestParse(tables[4 + byIlvl]) + '\n'; // Healing (5 for ilvl)
-		callback(msg);
-		//});
+			var tables = doc.querySelector('.report-rankings-tab-content').querySelectorAll('table');
+			var msg = 'Top Parses\n';
+			msg += '[Damage] ' + getBestParse(tables[0 + useIlvlParse]) + '\n'; // Damage (1 for ilvl)
+			msg += '[Healing] ' + getBestParse(tables[4 + useIlvlParse]) + '\n'; // Healing (5 for ilvl)
+			callback(msg);
+		});
 	});
 }
 
@@ -166,22 +166,22 @@ function getLog(id, callback) {
 		}
 
 		const dom = new JSDOM(content);
-		//dom.window.addEventListener('load', (event) => {
-		var doc = dom.window.document;
+		dom.window.addEventListener('load', (event) => {
+			var doc = dom.window.document;
 
-		var message = getRaidName(doc) + '\n\n';
-		message += getBossData(doc) + '\n';
+			var message = getRaidName(doc) + '\n\n';
+			message += getBossData(doc) + '\n';
 
-		findParse(url, 1, function (msg) {
-			if (msg != -1) {
-				message += msg + '\n';
-			}
+			findParse(url, function (msg) {
+				if (msg != -1) {
+					message += msg + '\n';
+				}
 
-			message += url;
-			debugMessage("Data collection finished");
-			callback(message);
+				message += url;
+				debugMessage("Data collection finished");
+				callback(message);
+			});
 		});
-		//});
 	});
 }
 
@@ -198,19 +198,19 @@ exports.fetchMostRecent = function (callback) {
 		}
 
 		const dom = new JSDOM(content);
-		//dom.window.addEventListener('load', (event) => {
-		var doc = dom.window.document;
+		dom.window.addEventListener('load', (event) => {
+			var doc = dom.window.document;
 
-		var rows = doc.querySelector('#reports-table').rows;
-		var mostRecent = rows[1]; // Skip header
-		var link = mostRecent.querySelector('a').getAttribute('href');
+			var rows = doc.querySelector('#reports-table').rows;
+			var mostRecent = rows[1]; // Skip header
+			var link = mostRecent.querySelector('a').getAttribute('href');
 
-		var id = link.replace('/reports/', '');
-		debugMessage("ID fetched: " + id);
+			var id = link.replace('/reports/', '');
+			debugMessage("ID fetched: " + id);
 
-		getLog(id, function (msg) {
-			callback(msg);
+			getLog(id, function (msg) {
+				callback(msg);
+			});
 		});
-		//});
 	});
 }
