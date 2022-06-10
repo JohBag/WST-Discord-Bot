@@ -36,22 +36,11 @@ async function getNickname(user, guild, callback) {
 }
 
 client.on('messageCreate', function (message) {
-	// The bot listens to commands that starts with '!'
-
 	var content = message.content;
 	var channel = message.channel;
-	if (content.substring(0, 1) == '!') {
-		// Commands
+	if (content.substring(0, 1) == '!') { // Commands start with '!'
 		var args = content.substring(1).split(' ');
 		switch (args[0]) {
-			case 'help':
-				var str = "Commands:\n";
-				str += "1) !help\n";
-				str += "2) !roll\n";
-				str += "3) !coin\n";
-				str += "4) !log\n";
-				send(channel, str);
-				break;
 			case 'roll':
 				var num1 = 100, num2 = 1;
 
@@ -87,6 +76,13 @@ client.on('messageCreate', function (message) {
 						send(channel, msg);
 					});
 				}
+				break;
+			default:
+				var str = "Commands:\n";
+				str += "!roll\n";
+				str += "!coin\n";
+				str += "!log\n";
+				send(channel, str);
 				break;
 		}
 	}
