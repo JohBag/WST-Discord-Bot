@@ -3,7 +3,6 @@ const { token } = require('./config.json');
 //const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
 const client = new Client({ intents: ['DIRECT_MESSAGES', 'DIRECT_MESSAGE_REACTIONS', 'GUILD_MESSAGES', 'GUILD_MESSAGE_REACTIONS', 'GUILDS'] });
 
-var auth = require('./auth.json');
 const { debug } = require('console');
 const logTool = require('./logTool');
 const rollModule = require('./rollModule');
