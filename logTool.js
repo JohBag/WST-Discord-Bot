@@ -22,9 +22,13 @@ function debugMessage(str) {
 }
 
 async function fetchHTML(url, loadSelector, callback) {
+	debugMessage("Fetching data...");
+
 	const browser = await puppeteer.launch();
 	const page = await browser.newPage();
-	await page.goto(url);
+	await page.goto(url, {
+		waitUntil: 'networkidle0'
+	});
 	if (loadSelector != '') {
 		try {
 			await page.waitForSelector(loadSelector, { timeout: 5000 });
@@ -40,6 +44,8 @@ async function fetchHTML(url, loadSelector, callback) {
 	}
 	var msg = await page.evaluate(() => document.querySelector('*').outerHTML);
 	await browser.close();
+
+	debugMessage("Data received");
 	callback(msg);
 };
 
@@ -65,9 +71,12 @@ function getDate(doc) {
 }
 
 function getBossData(doc) {
-	var msg = '';
+	debugMessage("Fetching boss data...");
+	var msg = "";
 	var bossArr = doc.getElementsByClassName("report-overview-boss-box");
 	var blacklist = new Array("Encounters and Trash Fights", "Encounters", "Trash Fights");
+
+	debugMessage("Bosses: " + bossArr.length);
 	for (var i = 0; i < bossArr.length; ++i) {
 		var elem = bossArr[i];
 
@@ -112,6 +121,7 @@ function getBossData(doc) {
 		}
 		msg += '\n';
 	}
+	debugMessage("Boss data received");
 	return msg;
 }
 
@@ -122,12 +132,12 @@ function getBestParse(table) {
 	var highestRank = 0;
 	for (var i = 2; i < cells.length; ++i) {
 		var rank = Number(cells[i].textContent);
-		if (rank > highestRank) {
+		if (!isNaN(rank) && rank > highestRank) {
 			highestRank = rank;
 		}
 	}
 	var name = cells[0].textContent;
-	var msg = name + ' (' + highestRank + '%) ';
+	var msg = name + ' ' + highestRank + '%';
 	msg = clearNewLines(msg);
 	return msg;
 }
@@ -147,15 +157,15 @@ function findParse(url, callback) {
 
 			var tables = doc.querySelector('.report-rankings-tab-content').querySelectorAll('table');
 			var msg = 'Top Parses\n';
-			msg += '[Damage] ' + getBestParse(tables[0 + useIlvlParse]) + '\n'; // Damage (1 for ilvl)
-			msg += '[Healing] ' + getBestParse(tables[4 + useIlvlParse]) + '\n'; // Healing (5 for ilvl)
+			msg += '[D]' + getBestParse(tables[0 + useIlvlParse]) + '\n'; // Damage (1 for ilvl)
+			msg += '[H]' + getBestParse(tables[4 + useIlvlParse]) + '\n'; // Healing (5 for ilvl)
 			callback(msg);
 		});
 	});
 }
 
 function getLog(id, callback) {
-	debugMessage("Collecting data...");
+	debugMessage("Preparing log...");
 
 	var url = 'https://www.warcraftlogs.com/reports/' + id + '/';
 
@@ -168,7 +178,6 @@ function getLog(id, callback) {
 		const dom = new JSDOM(content);
 		dom.window.addEventListener('load', (event) => {
 			var doc = dom.window.document;
-
 			var message = getRaidName(doc) + '\n\n';
 			message += getBossData(doc) + '\n';
 
@@ -178,12 +187,12 @@ function getLog(id, callback) {
 				}
 
 				message += url;
-				debugMessage("Data collection finished");
+				debugMessage("Log completed");
 				callback(message);
 			});
 		});
 	});
-}
+};
 
 exports.fetchMostRecent = function (callback) {
 	var url = 'https://www.warcraftlogs.com/user/reports-list/1751707/';
