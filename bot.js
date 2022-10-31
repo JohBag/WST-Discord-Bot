@@ -17,6 +17,7 @@ function debugMessage(str) {
 
 client.once('ready', () => {
 	debugMessage('Ready!');
+	debugMessage('Waiting for input...');
 });
 client.login(token);
 
@@ -39,6 +40,7 @@ client.on('messageCreate', function (message) {
 	var channel = message.channel;
 	if (content.substring(0, 1) == '!') { // Commands start with '!'
 		var args = content.substring(1).split(' ');
+		debugMessage(args[0]);
 		switch (args[0]) {
 			case 'roll':
 				var num1 = 100, num2 = 1;
