@@ -1,5 +1,3 @@
-//import fetch from 'node-fetch';
-
 async function getAccessToken() {
 	const response = await fetch('https://www.warcraftlogs.com/oauth/token', {
 		method: 'POST',
@@ -99,7 +97,7 @@ function getRankSection(rankings) {
 	return msg;
 }
 
-export async function getLogMessage(id = 0) {
+exports.getLogMessage = async function (id = 0) {
 	if (id == 0) {
 		// Get ID
 		let data = await sendQuery('{ reportData { reports(guildID: 66538, limit: 1) { data { code } } } }');
@@ -120,5 +118,3 @@ export async function getLogMessage(id = 0) {
 	console.log(msg);
 	return msg;
 }
-
-getLogMessage();

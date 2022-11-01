@@ -1,13 +1,7 @@
-// These lines make "require" available
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-
+const { Client, Intents } = require('discord.js');
 const { token } = require('./config.json');
-const { debug } = require('console');
 const logModule = require('./logModule');
 const rollModule = require('./rollModule');
-
-const { Client, Intents } = require('discord.js');
 
 //const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
 const client = new Client({ intents: ['DIRECT_MESSAGES', 'DIRECT_MESSAGE_REACTIONS', 'GUILD_MESSAGES', 'GUILD_MESSAGE_REACTIONS', 'GUILDS'] });
@@ -40,12 +34,14 @@ async function getNickname(user, guild, callback) {
 	callback(member ? member.displayName : user.username);
 }
 
-client.on('messageCreate', function (message) {
+client.on('messageCreate', async function (message) {
 	var content = message.content;
 	var channel = message.channel;
 	if (content.substring(0, 1) == '!') { // Commands start with '!'
 		var args = content.substring(1).split(' ');
 		debugMessage(args[0]);
+
+		var msg = "";
 		switch (args[0]) {
 			case 'roll':
 				var num1 = 100, num2 = 1;
@@ -65,27 +61,24 @@ client.on('messageCreate', function (message) {
 
 				getNickname(message.author, message.guild, function (msg) {
 					msg += ' rolls ' + roll;
-					send(channel, msg);
 				});
 				break;
 			case 'coin':
-				send(channel, rollModule.roll(0, 1) == 1 ? "Heads" : "Tails");
+				msg = rollModule.roll(0, 1) == 1 ? "Heads" : "Tails";
 				break;
 			case 'log':
+				var id = 0;
 				if (args.length == 2) { // Specific ID
-					logModule.getLogMessage(args[1]);
+					id = args[1];
 				}
-				else { // Most recent
-					logModule.getLogMessage();
-				}
+				msg = await logModule.getLogMessage(id);
 				break;
 			default:
-				var str = "Commands:\n";
-				str += "!roll\n";
-				str += "!coin\n";
-				str += "!log\n";
-				send(channel, str);
 				break;
+		}
+		console.log(msg);
+		if (msg != "") {
+			send(channel, msg);
 		}
 	}
 });

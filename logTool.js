@@ -5,11 +5,6 @@ const { JSDOM } = jsdom;
 const puppeteer = require('puppeteer');
 const run_headless = false;
 
-import fetch from 'node-fetch';
-
-
-
-
 const useIlvlParse = 0; // Set to 1 to receive rankings by bracket (ilvl)
 
 var clientID = "97a1b9d9-7d4f-470d-b40d-4effbb8ebe48";
