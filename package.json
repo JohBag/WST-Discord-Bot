@@ -1,5 +1,6 @@
 {
-    "name": "w5t",
+    "name": "wst",
+    "type": "module",
     "version": "1.0.0",
     "description": "",
     "main": "bot.js",
@@ -13,6 +14,7 @@
         "discord.js": "^13.8.0",
         "jquery": "^3.6.0",
         "jsdom": "^19.0.0",
+        "node-fetch": "^3.2.10",
         "puppeteer": "^13.6.0",
         "request": "^2.88.2",
         "request-promise": "^4.2.6",

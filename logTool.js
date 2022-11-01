@@ -5,7 +5,21 @@ const { JSDOM } = jsdom;
 const puppeteer = require('puppeteer');
 const run_headless = false;
 
+import fetch from 'node-fetch';
+
+
+
+
 const useIlvlParse = 0; // Set to 1 to receive rankings by bracket (ilvl)
+
+var clientID = "97a1b9d9-7d4f-470d-b40d-4effbb8ebe48";
+var clientSecret = "7Avt7DaqTM0lQguawh5w4S99Ozsp4QYG4oVb5v3z";
+
+var tokenURI = "https://www.warcraftlogs.com/oauth/token";
+var authURI = "https://www.warcraftlogs.com/oauth/authorize";
+
+function getAccessToken() {
+}
 
 process.on('uncaughtException', function (err) {
 	console.log('Caught exception: ' + err);

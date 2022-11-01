@@ -1,11 +1,16 @@
-const { Client, Intents } = require('discord.js');
+// These lines make "require" available
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+
 const { token } = require('./config.json');
+const { debug } = require('console');
+const logModule = require('./logModule');
+const rollModule = require('./rollModule');
+
+const { Client, Intents } = require('discord.js');
+
 //const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
 const client = new Client({ intents: ['DIRECT_MESSAGES', 'DIRECT_MESSAGE_REACTIONS', 'GUILD_MESSAGES', 'GUILD_MESSAGE_REACTIONS', 'GUILDS'] });
-
-const { debug } = require('console');
-const logTool = require('./logTool');
-const rollModule = require('./rollModule');
 
 process.on('uncaughtException', function (err) {
 	console.log('Caught exception: ' + err);
@@ -68,14 +73,10 @@ client.on('messageCreate', function (message) {
 				break;
 			case 'log':
 				if (args.length == 2) { // Specific ID
-					logTool.getLogMessage(args[1], function (msg) {
-						send(channel, msg);
-					});
+					logModule.getLogMessage(args[1]);
 				}
 				else { // Most recent
-					logTool.fetchMostRecent(function (msg) {
-						send(channel, msg);
-					});
+					logModule.getLogMessage();
 				}
 				break;
 			default:
