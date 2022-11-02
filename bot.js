@@ -1,31 +1,43 @@
-const { Client, Intents } = require('discord.js');
+const fs = require('node:fs');
+const path = require('node:path');
+const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const { token } = require('./config.json');
-const logModule = require('./logModule');
-const rollModule = require('./rollModule');
 
-//const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
-const client = new Client({ intents: ['DIRECT_MESSAGES', 'DIRECT_MESSAGE_REACTIONS', 'GUILD_MESSAGES', 'GUILD_MESSAGE_REACTIONS', 'GUILDS'] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-process.on('uncaughtException', function (err) {
-	console.log('Caught exception: ' + err);
-});
+// Dynamically retrieve event files
+const eventsPath = path.join(__dirname, 'events');
+const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
 
-function debugMessage(str) {
-	console.log(str);
+for (const file of eventFiles) {
+	const filePath = path.join(eventsPath, file);
+	const event = require(filePath);
+	if (event.once) {
+		client.once(event.name, (...args) => event.execute(...args));
+	} else {
+		client.on(event.name, (...args) => event.execute(...args));
+	}
 }
 
-client.once('ready', () => {
-	debugMessage('Ready!');
-	debugMessage('Waiting for input...');
-});
+// Dynamically retrieve command files
+client.commands = new Collection();
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+for (const file of commandFiles) {
+	const filePath = path.join(commandsPath, file);
+	const command = require(filePath);
+	client.commands.set(command.data.name, command);
+}
+
 client.login(token);
 
 function send(channel, msg) {
 	if (msg == -1) {
-		debugMessage("Error: Invalid message");
+		console.log("Error: Invalid message");
 		return;
 	}
-	debugMessage("Send:\n" + msg + '\n');
+	console.log("Send:\n" + msg + '\n');
 	channel.send(msg);
 }
 
@@ -33,13 +45,13 @@ async function getNickname(user, guild, callback) {
 	var member = await guild.members.fetch(user);
 	callback(member ? member.displayName : user.username);
 }
-
+/*
 client.on('messageCreate', async function (message) {
 	var content = message.content;
 	var channel = message.channel;
 	if (content.substring(0, 1) == '!') { // Commands start with '!'
 		var args = content.substring(1).split(' ');
-		debugMessage(args[0]);
+		console.log(args[0]);
 
 		var msg = "";
 		switch (args[0]) {
@@ -82,3 +94,4 @@ client.on('messageCreate', async function (message) {
 		}
 	}
 });
+*/
