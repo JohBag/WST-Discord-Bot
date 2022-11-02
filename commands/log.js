@@ -5,10 +5,11 @@ module.exports = {
         .setName('log')
         .setDescription('Fetches the warcraft log')
         .addStringOption(option =>
-            option.setName('input')
-                .setDescription('The input to echo back')),
+            option.setName('id')
+                .setDescription('The report ID')),
     async execute(interaction) {
-        return interaction.reply(getLogMessage('input'));
+        const id = interaction.options.getString('id') ?? 0; // Default to 0
+        return interaction.reply(await getLog(id));
     },
 };
 
@@ -111,24 +112,29 @@ function getRankSection(rankings) {
     return msg;
 }
 
-async function getLogMessage(id = 0) {
+function getReportMessage(report, id) {
+    if (report == null) {
+        return "Error: Invalid ID";
+    }
+
+    var msg = report.zone.name + "\n\n";
+    msg += getBossSection(report) + "\n";
+    msg += getRankSection(report.rankings.data) + "\n";
+    msg += "\n" + "https://www.warcraftlogs.com/reports/" + id + "/";
+    return msg;
+}
+
+async function getLog(id = 0) {
     if (id == 0) {
         // Get ID
         let data = await sendQuery('{ reportData { reports(guildID: 66538, limit: 1) { data { code } } } }');
         id = data.data.reportData.reports.data[0].code
-        console.log("Most recent log: " + id);
+        console.log("No ID provided. Most recent log: " + id);
     }
+    console.log("Fetching report with ID: " + id);
     const query = 'query{ reportData { report(code: "' + id + '") { title zone { name } fights(killType: Encounters) { name difficulty kill fightPercentage } rankings } } }';
     const data = await sendQuery(query);
     const report = data.data.reportData.report;
 
-    var msg = "";
-    msg += report.zone.name + "\n\n";
-
-    msg += getBossSection(report) + "\n";
-    msg += getRankSection(report.rankings.data) + "\n";
-    msg += "\n" + "https://www.warcraftlogs.com/reports/" + id + "/";
-
-    console.log(msg);
-    return msg;
+    return getReportMessage(report, id);
 }
