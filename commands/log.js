@@ -117,6 +117,8 @@ function getReportMessage(report, id) {
         return "Error: Invalid ID";
     }
 
+    let date = new Date(report.endTime * 1000);
+
     var msg = report.zone.name + "\n\n";
     msg += getBossSection(report) + "\n";
     msg += getRankSection(report.rankings.data) + "\n";
