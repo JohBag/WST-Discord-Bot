@@ -1,17 +1,16 @@
-const fs = require('node:fs');
-const path = require('node:path');
-const { Client, Collection, GatewayIntentBits } = require('discord.js');
-const { token } = require('./config.json');
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
+import { Client, Collection, GatewayIntentBits } from 'discord.js';
+import config from './config.json' assert { type: "json"};
+import * as url from 'url';
+import * as events from './index/events.js'
+import * as commands from './index/commands.js'
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 
-// Dynamically retrieve event files
-const eventsPath = path.join(__dirname, 'events');
-const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
-
-for (const file of eventFiles) {
-	const filePath = path.join(eventsPath, file);
-	const event = require(filePath);
+// Load events
+for (const event of Object.values(events)) {
 	if (event.once) {
 		client.once(event.name, (...args) => event.execute(...args));
 	} else {
@@ -19,15 +18,10 @@ for (const file of eventFiles) {
 	}
 }
 
-// Dynamically retrieve command files
+// Load commands
 client.commands = new Collection();
-const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-
-for (const file of commandFiles) {
-	const filePath = path.join(commandsPath, file);
-	const command = require(filePath);
+for (const command of Object.values(commands)) {
 	client.commands.set(command.data.name, command);
 }
 
-client.login(token);
+client.login(config.token);
