@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -8,8 +8,12 @@ export default {
             option.setName('id')
                 .setDescription('The report ID')),
     async execute(interaction) {
+        await interaction.deferReply(); // Defer to avoid 3 second limit on response
+
         const id = interaction.options.getString('id') ?? 0; // Default to 0
-        return interaction.reply(await getLog(id));
+        var report = await getReport(id);
+        var log = embedReport(report, id);
+        return interaction.editReply({ embeds: [log] });
     },
 };
 
@@ -44,89 +48,154 @@ async function sendQuery(query) {
 
 function getBestPulls(fights) {
     var logs = {};
-    for (let i = 0; i < fights.length; ++i) {
+    for (let i in fights) {
         let fight = fights[i];
 
-        // Name (key)
-        let name = "";
-        if (fight.difficulty == 4) {
-            name += "[H] ";
+        if (fight.difficulty in logs === false) {
+            logs[fight.difficulty] = {};
         }
-        name += fight.name;
 
-        // Progress (value)
+        let bestPulls = logs[fight.difficulty];
+        let name = fight.name;
         let perc = 0;
-        if (!fight.kill) { // Wipe progress
+        if (!fight.kill) {
             perc = fight.fightPercentage;
-            if (name in logs) {
-                if (perc > logs[name]) {
-                    perc = logs[name];
+            if (name in bestPulls) {
+                let bestPerc = bestPulls[name];
+                if (perc > bestPerc) {
+                    perc = bestPerc;
                 }
             }
         }
-        logs[name] = perc;
+        bestPulls[name] = perc;
     }
     return logs;
 }
 
 function getBossSection(report) {
-    var msg = "";
-
-    var pulls = getBestPulls(report.fights);
-
-    // Get kill progress
-    for (let i in pulls) {
-        msg += i;
-        let perc = pulls[i];
-        if (perc > 0) {
-            msg += " (" + perc + "%)"
+    let section = {};
+    let logs = getBestPulls(report.fights);
+    for (let difficulty in logs) {
+        if (difficulty in section === false) {
+            section[difficulty] = "";
         }
-        msg += "\n";
+        let progress = logs[difficulty];
+        for (let boss in progress) {
+            let perc = progress[boss];
+            let name = boss;
+            if (perc > 0) {
+                name += " (" + perc + "%)";
+            }
+            section[difficulty] += name + "\n";
+        }
     }
-    return msg;
+    return section;
 }
 
-function getRankSection(rankings) {
-    let msg = "";
+function getTopParse(rankings) {
+    let topParse = '';
 
-    let bestPlayer = "";
-    let bestRank = 0;
-    let fightName = "";
-    for (let i in rankings) {
+    for (let i in rankings) { // Fights
+        let bestRank = 0;
+
         let fight = rankings[i];
-
-        let characters = fight.roles.dps.characters;
-        for (let ii in characters) {
-            let character = characters[ii];
-            let rank = character.rankPercent;
-            if (rank > bestRank) {
-                bestRank = rank;
-                bestPlayer = character.name;
-                fightName = fight.encounter.name;
+        let roles = fight.roles;
+        for (let ii in roles) { // Roles
+            let role = roles[ii];
+            let characters = role.characters;
+            for (let iii in characters) { // Characters
+                let character = characters[iii];
+                let rank = character.rankPercent;
+                if (rank > bestRank) {
+                    bestRank = rank;
+                    topParse = `${rank}% ${character.name} (${fight.encounter.name})`;
+                }
             }
         }
     }
-    if (bestPlayer != "") {
-        msg += "Top parse: " + bestRank + "% " + bestPlayer + " (" + fightName + ")";
-    }
-    return msg;
+
+    return topParse;
 }
 
-function getReportMessage(report, id) {
-    if (report == null) {
-        return "Error: Invalid ID";
+function getParticipants(report) {
+    let participants = {};
+
+    let fights = report.rankings.data;
+    for (let i in fights) {
+        let fight = fights[i];
+        let roles = fight.roles;
+        for (let k in roles) {
+            let role = roles[k];
+
+            if (k in participants === false) {
+                participants[k] = [];
+                console.log("Adding array");
+            }
+
+            let characters = role.characters;
+            for (let ii in characters) {
+                let character = characters[ii];
+                if (participants[k].includes(character.name) === false) {
+                    participants[k].push(character.name);
+                }
+            }
+        }
     }
 
-    let date = new Date(report.endTime * 1000);
-
-    var msg = report.zone.name + "\n\n";
-    msg += getBossSection(report) + "\n";
-    msg += getRankSection(report.rankings.data) + "\n";
-    msg += "\n" + "https://www.warcraftlogs.com/reports/" + id + "/";
-    return msg;
+    return participants;
 }
 
-async function getLog(id = 0) {
+function getParticipantSection(report) {
+    let roles = {};
+
+    let participants = getParticipants(report);
+    for (let role in participants) {
+        if (role in roles === false) {
+            roles[role] = "";
+        }
+
+        let characters = participants[role];
+        for (let i in characters) {
+            roles[role] += characters[i] + '\n';
+        }
+    }
+
+    return roles;
+}
+
+function embedReport(report) {
+    let fields = [];
+
+    // Boss names, percentage included if best pull was a wipe
+    let bosses = getBossSection(report);
+    if (4 in bosses) { // Heroic
+        fields.push({ name: "Heroic", value: bosses[4] })
+    }
+    if (3 in bosses) { // Normal
+        fields.push({ name: "Normal", value: bosses[3] })
+    }
+
+    // Best parse
+    fields.push({ name: "Top parse", value: getTopParse(report.rankings.data) })
+
+    // Participants
+    let participants = getParticipantSection(report);
+    var roles = Object.keys(participants);
+    fields.push({ name: "Damage", value: participants[roles[2]], inline: true })
+    fields.push({ name: "Healing", value: participants[roles[1]], inline: true })
+    fields.push({ name: "Tanking", value: participants[roles[0]], inline: true })
+
+    const embeddedMessage = new EmbedBuilder()
+        .setColor(0x0099FF)
+        .setTitle(report.zone.name)
+        .setURL("https://www.warcraftlogs.com/reports/" + report.code + "/")
+        .setDescription(formatTime(report.startTime))
+        .addFields(fields)
+
+    return embeddedMessage;
+}
+
+async function getReport(id = 0) {
     if (id == 0) {
         // Get ID
         let data = await sendQuery('{ reportData { reports(guildID: 66538, limit: 1) { data { code } } } }');
@@ -134,9 +203,15 @@ async function getLog(id = 0) {
         console.log("No ID provided. Most recent log: " + id);
     }
     console.log("Fetching report with ID: " + id);
-    const query = 'query{ reportData { report(code: "' + id + '") { title zone { name } fights(killType: Encounters) { name difficulty kill fightPercentage } rankings } } }';
+    const query = 'query{ reportData { report(code: "vjxphMbz3GqYkCng") { code title zone {name} startTime fights(killType: Encounters) { name difficulty kill fightPercentage } rankings } } }';
     const data = await sendQuery(query);
     const report = data.data.reportData.report;
 
-    return getReportMessage(report, id);
+    return report;
+}
+
+function formatTime(date) {
+    console.log(date);
+    date = new Date(date);
+    return new Intl.DateTimeFormat('en-GB', { dateStyle: 'full' }).format(date);
 }
