@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import config from '../config.json' assert { type: "json"};
 
 export default {
     data: new SlashCommandBuilder()
@@ -10,7 +11,7 @@ export default {
     async execute(interaction) {
         await interaction.deferReply(); // Defer to avoid 3 second limit on response
 
-        const id = interaction.options.getString('id') ?? 0; // Default to 0
+        const id = interaction.options.getString('id') ?? 0; // Default to 0 (most recent guild log)
         var report = await getReport(id);
         var log = embedReport(report, id);
         return interaction.editReply({ embeds: [log] });
@@ -21,7 +22,7 @@ async function getAccessToken() {
     const response = await fetch('https://www.warcraftlogs.com/oauth/token', {
         method: 'POST',
         headers: {
-            'Authorization': 'Basic ' + btoa('97a1b9d9-7d4f-470d-b40d-4effbb8ebe48:7Avt7DaqTM0lQguawh5w4S99Ozsp4QYG4oVb5v3z')
+            'Authorization': 'Basic ' + btoa(config.warcraftlogsToken)
         },
         body: new URLSearchParams({
             'grant_type': 'client_credentials'
@@ -92,7 +93,7 @@ function getBossSection(report) {
     return section;
 }
 
-function getTopParse(rankings) {
+function getTopParse(rankings) { // To-do: Divide into smaller functions
     let topParse = '';
 
     for (let i in rankings) { // Fights
@@ -124,19 +125,18 @@ function getParticipants(report) {
     for (let i in fights) {
         let fight = fights[i];
         let roles = fight.roles;
-        for (let k in roles) {
-            let role = roles[k];
+        for (let roleKey in roles) {
+            let role = roles[roleKey];
 
-            if (k in participants === false) {
-                participants[k] = [];
-                console.log("Adding array");
+            if (roleKey in participants === false) {
+                participants[roleKey] = [];
             }
 
             let characters = role.characters;
             for (let ii in characters) {
                 let character = characters[ii];
-                if (participants[k].includes(character.name) === false) {
-                    participants[k].push(character.name);
+                if (participants[roleKey].includes(character.name) === false) {
+                    participants[roleKey].push(character.name);
                 }
             }
         }
@@ -203,7 +203,7 @@ async function getReport(id = 0) {
         console.log("No ID provided. Most recent log: " + id);
     }
     console.log("Fetching report with ID: " + id);
-    const query = 'query{ reportData { report(code: "vjxphMbz3GqYkCng") { code title zone {name} startTime fights(killType: Encounters) { name difficulty kill fightPercentage } rankings } } }';
+    const query = `query{ reportData { report(code: "${id}") { code title zone {name} startTime fights(killType: Encounters) { name difficulty kill fightPercentage } rankings } } }`;
     const data = await sendQuery(query);
     const report = data.data.reportData.report;
 

@@ -1,9 +1,8 @@
 import { Configuration, OpenAIApi } from "openai";
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder } from 'discord.js';
 import config from '../config.json' assert { type: "json"};
 import sdk from "microsoft-cognitiveservices-speech-sdk";
 import readline from "readline";
-import { waitForDebugger } from "inspector";
 
 export default {
     data: new SlashCommandBuilder()
@@ -16,15 +15,14 @@ export default {
     async execute(interaction) {
         await interaction.deferReply(); // Defer to avoid 3 second limit on response
 
-        // Get response
+        // Get AI response
         const prompt = interaction.options.getString('input');
         let response = await getResponse(prompt);
         console.log("Response: " + response);
 
-        // Convert to speech
+        // Convert to synthetic speech
         response = response.replace(/(\r\n|\n|\r)/gm, ""); // Remove line breaks
         response = response.substring(response.indexOf(':') + 1); // Remove the role identifier ("AI: ")
-        //response = response.split(":").pop(); 
         const file = await getSpeech(response);
 
         // Reply to user
@@ -112,5 +110,3 @@ async function getSpeech(text) {
     await promise;
     return audioFile;
 }
-
-//await getSpeech("This is a test");
