@@ -22,13 +22,13 @@ export default {
 
         // Convert to synthetic speech
         response = response.replace(/(\r\n|\n|\r)/gm, ""); // Remove line breaks
-        response = response.substring(response.indexOf(':') + 1); // Remove the role identifier ("AI: ")
+        response = response.substring(response.indexOf(': ') + 1); // Remove the role identifier ("AI: ")
         const file = await getSpeech(response);
 
         // Reply to user
-        console.log("Sending reply: ");
         const msg = `*${prompt}*\n\nAI: ${response}\n`;
-        console.log(msg);
+        console.log(conversation);
+
         return interaction.editReply({
             content: msg,
             files: [{
@@ -52,9 +52,9 @@ const openai = new OpenAIApi(configuration);
 async function getResponse(prompt) {
     const completion = await openai.createCompletion({
         model: "text-davinci-002",
-        prompt: generatePrompt(prompt),
+        prompt: getPrompt(prompt),
         temperature: 0.6,
-        max_tokens: 64
+        max_tokens: 128
     });
 
     let response = completion.data.choices[0].text;
@@ -62,7 +62,7 @@ async function getResponse(prompt) {
     return response;
 }
 
-function generatePrompt(prompt) {
+function getPrompt(prompt) {
     conversation += "Human: " + prompt + "\n";
     return conversation;
 }
@@ -70,6 +70,8 @@ function generatePrompt(prompt) {
 async function getSpeech(text) {
     var audioFile = "SyntheticSpeech.wav";
     // This example requires environment variables named "SPEECH_KEY" and "SPEECH_REGION"
+    console.log(config.speechKey)
+    console.log(config.speechRegion)
     const speechConfig = sdk.SpeechConfig.fromSubscription(config.speechKey, config.speechRegion);
     const audioConfig = sdk.AudioConfig.fromAudioFileOutput(audioFile);
 
@@ -86,7 +88,7 @@ async function getSpeech(text) {
     });
 
     // Start the synthesizer and wait for a result.
-    let promise = new Promise((resolve, reject) => {
+    let promise = new Promise((resolve) => {
         console.log("Synthesizing: " + text);
         synthesizer.speakTextAsync(text,
             function (result) {

@@ -12,8 +12,15 @@ export default {
         await interaction.deferReply(); // Defer to avoid 3 second limit on response
 
         const id = interaction.options.getString('id') ?? 0; // Default to 0 (most recent guild log)
-        var report = await getReport(id);
-        var log = embedReport(report, id);
+        let report = await getReport(id);
+        if (report == null) {
+            // Weird solution to produce an ephemeral error message (edit doesn't work)
+            await interaction.editReply({ content: 'Error', ephemeral: true });
+            await interaction.followUp({ content: 'Error: No report with id *' + id + '* could be found.', ephemeral: true });
+            return interaction.deleteReply();
+        }
+        let log = embedReport(report, id);
+
         return interaction.editReply({ embeds: [log] });
     },
 };
@@ -28,6 +35,7 @@ async function getAccessToken() {
             'grant_type': 'client_credentials'
         })
     });
+
     const data = await response.json();
     return data.access_token
 }
@@ -43,12 +51,14 @@ async function sendQuery(query) {
         },
         body: JSON.stringify({ query })
     });
+
     const data = await response.json();
     return data;
 }
 
 function getBestPulls(fights) {
-    var logs = {};
+    let logs = {};
+
     for (let i in fights) {
         let fight = fights[i];
 
@@ -59,15 +69,19 @@ function getBestPulls(fights) {
         let bestPulls = logs[fight.difficulty];
         let name = fight.name;
         let perc = 0;
+
         if (!fight.kill) {
             perc = fight.fightPercentage;
+
             if (name in bestPulls) {
                 let bestPerc = bestPulls[name];
+
                 if (perc > bestPerc) {
                     perc = bestPerc;
                 }
             }
         }
+
         bestPulls[name] = perc;
     }
     return logs;
@@ -80,33 +94,38 @@ function getBossSection(report) {
         if (difficulty in section === false) {
             section[difficulty] = "";
         }
+
         let progress = logs[difficulty];
         for (let boss in progress) {
             let perc = progress[boss];
             let name = boss;
+
             if (perc > 0) {
                 name += " (" + perc + "%)";
             }
+
             section[difficulty] += name + "\n";
         }
     }
     return section;
 }
 
-function getTopParse(rankings) { // To-do: Divide into smaller functions
+function getTopParse(rankings) {
     let topParse = '';
 
     for (let i in rankings) { // Fights
         let bestRank = 0;
-
         let fight = rankings[i];
         let roles = fight.roles;
+
         for (let ii in roles) { // Roles
             let role = roles[ii];
             let characters = role.characters;
+
             for (let iii in characters) { // Characters
                 let character = characters[iii];
                 let rank = character.rankPercent;
+
                 if (rank > bestRank) {
                     bestRank = rank;
                     topParse = `${rank}% ${character.name} (${fight.encounter.name})`;
@@ -118,25 +137,25 @@ function getTopParse(rankings) { // To-do: Divide into smaller functions
     return topParse;
 }
 
-function getParticipants(report) {
+function getParticipants(fights) {
     let participants = {};
 
-    let fights = report.rankings.data;
     for (let i in fights) {
         let fight = fights[i];
         let roles = fight.roles;
-        for (let roleKey in roles) {
-            let role = roles[roleKey];
 
-            if (roleKey in participants === false) {
-                participants[roleKey] = [];
+        for (let role in roles) {
+            let roleData = roles[role];
+
+            if (role in participants === false) {
+                participants[role] = [];
             }
 
-            let characters = role.characters;
+            let characters = roleData.characters;
             for (let ii in characters) {
                 let character = characters[ii];
-                if (participants[roleKey].includes(character.name) === false) {
-                    participants[roleKey].push(character.name);
+                if (participants[role].includes(character.name) === false) {
+                    participants[role].push(character.name);
                 }
             }
         }
@@ -148,7 +167,7 @@ function getParticipants(report) {
 function getParticipantSection(report) {
     let roles = {};
 
-    let participants = getParticipants(report);
+    let participants = getParticipants(report.rankings.data);
     for (let role in participants) {
         if (role in roles === false) {
             roles[role] = "";
@@ -168,11 +187,13 @@ function embedReport(report) {
 
     // Boss names, percentage included if best pull was a wipe
     let bosses = getBossSection(report);
-    if (4 in bosses) { // Heroic
-        fields.push({ name: "Heroic", value: bosses[4] })
+    let heroic = 4;
+    if (heroic in bosses) {
+        fields.push({ name: "Heroic", value: bosses[heroic] })
     }
-    if (3 in bosses) { // Normal
-        fields.push({ name: "Normal", value: bosses[3] })
+    let normal = 3;
+    if (normal in bosses) {
+        fields.push({ name: "Normal", value: bosses[normal] })
     }
 
     // Best parse
@@ -197,11 +218,12 @@ function embedReport(report) {
 
 async function getReport(id = 0) {
     if (id == 0) {
-        // Get ID
+        // Get ID of most recent guild log
         let data = await sendQuery('{ reportData { reports(guildID: 66538, limit: 1) { data { code } } } }');
         id = data.data.reportData.reports.data[0].code
         console.log("No ID provided. Most recent log: " + id);
     }
+
     console.log("Fetching report with ID: " + id);
     const query = `query{ reportData { report(code: "${id}") { code title zone {name} startTime fights(killType: Encounters) { name difficulty kill fightPercentage } rankings } } }`;
     const data = await sendQuery(query);
@@ -211,7 +233,6 @@ async function getReport(id = 0) {
 }
 
 function formatTime(date) {
-    console.log(date);
     date = new Date(date);
     return new Intl.DateTimeFormat('en-GB', { dateStyle: 'full' }).format(date);
 }
