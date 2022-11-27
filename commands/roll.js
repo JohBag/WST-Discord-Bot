@@ -1,22 +1,18 @@
 import { SlashCommandBuilder } from 'discord.js';
+import roll from '../random.js';
 
 export default {
     data: new SlashCommandBuilder()
         .setName('roll')
-        .setDescription('Rolls 1-100'),
+        .setDescription('Rolls a random value')
+        .addIntegerOption(option =>
+            option.setName('max')
+                .setDescription('The highest possible value')),
     async execute(interaction) {
-        return interaction.reply(rollMessage(interaction.member.displayName));
+        const max = interaction.options.getInteger('max') ?? 100; // Default to 100
+        const result = roll(1, max);
+
+        const userName = interaction.member.displayName;
+        return interaction.reply(userName + " rolls " + result);
     },
 };
-
-function random(min, max) {
-    return Math.floor(Math.random() * ((max + 1) - min)) + min;
-}
-
-function roll(min = 1, max = 100) {
-    return random(min, max);
-}
-
-function rollMessage(userName) {
-    return userName + " rolls " + roll();
-}

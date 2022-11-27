@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
-import fs from 'fs';
+import { save, load } from '../json_manager.js';
 
 const maxOptions = 5;
 
@@ -23,7 +23,7 @@ export default {
                 .setDescription('Write all options here with comma-separation (max ' + maxOptions + ')')
                 .setRequired(true)),
     async execute(interaction) {
-        let votes = loadVotes();
+        let votes = load('votes');
 
         if (interaction.isButton()) {
             return registerVote(interaction, votes);
@@ -40,19 +40,22 @@ export default {
         }
 
         // Get options
-        optionString = optionString.replace(/\s+/g, ''); // Remove spaces
+        //optionString = optionString.replace(/\s+/g, ''); // Remove spaces
         let options = {};
-        for (let i in optionString.split(',')) {
-            if (i >= maxOptions) break;
+        let n = 0;
+        for (let i of optionString.split(',')) {
+            i = i.replace(/^,/, ''); // Remove leading space
 
-            let name = optionString[i];
-            if (name == '') continue;
+            if (i == '') continue;
 
             if (anonymity) {
-                options[name] = 0;
+                options[i] = 0;
             } else {
-                options[name] = [];
+                options[i] = [];
             }
+
+            n++;
+            if (n >= maxOptions) break;
         }
 
         // Create vote
@@ -64,7 +67,7 @@ export default {
         };
         votes[title] = vote;
 
-        saveVotes(votes);
+        save('votes', votes);
 
         // Create buttons
         var row = new ActionRowBuilder()
@@ -79,22 +82,16 @@ export default {
         }
 
         let tally = getResult(vote);
-        return interaction.reply({ content: title, embeds: [tally], components: [row] });
+        return interaction.reply({ embeds: [tally], components: [row] });
     },
 };
 
-function loadVotes() {
-    let rawdata = fs.readFileSync('votes.json');
-    return JSON.parse(rawdata);
-}
-
-function saveVotes(votes) {
-    let data = JSON.stringify(votes);
-    fs.writeFileSync('votes.json', data);
-}
-
 function registerVote(interaction, votes) {
-    let title = interaction.message.content;
+    let title = interaction.message.embeds[0].title;
+    if (!votes.hasOwnProperty(title)) {
+        return interaction.reply({ content: 'The vote has already ended', ephemeral: true });
+    }
+
     let vote = votes[title];
 
     let userID = interaction.user.id;
@@ -107,7 +104,7 @@ function registerVote(interaction, votes) {
     } else {
         vote.options[interaction.customId].push(interaction.member.nickname);
     }
-    saveVotes(votes);
+    save('votes', votes);
     console.log("Vote registered for " + interaction.customId);
 
     let tally = getResult(vote);
@@ -138,7 +135,7 @@ function getResult(vote) {
 
     const embeddedMessage = new EmbedBuilder()
         .setColor(0x0099FF)
-        .setTitle("Result")
+        .setTitle(vote.title)
         .addFields(fields)
 
     return embeddedMessage;

@@ -1,5 +1,5 @@
 import { Client, Collection, GatewayIntentBits } from 'discord.js';
-import config from './config.json' assert { type: "json"};
+import { load } from 'json_manager.js';
 import * as events from './index/events.js'
 import * as commands from './index/commands.js'
 
@@ -20,4 +20,5 @@ for (const command of Object.values(commands)) {
 	client.commands.set(command.data.name, command);
 }
 
+const config = load('config');
 client.login(config.token);

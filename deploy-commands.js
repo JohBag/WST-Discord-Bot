@@ -24,11 +24,13 @@ const rest = new REST({ version: '10' }).setToken(config.token);
 			{ body: commandsData },
 		);
 
+		/*
 		// Global
-		//const data = await rest.put(
-		//    Routes.applicationCommands(config.clientId),
-		//    { body: commandsData },
-		//);
+		const data = await rest.put(
+			Routes.applicationCommands(config.clientId),
+			{ body: commandsData },
+		);
+		*/
 
 		console.log(`Successfully reloaded ${data.length} application (/) commands.`);
 	} catch (error) {
