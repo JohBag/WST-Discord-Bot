@@ -16,7 +16,7 @@ export default {
         if (report == null) {
             // Weird solution to produce an ephemeral error message (edit doesn't work)
             await interaction.editReply({ content: 'Error', ephemeral: true });
-            await interaction.followUp({ content: 'Error: No report with id *' + id + '* could be found.', ephemeral: true });
+            await interaction.followUp({ content: 'No report with id *' + id + '* could be found.', ephemeral: true });
             return interaction.deleteReply();
         }
         let log = embedReport(report, id);
