@@ -1,6 +1,8 @@
 import { REST, Routes } from 'discord.js';
-import config from './config.json' assert { type: "json"};
+import { load } from 'json_manager.js';
 import * as commands from './index/commands.js'
+
+const config = load('config');
 
 const commandsData = [];
 // Grab the SlashCommandBuilder#toJSON() output of each command's data for deployment
