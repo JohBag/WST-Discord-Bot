@@ -1,8 +1,10 @@
 import { Configuration, OpenAIApi } from "openai";
 import { SlashCommandBuilder } from 'discord.js';
-import config from '../config.json' assert { type: "json"};
+import { load } from '../json_manager.js';
 import sdk from "microsoft-cognitiveservices-speech-sdk";
 import readline from "readline";
+
+const config = load('config');
 
 export default {
     data: new SlashCommandBuilder()
@@ -39,10 +41,9 @@ export default {
     },
 };
 
-var conversation = `The following is a conversation with an AI assistant. \n
-The AI is helpful, clever, and very friendly. \n
+var conversation = `The following is a conversation with an AI assistant who is helpful, clever, and very friendly. \n
 Human: Hello, who are you? \n
-AI: Hi! I am an AI created by OpenAI.\n`;
+AI: Hi! I am an AI assistant, how may I help you?\n`;
 
 const configuration = new Configuration({
     apiKey: "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", // Fix later

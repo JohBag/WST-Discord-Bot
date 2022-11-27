@@ -1,5 +1,5 @@
 import { REST, Routes } from 'discord.js';
-import { load } from 'json_manager.js';
+import { load } from './json_manager.js';
 
 const rest = new REST({ version: '10' }).setToken(config.token);
 const config = load('config');

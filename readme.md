@@ -41,3 +41,7 @@ The commands may been to be redeployed if changes are made to the code or the gu
 The bot can be run through a terminal. Powershell is recommended for Windows.
 
     node bot.js
+
+### Important
+
+By default, all commands will be available to everyone. This may not be ideal, and limitations can be made by the server admin to prevent misuse.

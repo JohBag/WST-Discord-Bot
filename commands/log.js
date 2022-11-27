@@ -1,5 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { save, load } from '../json_manager.js';
+import { load } from '../json_manager.js';
+
+const config = load('config');
 
 export default {
     data: new SlashCommandBuilder()
@@ -26,7 +28,6 @@ export default {
 };
 
 async function getAccessToken() {
-    const config = load('config');
     const response = await fetch('https://www.warcraftlogs.com/oauth/token', {
         method: 'POST',
         headers: {

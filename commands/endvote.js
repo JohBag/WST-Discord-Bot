@@ -22,7 +22,6 @@ export default {
             }
             delete votes[title];
         }
-
         save('votes', votes);
 
         return interaction.reply({ content: 'Vote ended successfully', ephemeral: true });

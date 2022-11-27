@@ -1,3 +1,5 @@
+import fs from "fs";
+
 export function load(fileName) {
     let rawdata = fs.readFileSync('json/' + fileName + '.json');
     return JSON.parse(rawdata);

@@ -1,5 +1,5 @@
 import { REST, Routes } from 'discord.js';
-import { load } from 'json_manager.js';
+import { load } from './json_manager.js';
 import * as commands from './index/commands.js'
 
 const config = load('config');

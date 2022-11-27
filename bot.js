@@ -1,9 +1,10 @@
 import { Client, Collection, GatewayIntentBits } from 'discord.js';
-import { load } from 'json_manager.js';
+import { load } from './json_manager.js';
 import * as events from './index/events.js'
 import * as commands from './index/commands.js'
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const config = load('config');
 
 // Load events
 for (const event of Object.values(events)) {
@@ -20,5 +21,4 @@ for (const command of Object.values(commands)) {
 	client.commands.set(command.data.name, command);
 }
 
-const config = load('config');
 client.login(config.token);
