@@ -46,7 +46,7 @@ Human: Hello, who are you? \n
 AI: Hi! I am an AI assistant, how may I help you?\n`;
 
 const configuration = new Configuration({
-    apiKey: "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", // Fix later
+    apiKey: config.apiKey,
 });
 const openai = new OpenAIApi(configuration);
 

@@ -6,12 +6,13 @@ This bot is not intended for public use. All keys must be kept secret and can no
 
 ### Enter Keys
 
-Add a config.json file to the main folder with the following variables. Keys are provided upon request from the bot developer (Elethia).
+Create a folder called 'json' to the main folder, and add a new file named 'config.json'. The config file should have the following variables. Keys are provided upon request from the bot developer (Elethia).
 
     {
         "token": "TOKEN_HERE",
         "clientId": "CLIENT_ID_HERE",
         "guildId": "GUILD_ID_HERE",
+        "apiKey": "API_KEY_HERE",
         "speechKey": "SPEECH_KEY_HERE",
         "speechRegion": "REGION_HERE",
         "warcraftlogsToken": "WCL_TOKEN_HERE"
@@ -20,6 +21,7 @@ Add a config.json file to the main folder with the following variables. Keys are
 * Token - Bot token. 
 * ClientID - Discord client ID.
 * GuildID - Discord server ID.
+* apiKey - Azure API key.
 * SpeechKey - Azure speech resource key.
 * SpeechRegion - Azure speech resource region.
 * WarcraftLogsToken - WarcraftLogs client token.

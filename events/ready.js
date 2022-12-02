@@ -1,7 +1,7 @@
 export default {
     name: 'ready',
     once: true,
-    execute(client) {
+    execute() {
         console.log('Ready!');
     },
 };
