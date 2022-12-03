@@ -6,7 +6,7 @@ This bot is not intended for public use. All keys must be kept secret and can no
 
 ### Enter Keys
 
-Add a new file named 'config.json' to the json folder. The config file should have the following variables, keys are provided upon request from the bot developer (Elethia).
+Create a new folder called 'json' to the main folder, then add a new file named 'config.json' to the json folder. The config file should have the following variables, keys are provided upon request from the bot developer (Elethia).
 
     {
         "token": "TOKEN_HERE",
