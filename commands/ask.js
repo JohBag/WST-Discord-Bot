@@ -81,7 +81,13 @@ async function getSpeech(text) {
     // Start the synthesizer and wait for a result.
     let promise = new Promise((resolve) => {
         synthesizer.speakTextAsync(text,
-            function () {
+            function (result) {
+                if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
+                    console.log("Synthesis finished.");
+                } else {
+                    console.error("Speech synthesis canceled, " + result.errorDetails +
+                        "\nDid you set the speech resource key and region values?");
+                }
                 synthesizer.close();
                 synthesizer = null;
                 resolve();
@@ -94,5 +100,6 @@ async function getSpeech(text) {
             });
     });
     await promise;
+
     return audioFile;
 }
