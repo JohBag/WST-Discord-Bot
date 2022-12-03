@@ -20,7 +20,6 @@ export default {
         // Get AI response
         const prompt = interaction.options.getString('input');
         let response = await getResponse(prompt);
-        console.log("Response: " + response);
 
         // Convert to synthetic speech
         response = response.replace(/(\r\n|\n|\r)/gm, ""); // Remove line breaks
@@ -29,7 +28,6 @@ export default {
 
         // Reply to user
         const msg = `*${prompt}*\n\nAI: ${response}\n`;
-        console.log(conversation);
 
         return interaction.editReply({
             content: msg,
@@ -71,8 +69,6 @@ function getPrompt(prompt) {
 async function getSpeech(text) {
     var audioFile = "SyntheticSpeech.wav";
     // This example requires environment variables named "SPEECH_KEY" and "SPEECH_REGION"
-    console.log(config.speechKey)
-    console.log(config.speechRegion)
     const speechConfig = sdk.SpeechConfig.fromSubscription(config.speechKey, config.speechRegion);
     const audioConfig = sdk.AudioConfig.fromAudioFileOutput(audioFile);
 
@@ -90,15 +86,8 @@ async function getSpeech(text) {
 
     // Start the synthesizer and wait for a result.
     let promise = new Promise((resolve) => {
-        console.log("Synthesizing: " + text);
         synthesizer.speakTextAsync(text,
-            function (result) {
-                if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
-                    console.log("Synthesis finished.");
-                } else {
-                    console.error("Speech synthesis canceled, " + result.errorDetails +
-                        "\nDid you set the speech resource key and region values?");
-                }
+            function () {
                 synthesizer.close();
                 synthesizer = null;
                 resolve();

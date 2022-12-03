@@ -5,7 +5,7 @@ export function load(fileName) {
         let rawdata = fs.readFileSync('json/' + fileName + '.json');
         return JSON.parse(rawdata);
     } catch (err) {
-        console.log("File with name " + fileName + " not found");
+        console.log("Failed to find file with name " + fileName);
         save(fileName, {});
         console.log("Created empty file");
         return {};
