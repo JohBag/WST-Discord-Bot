@@ -2,7 +2,6 @@ import { Configuration, OpenAIApi } from "openai";
 import { SlashCommandBuilder } from 'discord.js';
 import { load } from '../json_manager.js';
 import sdk from "microsoft-cognitiveservices-speech-sdk";
-import readline from "readline";
 
 const config = load('config');
 
@@ -78,11 +77,6 @@ async function getSpeech(text) {
 
     // Create the speech synthesizer.
     var synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
-
-    var rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    });
 
     // Start the synthesizer and wait for a result.
     let promise = new Promise((resolve) => {
