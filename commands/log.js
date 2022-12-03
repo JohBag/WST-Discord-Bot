@@ -199,7 +199,7 @@ function embedReport(report) {
     }
 
     // Best parse
-    fields.push({ name: "Top parse", value: getTopParse(report.rankings.data) })
+    //fields.push({ name: "Top parse", value: getTopParse(report.rankings.data) })
 
     // Participants
     let participants = getParticipantSection(report);

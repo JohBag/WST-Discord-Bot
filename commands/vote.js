@@ -102,12 +102,11 @@ function registerVote(interaction, votes) {
     if (vote.anonymity) {
         vote.options[interaction.customId] += 1;
     } else {
-        console.log(interaction);
         let name = interaction.member.nickname ?? interaction.user.username; // Get nickname, or discord name
         vote.options[interaction.customId].push(name);
     }
     save('votes', votes);
-    console.log("Vote registered for " + interaction.customId);
+    console.log(title + " | Vote registered for " + interaction.customId);
 
     let tally = getResult(vote);
     interaction.update({ embeds: [tally] });
