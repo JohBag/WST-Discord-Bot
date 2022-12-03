@@ -28,13 +28,17 @@ Create a new folder called 'json' to the main folder, then add a new file named 
 
 ### Install Prerequisites
 
+    npm install
+
+or
+
     npm install discord.js
     npm install openai
     npm install microsoft-cognitiveservices-speech-sdk
 
 ### Deploy Commands
 
-The commands may been to be redeployed if changes are made to the code or the guildID. This can be done by running deploy-commands.js once.
+The commands may need to be redeployed if changes are made to the code or the guildID. This can be done by running deploy-commands.js once.
 
     node deploy-commands.js
 
