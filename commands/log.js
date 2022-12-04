@@ -163,6 +163,11 @@ function getParticipants(fights) {
         }
     }
 
+    // Sort alphabetically
+    for (let i in participants) {
+        participants[i].sort();
+    }
+
     return participants;
 }
 
