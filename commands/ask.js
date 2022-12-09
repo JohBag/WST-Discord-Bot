@@ -4,6 +4,10 @@ import { load } from '../json_manager.js';
 import sdk from "microsoft-cognitiveservices-speech-sdk";
 
 const config = load('config');
+const configuration = new Configuration({
+    apiKey: config.apiKey,
+});
+const openai = new OpenAIApi(configuration);
 
 export default {
     data: new SlashCommandBuilder()
@@ -18,15 +22,13 @@ export default {
 
         // Get AI response
         const prompt = interaction.options.getString('input');
-        let response = await getResponse(prompt);
+        const response = await getOpenAIResponse(prompt + "\n");
 
         // Convert to synthetic speech
-        response = response.replace(/(\r\n|\n|\r)/gm, ""); // Remove line breaks
-        response = response.substring(response.indexOf(': ') + 1); // Remove the role identifier ("AI: ")
-        const file = await getSpeech(response);
+        const file = await convertToSpeech(response);
 
         // Reply to user
-        const msg = `*${prompt}*\n\nAI: ${response}\n`;
+        const msg = "*" + prompt + "*\n" + response + "\n";
 
         return interaction.editReply({
             content: msg,
@@ -38,40 +40,24 @@ export default {
     },
 };
 
-var conversation = `The following is a conversation with an AI assistant who is helpful, clever, and very friendly. \n
-Human: Hello, who are you? \n
-AI: Hi! I am an AI assistant, how may I help you?\n`;
-
-const configuration = new Configuration({
-    apiKey: config.apiKey,
-});
-const openai = new OpenAIApi(configuration);
-
-async function getResponse(prompt) {
+async function getOpenAIResponse(prompt) {
     const completion = await openai.createCompletion({
-        model: "text-davinci-002",
-        prompt: getPrompt(prompt),
+        model: "text-davinci-003",
+        prompt: prompt,
         temperature: 0.6,
         max_tokens: 128
     });
 
-    let response = completion.data.choices[0].text;
-    conversation += response;
-    return response;
+    return completion.data.choices[0].text;;
 }
 
-function getPrompt(prompt) {
-    conversation += "Human: " + prompt + "\n";
-    return conversation;
-}
+async function convertToSpeech(text) {
+    var fileName = "SyntheticSpeech.wav";
 
-async function getSpeech(text) {
-    var audioFile = "SyntheticSpeech.wav";
-    // This example requires environment variables named "SPEECH_KEY" and "SPEECH_REGION"
     const speechConfig = sdk.SpeechConfig.fromSubscription(config.speechKey, config.speechRegion);
-    const audioConfig = sdk.AudioConfig.fromAudioFileOutput(audioFile);
+    const audioConfig = sdk.AudioConfig.fromAudioFileOutput(fileName);
 
-    // The language of the voice that speaks.
+    // Voice
     speechConfig.speechSynthesisVoiceName = "en-GB-RyanNeural"; // Male
     //speechConfig.speechSynthesisVoiceName = "en-US-SaraNeural"; // Female
 
@@ -101,5 +87,5 @@ async function getSpeech(text) {
     });
     await promise;
 
-    return audioFile;
+    return fileName;
 }
