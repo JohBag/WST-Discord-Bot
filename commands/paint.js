@@ -15,7 +15,7 @@ export default {
     async execute(interaction) {
         await interaction.deferReply(); // Defer to avoid 3 second limit on response
 
-        const prompt = toTitleCase(interaction.options.getString('prompt'));
+        const prompt = interaction.options.getString('prompt');
 
         const configuration = new Configuration({
             apiKey: config.apiKey,
@@ -37,9 +37,3 @@ export default {
         });
     },
 };
-
-function toTitleCase(str) {
-    return str.toLowerCase().split(' ').map(function (word) {
-        return (word.charAt(0).toUpperCase() + word.slice(1));
-    }).join(' ');
-}
