@@ -15,63 +15,33 @@ export default {
         .addBooleanOption(option =>
             option
                 .setName('anonymity')
-                .setDescription('True: Show only score. False: Show who voted for each option')
+                .setDescription('True: Show only score. False: Show who voted for each option. Anonymous votes can not be changed.')
                 .setRequired(true))
         .addStringOption(option =>
             option
                 .setName('options')
-                .setDescription('Write all options here with comma-separation (max ' + maxOptions + ')')
-                .setRequired(true)),
+                .setDescription('Write all options with comma-separation (max ' + maxOptions + ')')
+                .setRequired(true))
+        .addStringOption(option =>
+            option
+                .setName('description')
+                .setDescription('A short description (optional)')),
     async execute(interaction) {
-        let votes = load('votes');
-
         if (interaction.isButton()) {
-            return registerVote(interaction, votes);
+            return registerVote(interaction);
         }
 
-        let args = interaction.options._hoistedOptions;
-        let title = args[0].value
-        let anonymity = args[1].value;
-        let optionString = args[2].value;
+        const args = interaction.options._hoistedOptions;
+        const title = args[0].value
+        const anonymity = args[1].value;
+        const optionString = args[2].value;
+        const descr = args[3].value
 
-        // Check uniqueness
-        if (title in votes) {
-            return interaction.reply({ content: 'A vote on this issue already exists. Use /endvote to end the previous vote', ephemeral: true });
-        }
-
-        // Get options
-        //optionString = optionString.replace(/\s+/g, ''); // Remove spaces
-        let options = {};
-        let n = 0;
-        for (let i of optionString.split(',')) {
-            i = i.replace(/^,/, ''); // Remove leading space
-
-            if (i == '') continue;
-
-            if (anonymity) {
-                options[i] = 0;
-            } else {
-                options[i] = [];
-            }
-
-            n++;
-            if (n >= maxOptions) break;
-        }
-
-        // Create vote
-        let vote = {
-            title: title,
-            options: options,
-            voters: [],
-            anonymity: anonymity
-        };
-        votes[title] = vote;
-
-        save('votes', votes);
+        const vote = createVote(title, descr, anonymity, optionString);
 
         // Create buttons
-        var row = new ActionRowBuilder()
-        for (let i in options) {
+        let row = new ActionRowBuilder()
+        for (let i in vote.options) {
             row
                 .addComponents(
                     new ButtonBuilder()
@@ -81,30 +51,90 @@ export default {
                 );
         }
 
-        let tally = getResult(vote);
+        const tally = getResult(vote);
         return interaction.reply({ embeds: [tally], components: [row] });
     },
 };
 
-function registerVote(interaction, votes) {
-    let title = interaction.message.embeds[0].title;
+function createVote(title, descr, anonymity, optionString) {
+    let votes = load('votes');
+
+    // Check uniqueness
+    if (title in votes) {
+        return interaction.reply({ content: 'A vote on this issue already exists. Use /endvote to end the previous vote', ephemeral: true });
+    }
+
+    // Get options
+    let options = {};
+    let n = 0;
+    for (let i of optionString.split(',')) {
+        i = i.replace(/^,/, ''); // Remove leading space
+
+        if (i == '') continue;
+
+        if (anonymity) {
+            options[i] = 0;
+        } else {
+            options[i] = {};
+        }
+
+        n++;
+        if (n >= maxOptions) break;
+    }
+
+    // Create vote
+    let vote = {
+        title: title,
+        description: descr,
+        options: options,
+        voters: [],
+        anonymity: anonymity
+    };
+    votes[title] = vote;
+
+    save('votes', votes);
+
+    return vote;
+}
+
+function registerVote(interaction) {
+    let votes = load('votes');
+
+    // Check if vote exists
+    const title = interaction.message.embeds[0].title;
     if (!votes.hasOwnProperty(title)) {
         return interaction.reply({ content: 'The vote has already ended', ephemeral: true });
     }
 
+    // Check if user already has voted
     let vote = votes[title];
-
-    let userID = interaction.user.id;
+    const userID = interaction.user.id;
     if (vote.voters.includes(userID)) {
-        return interaction.reply({ content: 'You have already voted on this issue', ephemeral: true });
+        // Prevent change if anonymous
+        if (vote.anonymity) {
+            return interaction.reply({ content: 'Anonymous votes can not be changed', ephemeral: true });
+        }
+
+        // Remove previous vote
+        for (let i in vote.options) {
+            let option = vote.options[i];
+            if (userID in option) {
+                delete option[userID];
+                break;
+            }
+        }
+    } else {
+        vote.voters.push(userID);
     }
-    vote.voters.push(userID);
+
+    // Add vote
     if (vote.anonymity) {
         vote.options[interaction.customId] += 1;
     } else {
-        let name = interaction.member.nickname ?? interaction.user.username; // Get nickname, or discord name
-        vote.options[interaction.customId].push(name);
+        const name = interaction.member.nickname ?? interaction.user.username; // Get nickname or discord name
+        vote.options[interaction.customId][userID] = name;
     }
+
     save('votes', votes);
     console.log(title + " | Vote registered for " + interaction.customId);
 
@@ -123,12 +153,14 @@ function getResult(vote) {
         if (vote.anonymity) {
             result = data;
         } else {
-            if (data.length > 0) {
-                result = '';
+            for (let ii in data) {
+                result += data[ii] + '\n';
             }
-            for (let ii of data) {
-                result += ii + '\n';
-            }
+        }
+
+        // Remove dash
+        if (result.length > 1) {
+            result = result.slice(1);
         }
 
         fields.push({ name: i, value: String(result), inline: true });
@@ -137,6 +169,7 @@ function getResult(vote) {
     const embeddedMessage = new EmbedBuilder()
         .setColor(0x0099FF)
         .setTitle(vote.title)
+        .setDescription(vote.description)
         .addFields(fields)
 
     return embeddedMessage;
