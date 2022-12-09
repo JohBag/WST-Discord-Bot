@@ -68,7 +68,7 @@ function createVote(title, descr, anonymity, optionString) {
     let options = {};
     let n = 0;
     for (let i of optionString.split(',')) {
-        i = i.replace(/^,/, ''); // Remove leading space
+        i = i.replace(/^\s+|\s+$/gm, ''); // Remove leading space
 
         if (i == '') continue;
 
