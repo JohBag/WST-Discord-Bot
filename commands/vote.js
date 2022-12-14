@@ -113,37 +113,33 @@ function registerVote(interaction) {
         return interaction.reply({ content: 'The vote has already ended', ephemeral: true });
     }
 
-    // Check if user already has voted
     let vote = votes[title];
     const userID = interaction.user.id;
-    if (vote.voters.includes(userID)) {
-        // Prevent change if anonymous
-        if (vote.anonymity) {
-            return interaction.reply({ content: 'Anonymous votes can not be changed', ephemeral: true });
-        }
-
-        // Remove previous vote
-        for (let i in vote.options) {
-            let option = vote.options[i];
-            if (userID in option) {
-                delete option[userID];
-                break;
-            }
-        }
-    } else {
-        vote.voters.push(userID);
-    }
 
     // Add vote
+    const voteID = interaction.customId;
     if (vote.anonymity) {
-        vote.options[interaction.customId] += 1;
+        if (vote.voters.includes(userID)) {
+            // Prevent change if anonymous
+            return interaction.reply({ content: 'Anonymous votes can not be changed', ephemeral: true });
+        }
+        vote.voters.push(userID);
+        vote.options[voteID] += 1;
     } else {
-        const name = interaction.member.nickname ?? interaction.user.username; // Get nickname or discord name
-        vote.options[interaction.customId][userID] = name;
+        // Remove previous vote
+        let option = vote.options[voteID];
+        if (userID in option) {
+            delete option[userID];
+        }
+        else {
+            // Allow multiple votes
+            const name = interaction.member.nickname ?? interaction.user.username; // Get nickname or discord name
+            vote.options[voteID][userID] = name;
+        }
     }
 
     save('votes', votes);
-    console.log(title + " | Vote registered for " + interaction.customId);
+    console.log(title + " | Vote registered for " + voteID);
 
     let tally = getResult(vote);
     interaction.update({ embeds: [tally] });
