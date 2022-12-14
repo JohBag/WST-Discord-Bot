@@ -35,9 +35,15 @@ export default {
         const title = args[0].value
         const anonymity = args[1].value;
         const optionString = args[2].value;
-        const descr = args[3].value
+        let descr = "";
+        if (args.length > 3) {
+            descr = args[3].value
+        }
 
-        const vote = createVote(title, descr, anonymity, optionString);
+        const vote = createVote(interaction, title, descr, anonymity, optionString);
+        if (vote == null) {
+            return interaction.reply({ content: 'A vote on this issue already exists. Use /endvote to end the previous vote', ephemeral: true });
+        }
 
         // Create buttons
         let row = new ActionRowBuilder()
@@ -56,12 +62,12 @@ export default {
     },
 };
 
-function createVote(title, descr, anonymity, optionString) {
+function createVote(interaction, title, descr, anonymity, optionString) {
     let votes = load('votes');
 
     // Check uniqueness
     if (title in votes) {
-        return interaction.reply({ content: 'A vote on this issue already exists. Use /endvote to end the previous vote', ephemeral: true });
+        return null;
     }
 
     // Get options
@@ -90,6 +96,7 @@ function createVote(title, descr, anonymity, optionString) {
         voters: [],
         anonymity: anonymity
     };
+
     votes[title] = vote;
 
     save('votes', votes);
@@ -166,11 +173,15 @@ function getResult(vote) {
         fields.push({ name: i, value: String(result), inline: true });
     }
 
+    console.log(vote);
     const embeddedMessage = new EmbedBuilder()
         .setColor(0x0099FF)
         .setTitle(vote.title)
-        .setDescription(vote.description)
         .addFields(fields)
+
+    if (vote.description.length > 0) {
+        embeddedMessage.setDescription(vote.description)
+    }
 
     return embeddedMessage;
 }
