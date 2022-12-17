@@ -1,12 +1,8 @@
-## Warning
-
-This bot is not intended for public use. All keys must be kept secret and can not shared or uploaded online without explicit permission.
-
 ## Installation
 
 ### Enter Keys
 
-Create a new folder called 'json' to the main folder, then add a new file named 'config.json' to the json folder. The config file should have the following variables, keys are provided upon request from the bot developer (Elethia).
+Create a new folder called 'json' to the main folder, then add a new file named 'config.json' to the json folder. The config file should have the following variables.
 
     {
         "token": "TOKEN_HERE",
@@ -21,7 +17,7 @@ Create a new folder called 'json' to the main folder, then add a new file named 
 * Token - Bot token. 
 * ClientID - Discord client ID.
 * GuildID - Discord server ID.
-* apiKey - Azure API key.
+* apiKey - OpenAI API key.
 * SpeechKey - Azure speech resource key.
 * SpeechRegion - Azure speech resource region.
 * WarcraftLogsToken - WarcraftLogs client token.
@@ -43,8 +39,6 @@ The commands may need to be redeployed if changes are made to the code or the gu
     node deploy-commands.js
 
 ### Starting the Bot
-
-The bot can be run through a terminal. Powershell is recommended for Windows.
 
     node bot.js
 
