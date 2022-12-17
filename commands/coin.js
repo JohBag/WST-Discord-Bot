@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import roll from '../random.js';
+import roll from '../common/random.js';
 
 export default {
     data: new SlashCommandBuilder()
