@@ -35,12 +35,9 @@ export default {
         const title = args[0].value
         const anonymity = args[1].value;
         const optionString = args[2].value;
-        let descr = "";
-        if (args.length > 3) {
-            descr = args[3].value
-        }
+        const descr = args.length > 3 ? args[3].value : null;
 
-        const vote = createVote(interaction, title, descr, anonymity, optionString);
+        const vote = createVote(title, descr, anonymity, optionString);
         if (vote == null) {
             return interaction.reply({ content: 'A vote on this issue already exists. Use /endvote to end the previous vote', ephemeral: true });
         }
@@ -62,7 +59,7 @@ export default {
     },
 };
 
-function createVote(interaction, title, descr, anonymity, optionString) {
+function createVote(title, descr, anonymity, optionString) {
     let votes = load('votes');
 
     // Check uniqueness
@@ -169,13 +166,12 @@ function getResult(vote) {
         fields.push({ name: i, value: String(result), inline: true });
     }
 
-    console.log(vote);
     const embeddedMessage = new EmbedBuilder()
         .setColor(0x0099FF)
         .setTitle(vote.title)
         .addFields(fields)
 
-    if (vote.description.length > 0) {
+    if (vote.description != null) {
         embeddedMessage.setDescription(vote.description)
     }
 
