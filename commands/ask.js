@@ -1,7 +1,7 @@
 import { Configuration, OpenAIApi } from "openai";
 import { SlashCommandBuilder } from 'discord.js';
 import { load } from '../json_manager.js';
-import sdk from "microsoft-cognitiveservices-speech-sdk";
+import convertToSpeech from '../common/syntheticSpeech.js';
 
 const config = load('config');
 const configuration = new Configuration({
@@ -30,13 +30,20 @@ export default {
         // Reply to user
         const msg = "*" + prompt + "*\n" + response + "\n";
 
-        return interaction.editReply({
+        // Add reply
+        interaction.editReply({
             content: msg,
-            files: [{
-                attachment: file,
-                name: file
-            }]
         });
+        if (file != null) {
+            interaction.editReply({
+                files: [{
+                    attachment: file,
+                    name: file
+                }]
+            });
+        }
+
+        return;
     },
 };
 
@@ -49,43 +56,4 @@ async function getOpenAIResponse(prompt) {
     });
 
     return completion.data.choices[0].text;;
-}
-
-async function convertToSpeech(text) {
-    var fileName = "SyntheticSpeech.wav";
-
-    const speechConfig = sdk.SpeechConfig.fromSubscription(config.speechKey, config.speechRegion);
-    const audioConfig = sdk.AudioConfig.fromAudioFileOutput(fileName);
-
-    // Voice
-    speechConfig.speechSynthesisVoiceName = "en-GB-RyanNeural"; // Male
-    //speechConfig.speechSynthesisVoiceName = "en-US-SaraNeural"; // Female
-
-    // Create the speech synthesizer.
-    var synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
-
-    // Start the synthesizer and wait for a result.
-    let promise = new Promise((resolve) => {
-        synthesizer.speakTextAsync(text,
-            function (result) {
-                if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
-                    console.log("Synthesis finished.");
-                } else {
-                    console.error("Speech synthesis canceled, " + result.errorDetails +
-                        "\nDid you set the speech resource key and region values?");
-                }
-                synthesizer.close();
-                synthesizer = null;
-                resolve();
-            },
-            function (err) {
-                console.trace("err - " + err);
-                synthesizer.close();
-                synthesizer = null;
-                resolve();
-            });
-    });
-    await promise;
-
-    return fileName;
 }
