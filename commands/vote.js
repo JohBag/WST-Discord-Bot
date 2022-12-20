@@ -136,7 +136,7 @@ function registerVote(interaction) {
     }
 
     save('votes', votes);
-    console.log(title + " | Vote registered for " + voteID);
+    console.log(title + " | Vote registered for \"" + voteID + "\"");
 
     let tally = getResult(vote);
     interaction.update({ embeds: [tally] });
