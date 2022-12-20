@@ -3,15 +3,21 @@ import sdk from "microsoft-cognitiveservices-speech-sdk";
 
 const config = load('config');
 
-export default async function convertToSpeech(text) {
-    var fileName = "SyntheticSpeech.wav";
+export default async function convertToSpeech(text, voice = 'ryan') {
+    var fileName = "SyntheticSpeech.mp3";
 
     const speechConfig = sdk.SpeechConfig.fromSubscription(config.speechKey, config.speechRegion);
     const audioConfig = sdk.AudioConfig.fromAudioFileOutput(fileName);
 
     // Voice
-    speechConfig.speechSynthesisVoiceName = "en-GB-RyanNeural"; // Male
-    //speechConfig.speechSynthesisVoiceName = "en-US-SaraNeural"; // Female
+    let voiceID = "en-GB-RyanNeural";
+    if (voice == 'sara') {
+        voiceID = "en-US-SaraNeural"; // Female
+    } else if (voice == 'ashley') {
+        voiceID = "en-US-AshleyNeural";
+    }
+    speechConfig.speechSynthesisVoiceName = voiceID;
+    speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio48Khz192KBitRateMonoMp3;
 
     // Create the speech synthesizer.
     var synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
