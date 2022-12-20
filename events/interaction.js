@@ -6,17 +6,17 @@ export default {
             commandName = interaction.message.interaction.commandName;
         } else if (interaction.isChatInputCommand()) {
             commandName = interaction.commandName;
+
+            // Log use
+            let username = interaction.user.username;
+            const nickname = interaction.member.nickname;
+            if (nickname != null) {
+                username += " (" + nickname + ")";
+            }
+            console.log(username + " used /" + commandName);
         } else {
             return;
         }
-
-        // Log use
-        let username = interaction.user.username;
-        const nickname = interaction.member.nickname;
-        if (nickname != null) {
-            username += " (" + nickname + ")";
-        }
-        console.log(username + " used /" + commandName);
 
         // Get command
         const command = interaction.client.commands.get(commandName);
