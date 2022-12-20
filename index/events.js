@@ -1,4 +1,5 @@
 import ready from '../events/ready.js'
 import interaction from '../events/interaction.js'
+import message from '../events/message.js'
 
-export { ready, interaction };
+export { ready, interaction, message };
