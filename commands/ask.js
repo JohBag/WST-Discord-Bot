@@ -1,13 +1,6 @@
-import { Configuration, OpenAIApi } from "openai";
 import { SlashCommandBuilder } from 'discord.js';
-import { load } from '../json_manager.js';
 import convertToSpeech from '../common/syntheticSpeech.js';
-
-const config = load('config');
-const configuration = new Configuration({
-    apiKey: config.apiKey,
-});
-const openai = new OpenAIApi(configuration);
+import getAIResponse from "../common/gpt-3.js";
 
 export default {
     data: new SlashCommandBuilder()
@@ -22,7 +15,7 @@ export default {
 
         // Get AI response
         const prompt = interaction.options.getString('input');
-        const response = await getOpenAIResponse(prompt + "\n");
+        const response = await getAIResponse(prompt + "\n");
 
         // Convert to synthetic speech
         const file = await convertToSpeech(response);
@@ -30,7 +23,6 @@ export default {
         // Reply to user
         const msg = "*" + prompt + "*\n" + response + "\n";
 
-        // Add reply
         interaction.editReply({
             content: msg,
         });
@@ -46,14 +38,3 @@ export default {
         return;
     },
 };
-
-async function getOpenAIResponse(prompt) {
-    const completion = await openai.createCompletion({
-        model: "text-davinci-003",
-        prompt: prompt,
-        temperature: 0.6,
-        max_tokens: 128
-    });
-
-    return completion.data.choices[0].text;;
-}
