@@ -29,7 +29,8 @@ export default {
         // Get channel conversation
         let conversation = "";
         await interaction.channel.messages.fetch({ limit: 10 }).then(messages => {
-            const name = interaction.member.nickname ?? interaction.user.username;
+            const member = interaction.guild.members.fetch(interaction.author);
+            const name = member ? member.displayName : interaction.author.username;
             messages.reverse().forEach(message => conversation += name + ": " + message.content + "\n");
         });
 
