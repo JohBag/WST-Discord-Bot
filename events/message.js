@@ -3,6 +3,7 @@ import convertToSpeech from '../common/syntheticSpeech.js';
 import emojiRegex from "emoji-regex";
 import { load } from '../json_manager.js';
 
+const secrets = load('secrets');
 const config = load('config');
 
 const username = 'Botty McBotface'
@@ -19,7 +20,7 @@ export default {
         }
 
         // Random chance to respond
-        if (!shouldRespond(interaction, config.clientId)) {
+        if (!shouldRespond(interaction, secrets.clientId)) {
             return;
         }
 
@@ -68,17 +69,27 @@ export default {
 };
 
 function shouldRespond(interaction, clientId) {
-    if (!config.reactChannels.includes(interaction.channelId)) {
+    // Check if bot is allowed in channel
+    const whitelist = config.reactWhitelist;
+    if (whitelist.length > 0 && !whitelist.includes(interaction.channelId)) {
         return false;
+    } else {
+        const blacklist = config.reactBlacklist;
+        if (blacklist.includes(interaction.channelId)) {
+            return false;
+        }
     }
 
-    const rng = Math.random();
-    if (rng > 0.9) {
-        console.log("Random reply (" + rng + ")");
-        return true;
-    }
+    // Check if bot is mentioned
     if (nicknames.some(name => interaction.content.includes(name)) || interaction.mentions.users.has(clientId)) {
         console.log("Responding to mention");
+        return true;
+    }
+
+    // Random chance to appear
+    const rng = Math.random();
+    if (rng > 0.66) {
+        console.log("Random reply (" + rng + ")");
         return true;
     }
 
