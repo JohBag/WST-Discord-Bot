@@ -39,33 +39,15 @@ export default {
 
         const vote = createVote(title, descr, anonymity, optionString);
         if (vote == null) {
-            return interaction.reply({ content: 'A vote on this issue already exists. Use /endvote to end the previous vote', ephemeral: true });
+            return interaction.reply({ content: 'Error: Failed to create vote', ephemeral: true });
         }
 
-        // Create buttons
-        let row = new ActionRowBuilder()
-        for (let i in vote.options) {
-            row
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(i)
-                        .setLabel(i)
-                        .setStyle(ButtonStyle.Primary),
-                );
-        }
-
-        const tally = getResult(vote);
-        return interaction.reply({ embeds: [tally], components: [row] });
+        return;
     },
 };
 
-function createVote(title, descr, anonymity, optionString) {
+async function createVote(title, descr, anonymity, optionString) {
     let votes = load('votes');
-
-    // Check uniqueness
-    if (title in votes) {
-        return null;
-    }
 
     // Get options
     let options = {};
@@ -94,11 +76,28 @@ function createVote(title, descr, anonymity, optionString) {
         anonymity: anonymity
     };
 
-    votes[title] = vote;
+    // Create buttons
+    let row = new ActionRowBuilder()
+    for (let i in vote.options) {
+        row
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId(i)
+                    .setLabel(i)
+                    .setStyle(ButtonStyle.Primary),
+            );
+    }
 
+    // Send reply
+    const tally = getResult(vote);
+    await interaction.reply({ embeds: [tally], components: [row] });
+
+    // Get message ID
+    const message = await interaction.fetchReply();
+
+    // Store vote locally
+    votes[message.id] = vote;
     save('votes', votes);
-
-    return vote;
 }
 
 function registerVote(interaction) {
@@ -107,7 +106,7 @@ function registerVote(interaction) {
     // Check if vote exists
     const title = interaction.message.embeds[0].title;
     if (!votes.hasOwnProperty(title)) {
-        return interaction.reply({ content: 'The vote has already ended', ephemeral: true });
+        return interaction.reply({ content: 'Failed to register vote', ephemeral: true });
     }
 
     let vote = votes[title];
