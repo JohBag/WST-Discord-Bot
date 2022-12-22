@@ -1,4 +1,5 @@
 {
+    "reactChance": 0.01,
     "reactWhitelist": [],
     "reactBlacklist": [
         "765518967904796692",

@@ -89,7 +89,8 @@ function shouldRespond(interaction, clientId) {
 
     // Random chance to appear
     const rng = Math.random();
-    if (rng > 0.9) {
+    if (rng > (1 - config.reactChance)) {
+
         console.log("Random reply (" + rng + ")");
         return true;
     }
