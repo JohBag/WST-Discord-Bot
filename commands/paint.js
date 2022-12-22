@@ -3,9 +3,9 @@ import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import { load } from '../json_manager.js';
 import fs from 'fs';
 
-const config = load('config');
+const secrets = load('secrets');
 const configuration = new Configuration({
-    apiKey: config.apiKey,
+    apiKey: secrets.apiKey,
 });
 const openai = new OpenAIApi(configuration);
 

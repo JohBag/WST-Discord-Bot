@@ -1,9 +1,9 @@
 import { Configuration, OpenAIApi } from "openai";
 import { load } from '../json_manager.js';
 
-const config = load('config');
+const secrets = load('secrets');
 const configuration = new Configuration({
-    apiKey: config.apiKey,
+    apiKey: secrets.apiKey,
 });
 const openai = new OpenAIApi(configuration);
 
@@ -15,5 +15,5 @@ export default async function getAIResponse(prompt) {
         max_tokens: 128
     });
 
-    return completion.data.choices[0].text;;
+    return completion.data.choices[0].text;
 }

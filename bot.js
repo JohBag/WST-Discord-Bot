@@ -10,7 +10,7 @@ const client = new Client({
 		GatewayIntentBits.MessageContent
 	]
 });
-const config = load('config');
+const secrets = load('secrets');
 
 // Load events
 for (const event of Object.values(events)) {
@@ -29,4 +29,4 @@ for (const command of Object.values(commands)) {
 	console.log(`Loaded command: ${command.data.name}`);
 }
 
-client.login(config.token);
+client.login(secrets.token);

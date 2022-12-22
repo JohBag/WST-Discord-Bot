@@ -39,7 +39,7 @@ export default {
 
         const vote = createVote(title, descr, anonymity, optionString);
         if (vote == null) {
-            return interaction.reply({ content: 'Error: Failed to create vote', ephemeral: true });
+            return interaction.reply({ content: 'Failed to create vote', ephemeral: true });
         }
 
         return;

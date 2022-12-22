@@ -2,14 +2,14 @@ import { REST, Routes } from 'discord.js';
 import { load } from './json_manager.js';
 import * as commands from './index/commands.js'
 
-const config = load('config');
+const secrets = load('secrets');
 
 const commandsData = [];
 for (const command of Object.values(commands)) {
 	commandsData.push(command.data.toJSON());
 }
 
-const rest = new REST({ version: '10' }).setToken(config.token);
+const rest = new REST({ version: '10' }).setToken(secrets.token);
 
 (async () => {
 	try {
@@ -18,7 +18,7 @@ const rest = new REST({ version: '10' }).setToken(config.token);
 		let data;
 		console.log("Deploying commands globally");
 		data = await rest.put(
-			Routes.applicationCommands(config.clientId),
+			Routes.applicationCommands(secrets.clientId),
 			{ body: commandsData },
 		);
 

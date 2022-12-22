@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { load } from '../json_manager.js';
 
-const config = load('config');
+const secrets = load('secrets');
 
 export default {
     data: new SlashCommandBuilder()
@@ -31,7 +31,7 @@ async function getAccessToken() {
     const response = await fetch('https://www.warcraftlogs.com/oauth/token', {
         method: 'POST',
         headers: {
-            'Authorization': 'Basic ' + btoa(config.warcraftlogsToken)
+            'Authorization': 'Basic ' + btoa(secrets.warcraftlogsToken)
         },
         body: new URLSearchParams({
             'grant_type': 'client_credentials'

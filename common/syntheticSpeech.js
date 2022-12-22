@@ -1,12 +1,12 @@
 import { load } from '../json_manager.js';
 import sdk from "microsoft-cognitiveservices-speech-sdk";
 
-const config = load('config');
+const secrets = load('secrets');
 
 export default async function convertToSpeech(text, voice = 'ryan') {
     var fileName = "SyntheticSpeech.mp3";
 
-    const speechConfig = sdk.SpeechConfig.fromSubscription(config.speechKey, config.speechRegion);
+    const speechConfig = sdk.SpeechConfig.fromSubscription(secrets.speechKey, secrets.speechRegion);
     const audioConfig = sdk.AudioConfig.fromAudioFileOutput(fileName);
 
     // Voice

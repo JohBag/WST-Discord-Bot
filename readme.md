@@ -2,7 +2,7 @@
 
 ### Enter Keys
 
-Create a new folder called 'json' to the main folder, then add a new file named 'config.json' to the json folder. The config file should have the following variables.
+Create a new folder called 'json' to the main folder, then add a new file named 'secrets.json' to the json folder. The secrets file should have the following variables.
 
     {
         "token": "TOKEN_HERE",
