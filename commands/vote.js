@@ -85,12 +85,15 @@ async function sendVote(interaction, vote) {
 
     // Send reply
     const tally = getResult(vote);
-    const reply = await interaction.reply({ embeds: [tally], components: [buttons] });
+    await interaction.reply({ embeds: [tally], components: [buttons] });
 
     // Store vote locally
-    //const message = await interaction.fetchReply();
+    const reply = await interaction.fetchReply();
+    const id = reply.id;
+    console.log("Id: " + id);
+
     let votes = load('votes');
-    votes[reply.id] = vote;
+    votes[id] = vote;
     save('votes', votes);
 }
 
@@ -99,11 +102,12 @@ function registerVote(interaction) {
 
     // Check if vote exists
     const id = interaction.message.id;
+    let vote = votes[id];
+    console.log("Id: " + id);
     if (!id in votes) {
         return interaction.reply({ content: 'Failed to register vote', ephemeral: true });
     }
-
-    let vote = votes[id];
+    console.log(vote);
     const userID = interaction.user.id;
 
     // Add vote
