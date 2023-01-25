@@ -48,7 +48,7 @@ export default {
     },
 };
 
-async function splitOptions(optionString, anonymity) {
+function splitOptions(optionString, anonymity) {
     return optionString
         .split(',')
         .map(i => i.trim())
@@ -60,7 +60,7 @@ async function splitOptions(optionString, anonymity) {
         }, {});
 }
 
-async function createVote(title, descr, anonymity, optionString) {
+function createVote(title, descr, anonymity, optionString) {
     return {
         title: title,
         description: descr,
@@ -164,7 +164,7 @@ function getResult(vote) {
         .setTitle(vote.title)
         .addFields(fields)
 
-    if (vote.description != null) {
+    if (vote.description) {
         embeddedMessage.setDescription(vote.description)
     }
 
