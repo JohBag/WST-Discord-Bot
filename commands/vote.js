@@ -90,7 +90,6 @@ async function sendVote(interaction, vote) {
     // Store vote locally
     const reply = await interaction.fetchReply();
     const id = reply.id;
-    console.log("Id: " + id);
 
     let votes = load('votes');
     votes[id] = vote;
@@ -103,15 +102,13 @@ function registerVote(interaction) {
     // Check if vote exists
     const id = interaction.message.id;
     let vote = votes[id];
-    console.log("Id: " + id);
-    if (!id in votes) {
+    if (!vote) {
         return interaction.reply({ content: 'Failed to register vote', ephemeral: true });
     }
-    console.log(vote);
-    const userID = interaction.user.id;
 
     // Add vote
     const voteID = interaction.customId;
+    const userID = interaction.user.id;
     if (vote.anonymity) {
         if (vote.voters.includes(userID)) {
             // Prevent change if anonymous
