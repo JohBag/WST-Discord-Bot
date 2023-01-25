@@ -103,7 +103,7 @@ function registerVote(interaction) {
         return interaction.reply({ content: 'Failed to register vote', ephemeral: true });
     }
 
-    let vote = votes[title];
+    let vote = votes[id];
     const userID = interaction.user.id;
 
     // Add vote
@@ -129,7 +129,7 @@ function registerVote(interaction) {
     }
 
     save('votes', votes);
-    console.log(title + " | Vote registered for \"" + voteID + "\"");
+    console.log(vote.title + " | Vote registered for \"" + voteID + "\"");
 
     let tally = getResult(vote);
     interaction.update({ embeds: [tally] });
