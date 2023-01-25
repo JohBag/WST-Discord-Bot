@@ -38,48 +38,43 @@ export default {
         const descr = args.length > 3 ? args[3].value : null;
 
         const vote = createVote(title, descr, anonymity, optionString);
-        if (vote == null) {
+        if (!vote) {
             return interaction.reply({ content: 'Failed to create vote', ephemeral: true });
         }
+
+        sendVote(interaction, vote);
 
         return;
     },
 };
 
+async function splitOptions(optionString, anonymity) {
+    return optionString
+        .split(',')
+        .map(i => i.trim())
+        .filter(i => i)
+        .slice(0, maxOptions)
+        .reduce((options, i) => {
+            options[i] = anonymity ? 0 : {};
+            return options;
+        }, {});
+}
+
 async function createVote(title, descr, anonymity, optionString) {
-    let votes = load('votes');
-
-    // Get options
-    let options = {};
-    let n = 0;
-    for (let i of optionString.split(',')) {
-        i = i.replace(/^\s+|\s+$/gm, ''); // Remove leading space
-
-        if (i == '') continue;
-
-        if (anonymity) {
-            options[i] = 0;
-        } else {
-            options[i] = {};
-        }
-
-        n++;
-        if (n >= maxOptions) break;
-    }
-
-    // Create vote
-    let vote = {
+    return {
         title: title,
         description: descr,
-        options: options,
+        options: splitOptions(optionString, anonymity),
         voters: [],
         anonymity: anonymity
     };
+}
 
+async function sendVote(interaction, vote) {
     // Create buttons
-    let row = new ActionRowBuilder()
+    let buttons = new ActionRowBuilder()
     for (let i in vote.options) {
-        row
+        buttons
             .addComponents(
                 new ButtonBuilder()
                     .setCustomId(i)
@@ -90,13 +85,12 @@ async function createVote(title, descr, anonymity, optionString) {
 
     // Send reply
     const tally = getResult(vote);
-    await interaction.reply({ embeds: [tally], components: [row] });
-
-    // Get message ID
-    const message = await interaction.fetchReply();
+    const reply = await interaction.reply({ embeds: [tally], components: [buttons] });
 
     // Store vote locally
-    votes[message.id] = vote;
+    //const message = await interaction.fetchReply();
+    let votes = load('votes');
+    votes[reply.id] = vote;
     save('votes', votes);
 }
 
