@@ -53,5 +53,3 @@ async function convertBase64ToImage(data) {
     // Create image from buffer
     fs.writeFileSync('image.png', buffer);
 }
-
-generateImage('A fox with a crown');
