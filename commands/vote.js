@@ -98,8 +98,8 @@ function registerVote(interaction) {
     let votes = load('votes');
 
     // Check if vote exists
-    const title = interaction.message.embeds[0].title;
-    if (!votes.hasOwnProperty(title)) {
+    const id = interaction.message.id;
+    if (!id in votes) {
         return interaction.reply({ content: 'Failed to register vote', ephemeral: true });
     }
 
