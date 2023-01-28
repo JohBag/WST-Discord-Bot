@@ -35,7 +35,7 @@ export default {
         });
 
         // React with emoji
-        let reaction = await getAIResponse("Respond with the unicode of the discord emote you would use to react to the last message in the following conversation. \n" + conversation + " END_OF_PROMPT");
+        let reaction = await getAIResponse(`As ${username}, provide the unicode of a discord emoji suitable for the last message.\n${conversation}\n`);
         reaction = reaction.substring(reaction.indexOf(':'));
         console.log(reaction);
 
@@ -48,8 +48,8 @@ export default {
         }
 
         // Generate response
-        let response = await getAIResponse("You are the user '" + username + "'. Respond with the reply you would send to the last message in the following conversation.\n" + conversation + " END_OF_PROMPT");
-        response = response.replace("Warseeker Test Bot: ", '');
+        let response = await getAIResponse(`Using the last 10 messages provided, generate an appropriate response as ${username} to the most recent message in the conversation.\n${conversation}\n`);
+        response = response.replace(username + ": ", '');
         console.log(response);
 
         // Convert to synthetic speech
