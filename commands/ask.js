@@ -21,12 +21,12 @@ export default {
         const file = await convertToSpeech(response);
 
         // Reply to user
-        const msg = "*" + prompt + "*\n" + response + "\n";
+        const reply = `*${prompt}*\n${response}\n`;
 
         interaction.editReply({
-            content: msg,
+            content: reply,
         });
-        if (file != null) {
+        if (file) {
             interaction.editReply({
                 files: [{
                     attachment: file,
@@ -34,7 +34,5 @@ export default {
                 }]
             });
         }
-
-        return;
     },
 };

@@ -20,7 +20,7 @@ export default {
         .addStringOption(option =>
             option
                 .setName('options')
-                .setDescription('Write all options with comma-separation (max ' + maxOptions + ')')
+                .setDescription('Comma-separated list (max ' + maxOptions + ')')
                 .setRequired(true))
         .addStringOption(option =>
             option

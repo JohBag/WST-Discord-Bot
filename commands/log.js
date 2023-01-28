@@ -9,13 +9,14 @@ export default {
         .setDescription('Fetches the warcraft log')
         .addStringOption(option =>
             option.setName('id')
-                .setDescription('The report ID')),
+                .setDescription('The report ID')
+                .setRequired(true)),
     async execute(interaction) {
         await interaction.deferReply(); // Defer to avoid 3 second limit on response
 
-        const id = interaction.options.getString('id') ?? 0; // Default to 0 (most recent guild log)
+        const id = interaction.options.getString('id');
         let report = await getReport(id);
-        if (report == null) {
+        if (!report) {
             // Weird solution to produce an ephemeral error message (edit doesn't work)
             await interaction.editReply({ content: 'Error', ephemeral: true });
             await interaction.followUp({ content: 'No report with id *' + id + '* could be found.', ephemeral: true });
@@ -61,174 +62,77 @@ async function sendQuery(query) {
 function getBestPulls(fights) {
     let logs = {};
 
-    for (let i in fights) {
-        let fight = fights[i];
-
-        if (fight.difficulty in logs === false) {
+    for (let fight of fights) {
+        if (!logs[fight.difficulty]) {
             logs[fight.difficulty] = {};
         }
 
-        let bestPulls = logs[fight.difficulty];
-        let name = fight.name;
-        let perc = 0;
-
-        if (!fight.kill) {
-            perc = fight.fightPercentage;
-
-            if (name in bestPulls) {
-                let bestPerc = bestPulls[name];
-
-                if (perc > bestPerc) {
-                    perc = bestPerc;
-                }
-            }
+        if (fight.kill) {
+            logs[fight.difficulty][fight.name] = 0;
+            continue;
         }
 
-        bestPulls[name] = perc;
+        // Best percentage
+        logs[fight.difficulty][fight.name] =
+            Math.min(fight.fightPercentage, logs[fight.difficulty][fight.name] ?? 100);
     }
     return logs;
 }
 
 function getBossSection(report) {
-    let section = {};
-    let logs = getBestPulls(report.fights);
-    for (let difficulty in logs) {
-        if (difficulty in section === false) {
-            section[difficulty] = "";
-        }
-
-        let progress = logs[difficulty];
-        for (let boss in progress) {
-            let perc = progress[boss];
-            let name = boss;
-
-            if (perc > 0) {
-                name += " (" + perc + "%)";
-            }
-
-            section[difficulty] += name + "\n";
-        }
-    }
+    const logs = getBestPulls(report.fights);
+    const section = Object.entries(logs).reduce((acc, [difficulty, progress]) => {
+        acc[difficulty] = Object.entries(progress)
+            .map(([name, perc]) => perc > 0 ? `${name} (${perc}%)` : name)
+            .join('\n');
+        return acc;
+    }, {});
     return section;
 }
 
-function getTopParse(rankings) {
-    let topParse = '';
-
-    for (let i in rankings) { // Fights
-        let bestRank = 0;
-        let fight = rankings[i];
-        let roles = fight.roles;
-
-        for (let ii in roles) { // Roles
-            let role = roles[ii];
-            let characters = role.characters;
-
-            for (let iii in characters) { // Characters
-                let character = characters[iii];
-                let rank = character.rankPercent;
-
-                if (rank > bestRank) {
-                    bestRank = rank;
-                    topParse = `${rank}% ${character.name} (${fight.encounter.name})`;
-                }
-            }
-        }
-    }
-
-    return topParse;
-}
-
 function getParticipants(fights) {
-    let participants = {};
-
-    for (let i in fights) {
-        let fight = fights[i];
-        let roles = fight.roles;
-
-        for (let role in roles) {
-            let roleData = roles[role];
-
-            if (role in participants === false) {
-                participants[role] = [];
-            }
-
-            let characters = roleData.characters;
-            for (let ii in characters) {
-                let character = characters[ii];
-                if (participants[role].includes(character.name) === false) {
-                    participants[role].push(character.name);
-                }
-            }
-        }
-    }
-
-    // Sort alphabetically
-    for (let i in participants) {
-        participants[i].sort();
-    }
-
-    return participants;
+    return fights.reduce((participants, fight) => {
+        Object.entries(fight.roles).forEach(([role, roleData]) => {
+            if (!participants[role]) participants[role] = new Set();
+            roleData.characters.forEach(({ name }) => participants[role].add(name));
+        });
+        return participants;
+    }, {});
 }
 
 function getParticipantSection(report) {
-    let roles = {};
-
-    let participants = getParticipants(report.rankings.data);
-    for (let role in participants) {
-        if (role in roles === false) {
-            roles[role] = "";
-        }
-
-        let characters = participants[role];
-        for (let i in characters) {
-            roles[role] += characters[i] + '\n';
-        }
-    }
-
-    return roles;
+    const participants = getParticipants(report.rankings.data);
+    return Object.fromEntries(
+        Object.entries(participants).map(([role, characters]) => [role, [...characters].sort().join('\n')])
+    );
 }
 
 function embedReport(report) {
-    let fields = [];
-
-    // Boss names, percentage included if best pull was a wipe
-    let bosses = getBossSection(report);
-    let heroic = 4;
-    if (heroic in bosses) {
-        fields.push({ name: "Heroic", value: bosses[heroic] })
-    }
-    let normal = 3;
-    if (normal in bosses) {
-        fields.push({ name: "Normal", value: bosses[normal] })
-    }
-
-    // Best parse
-    //fields.push({ name: "Top parse", value: getTopParse(report.rankings.data) })
-
-    // Participants
-    let participants = getParticipantSection(report);
-    var roles = Object.keys(participants);
-    fields.push({ name: "Damage", value: participants[roles[2]], inline: true })
-    fields.push({ name: "Healing", value: participants[roles[1]], inline: true })
-    fields.push({ name: "Tanking", value: participants[roles[0]], inline: true })
-
     const embeddedMessage = new EmbedBuilder()
         .setColor(0x0099FF)
         .setTitle(report.zone.name)
-        .setURL("https://www.warcraftlogs.com/reports/" + report.code + "/")
-        .setDescription(formatTime(report.startTime))
-        .addFields(fields)
+        .setURL(`https://www.warcraftlogs.com/reports/${report.code}/`)
+        .setDescription(formatTime(report.startTime));
+
+    const bosses = getBossSection(report);
+    if (bosses[4]) embeddedMessage.addFields({ name: "Heroic", value: bosses[4] });
+    if (bosses[3]) embeddedMessage.addFields({ name: "Normal", value: bosses[3] });
+
+    const participants = getParticipantSection(report);
+    const roles = Object.keys(participants);
+    embeddedMessage.addFields({ name: "Damage", value: participants[roles[2]], inline: true });
+    embeddedMessage.addFields({ name: "Healing", value: participants[roles[1]], inline: true });
+    embeddedMessage.addFields({ name: "Tanking", value: participants[roles[0]], inline: true });
 
     return embeddedMessage;
 }
 
-async function getReport(id = 0) {
-    if (id == 0) {
+async function getReport(id) {
+    if (!id) {
         // Get ID of most recent guild log
-        let data = await sendQuery('{ reportData { reports(guildID: 66538, limit: 1) { data { code } } } }');
+        const data = await sendQuery('{ reportData { reports(guildID: 66538, limit: 1) { data { code } } } }');
         id = data.data.reportData.reports.data[0].code
-        console.log("No ID provided. Most recent log: " + id);
+        console.log("No valid ID provided. Most recent log: " + id);
     }
 
     console.log("Fetching report with ID: " + id);
