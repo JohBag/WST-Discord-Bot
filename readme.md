@@ -25,11 +25,12 @@ Create a new folder called 'json' in the main folder if it does not already exis
 The json folder should also have a config.json file with the following variables.
 
     {
+        "reactChance": 0.01,
         "reactWhitelist": [],
         "reactBlacklist": []
     }
 
-These variables control in which channels the bot is allowed to respond to messages. Note that this does not affect commands. The lists should contain the IDs of the respective channels, which can be found by right clicking the channel name and copying the ID.
+These variables control where and how often the bot responds to messages. Note that this does not affect commands. The lists should contain the relevant channel IDs, which can be found by right clicking the channel name and copying the ID.
 
 ### Install Modules
 
@@ -44,7 +45,3 @@ New commands must be deployed before they can be used.
 ### Starting the Bot
 
     node bot.js
-
-## Important
-
-By default, all commands will be available to everyone. This may not be ideal, and limitations can be made by the server admin to prevent misuse.
