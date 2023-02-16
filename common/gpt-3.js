@@ -14,6 +14,10 @@ export default async function getAIResponse(prompt) {
         temperature: 1,
         max_tokens: 128
     });
+    if (!completion.status == 200) { // 200 = OK
+        console.log("Error: " + completion.status);
+        return "";
+    }
 
     return completion.data.choices[0].text;
 }

@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import convertToSpeech from '../common/syntheticSpeech.js';
+import textToSpeech from '../common/syntheticSpeech.js';
 import getAIResponse from "../common/gpt-3.js";
 
 export default {
@@ -16,9 +16,14 @@ export default {
         // Get AI response
         const prompt = interaction.options.getString('input');
         const response = await getAIResponse(prompt + "\n");
+        if (!response) {
+            return interaction.editReply({
+                content: 'Error getting response from AI',
+            });
+        }
 
         // Convert to synthetic speech
-        const file = await convertToSpeech(response);
+        const file = await textToSpeech(response);
 
         // Reply to user
         const reply = `*${prompt}*\n${response}\n`;

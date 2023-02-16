@@ -3,20 +3,14 @@ import sdk from "microsoft-cognitiveservices-speech-sdk";
 
 const secrets = load('secrets');
 
-export default async function convertToSpeech(text, voice = 'ryan') {
+export default async function textToSpeech(text) {
     var fileName = "SyntheticSpeech.mp3";
 
     const speechConfig = sdk.SpeechConfig.fromSubscription(secrets.speechKey, secrets.speechRegion);
     const audioConfig = sdk.AudioConfig.fromAudioFileOutput(fileName);
 
     // Voice
-    let voiceID = "en-GB-RyanNeural";
-    if (voice == 'sara') {
-        voiceID = "en-US-SaraNeural"; // Female
-    } else if (voice == 'ashley') {
-        voiceID = "en-US-AshleyNeural";
-    }
-    speechConfig.speechSynthesisVoiceName = voiceID;
+    speechConfig.speechSynthesisVoiceName = "en-GB-RyanNeural";
     speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio48Khz192KBitRateMonoMp3;
 
     // Create the speech synthesizer.

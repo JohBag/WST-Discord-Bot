@@ -1,16 +1,13 @@
 import getAIResponse from "../common/gpt-3.js";
-import convertToSpeech from '../common/syntheticSpeech.js';
+import textToSpeech from '../common/syntheticSpeech.js';
 import emojiRegex from "emoji-regex";
 import { load } from '../json_manager.js';
 
 const secrets = load('secrets');
 const config = load('config');
 
-const username = 'Botty McBotface'
-const nicknames = [
-    'botty',
-    'Botty',
-]
+const username = config.username;
+const nicknames = config.nicknames;
 
 export default {
     name: 'messageCreate',
@@ -39,7 +36,7 @@ export default {
         reaction = reaction.substring(reaction.indexOf(':'));
         console.log(reaction);
 
-        // Check if emoji is valid
+        // React if emoji is valid
         const regex = emojiRegex();
         for (const match of reaction.matchAll(regex)) {
             const emoji = match[0];
@@ -49,11 +46,15 @@ export default {
 
         // Generate response
         let response = await getAIResponse(`Using the last 10 messages provided, generate an appropriate response as ${username} to the most recent message in the conversation.\n${conversation}\n`);
+        if (!response) {
+            return;
+        }
+
         response = response.replace(username + ": ", '');
         console.log(response);
 
         // Convert to synthetic speech
-        const file = await convertToSpeech(response);
+        const file = await textToSpeech(response);
 
         // Prepare message
         let msg = { content: response };
@@ -82,7 +83,7 @@ function shouldRespond(interaction, clientId) {
     }
 
     // Check if bot is mentioned
-    if (nicknames.some(name => interaction.content.includes(name)) || interaction.mentions.users.has(clientId)) {
+    if (nicknames.some(name => interaction.content.toLowerCase().includes(name)) || interaction.mentions.users.has(clientId)) {
         console.log("Responding to mention");
         return true;
     }

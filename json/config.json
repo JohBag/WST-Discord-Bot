@@ -1,4 +1,15 @@
 {
+    "username": "Botty McBotface",
+    "nicknames": [
+        "botty"
+    ],
+    "soundsLike": [
+        "potty",
+        "potsy",
+        "patty",
+        "potted",
+        "buddy"
+    ],
     "reactChance": 0.01,
     "reactWhitelist": [],
     "reactBlacklist": [

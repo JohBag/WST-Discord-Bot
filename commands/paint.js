@@ -22,7 +22,11 @@ export default {
 
         const prompt = interaction.options.getString('prompt');
 
-        await generateImage(prompt);
+        if (!await generateImage(prompt)) {
+            return interaction.editReply({
+                content: 'Error generating image',
+            });
+        }
 
         const embed = new EmbedBuilder()
             .setTitle(prompt)
@@ -42,9 +46,14 @@ async function generateImage(prompt) {
         size: "1024x1024",
         response_format: 'b64_json'
     });
+    if (!response.status == 200) { // 200 = OK
+        console.log("Error: " + completion.status);
+        return false;
+    }
     const b64 = response.data.data[0].b64_json;
 
     await convertBase64ToImage(b64);
+    return true;
 }
 
 async function convertBase64ToImage(data) {
