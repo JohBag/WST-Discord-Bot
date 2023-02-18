@@ -17,9 +17,6 @@ const soundsLike = config.soundsLike;
 const conversation = new Queue(10);
 const encoder = new OpusEncoder(48000, 2);
 const player = createAudioPlayer();
-player.on(AudioPlayerStatus.Playing, () => {
-    console.log('Audio player is now playing!');
-});
 let connection = null;
 let channel = null;
 let listeningTo = [];
@@ -88,11 +85,11 @@ async function listen(connection, userID, username) {
         });
 
         receiver.on("data", (chunk) => {
-            console.log("Received " + chunk.length + " bytes of data.")
+            //console.log("Received " + chunk.length + " bytes of data.")
             fileStream.write(encoder.decode(chunk));
         });
         receiver.on("end", async () => {
-            console.log("Receiver ended.");
+            //console.log("Receiver ended.");
             fileStream.end();
 
             await respond(username);

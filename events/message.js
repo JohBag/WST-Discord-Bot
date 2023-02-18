@@ -21,8 +21,6 @@ export default {
             return;
         }
 
-        console.log("Reacting to:\n" + interaction.content);
-
         // Get channel conversation
         let conversation = "";
         await interaction.channel.messages.fetch({ limit: 10 }).then(messages => {
@@ -34,7 +32,6 @@ export default {
         // React with emoji
         let reaction = await getAIResponse(`As ${name}, provide the unicode of a discord emoji suitable for the last message.\n${conversation}\n`);
         reaction = reaction.substring(reaction.indexOf(':'));
-        console.log(reaction);
 
         // React if emoji is valid
         const regex = emojiRegex();
@@ -51,7 +48,6 @@ export default {
         }
 
         response = response.replace(name + ": ", '');
-        console.log(response);
 
         // Convert to synthetic speech
         const file = await textToSpeech(response);
@@ -91,7 +87,6 @@ function shouldRespond(interaction, clientId) {
     // Random chance to appear
     const rng = Math.random();
     if (rng > (1 - config.reactChance)) {
-
         console.log("Random reply (" + rng + ")");
         return true;
     }
