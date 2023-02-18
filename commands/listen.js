@@ -134,6 +134,7 @@ async function respond(username) {
 
     // Play response
     const loc = process.cwd() + '\\';
+    console.log("Playing " + loc + 'SyntheticSpeech.mp3')
     let resource = createAudioResource(loc + 'SyntheticSpeech.mp3');
     player.play(resource);
 }
