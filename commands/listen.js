@@ -17,6 +17,9 @@ const soundsLike = config.soundsLike;
 const conversation = new Queue(10);
 const encoder = new OpusEncoder(48000, 2);
 const player = createAudioPlayer();
+player.on(AudioPlayerStatus.Playing, () => {
+    console.log('The audio player has started playing!');
+});
 let connection = null;
 let channel = null;
 let listeningTo = [];
