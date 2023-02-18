@@ -7,7 +7,8 @@ const client = new Client({
 	intents: [
 		GatewayIntentBits.Guilds,
 		GatewayIntentBits.GuildMessages,
-		GatewayIntentBits.MessageContent
+		GatewayIntentBits.MessageContent,
+		GatewayIntentBits.GuildVoiceStates
 	]
 });
 const secrets = load('secrets');
@@ -21,7 +22,6 @@ for (const event of Object.values(events)) {
 	}
 	console.log(`Loaded event: ${event.name}`);
 }
-
 // Load commands
 client.commands = new Collection();
 for (const command of Object.values(commands)) {

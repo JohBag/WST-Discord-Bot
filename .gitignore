@@ -3,3 +3,4 @@ secrets.json
 votes.json
 *.png
 *.mp3
+*.wav

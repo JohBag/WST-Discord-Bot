@@ -1,5 +1,5 @@
 {
-    "username": "Botty McBotface",
+    "name": "Botty McBotface",
     "nicknames": [
         "botty"
     ],
@@ -8,7 +8,14 @@
         "potsy",
         "patty",
         "potted",
-        "buddy"
+        "buddy",
+        "brother",
+        "patsy",
+        "batsy",
+        "button",
+        "bottle",
+        "batty",
+        "cortana"
     ],
     "reactChance": 0.01,
     "reactWhitelist": [],

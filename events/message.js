@@ -6,7 +6,7 @@ import { load } from '../json_manager.js';
 const secrets = load('secrets');
 const config = load('config');
 
-const username = config.username;
+const name = config.name;
 const nicknames = config.nicknames;
 
 export default {
@@ -27,12 +27,12 @@ export default {
         let conversation = "";
         await interaction.channel.messages.fetch({ limit: 10 }).then(messages => {
             const member = interaction.guild.members.fetch(interaction.author);
-            const name = member ? member.displayName : interaction.author.username;
-            messages.reverse().forEach(message => conversation += name + ": " + message.content + "\n");
+            const username = member ? member.displayName : interaction.author.username;
+            messages.reverse().forEach(message => conversation += username + ": " + message.content + "\n");
         });
 
         // React with emoji
-        let reaction = await getAIResponse(`As ${username}, provide the unicode of a discord emoji suitable for the last message.\n${conversation}\n`);
+        let reaction = await getAIResponse(`As ${name}, provide the unicode of a discord emoji suitable for the last message.\n${conversation}\n`);
         reaction = reaction.substring(reaction.indexOf(':'));
         console.log(reaction);
 
@@ -45,12 +45,12 @@ export default {
         }
 
         // Generate response
-        let response = await getAIResponse(`Using the last 10 messages provided, generate an appropriate response as ${username} to the most recent message in the conversation.\n${conversation}\n`);
+        let response = await getAIResponse(`Using the last 10 messages provided, generate an appropriate response as ${name} to the most recent message in the conversation.\n${conversation}\n`);
         if (!response) {
             return;
         }
 
-        response = response.replace(username + ": ", '');
+        response = response.replace(name + ": ", '');
         console.log(response);
 
         // Convert to synthetic speech
