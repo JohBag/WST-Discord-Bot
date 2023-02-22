@@ -57,6 +57,7 @@ export default {
                 log("Destroying connection...");
                 connection.destroy();
                 listeningTo = [];
+                conversation.clear();
             }
 
             // Join voice channel
