@@ -8,6 +8,7 @@ import Queue from '../common/queue.js';
 import pkg from '@discordjs/opus';
 const { OpusEncoder } = pkg;
 import wav from 'wav';
+import log from '../common/logger.js';
 
 const config = load('config');
 const name = config.name;
@@ -18,7 +19,7 @@ const conversation = new Queue(10);
 const encoder = new OpusEncoder(48000, 2);
 const player = createAudioPlayer();
 player.on(AudioPlayerStatus.Playing, () => {
-    console.log('The audio player has started playing!');
+    log('Playing audio!');
 });
 let connection = null;
 let channel = null;
@@ -29,14 +30,14 @@ export default {
         .setName('listen')
         .setDescription('Listens to your voice and responds to "Botty"'),
     async execute(interaction) {
-        console.log("Joining voice channel...");
+        log("Joining voice channel...");
 
         const username = interaction.member.displayName || interaction.author.username;
 
         // Check if user is in a voice channel
         let userChannel = interaction.member.voice.channel;
         if (!userChannel) {
-            console.log("User not in a voice channel.");
+            log("User not in a voice channel.");
             return interaction.reply({ content: 'You need to join a voice channel first!', ephemeral: true });
         }
 
@@ -44,7 +45,7 @@ export default {
         if (userChannel == channel) {
             // Check if user is already being listened to
             if (listeningTo.includes(username)) {
-                console.log("Already listening to user.");
+                log("Already listening to user.");
                 return interaction.reply({ content: 'I am already listening.', ephemeral: true });
             }
         } else {
@@ -53,7 +54,7 @@ export default {
 
             // Destroy connection if it exists
             if (connection) {
-                console.log("Destroying connection...");
+                log("Destroying connection...");
                 connection.destroy();
                 listeningTo = [];
             }
@@ -78,7 +79,7 @@ export default {
 
 async function listen(connection, userID, username) {
     return new Promise((resolve) => {
-        console.log("Listening...");
+        log("Listening...");
 
         let receiver = connection.receiver.subscribe(userID, { end: { behavior: EndBehaviorType.AfterSilence, duration: 100 } });
         let fileStream = new wav.FileWriter("./output.wav", {
@@ -88,11 +89,9 @@ async function listen(connection, userID, username) {
         });
 
         receiver.on("data", (chunk) => {
-            //console.log("Received " + chunk.length + " bytes of data.")
             fileStream.write(encoder.decode(chunk));
         });
         receiver.on("end", async () => {
-            //console.log("Receiver ended.");
             fileStream.end();
 
             await respond(username);
@@ -116,25 +115,28 @@ async function respond(username) {
         return false;
     });
     if (!found && !nicknames.some(nickname => text.includes(nickname))) {
-        console.log("Not a valid response.");
+        log("Invalid response.");
         return;
     }
 
     // Respond
     conversation.add(`${username}: ${text}\n`);
-    console.log(`${username}: ${text}`);
 
     let response = await getAIResponse(`Respond as ${name} to the last message: \n"${conversation.getAllAsString()}"\n`);
+    if (!response) {
+        log("Error: No response");
+        return;
+    }
+
     response = response.replace(name + ":", '').replace(/(\r\n|\n|\r)/gm, '');
 
     conversation.add(`${name}: ${response}\n`);
-    console.log(`${name}: ${response}`);
+    log(`${name}: ${response}`);
 
     await textToSpeech(response);
 
     // Play response
     const loc = process.cwd() + '\/';
-    console.log("Playing " + loc + 'SyntheticSpeech.mp3')
     let resource = createAudioResource(loc + 'SyntheticSpeech.mp3');
     player.play(resource);
 }

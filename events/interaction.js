@@ -1,3 +1,5 @@
+import log from '../common/logger.js';
+
 export default {
     name: 'interactionCreate',
     async execute(interaction) {
@@ -13,7 +15,7 @@ export default {
             if (nickname != null) {
                 username += " (" + nickname + ")";
             }
-            console.log(username + " used /" + commandName);
+            log(username + " used /" + commandName);
         } else {
             return;
         }

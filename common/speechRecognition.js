@@ -1,6 +1,7 @@
 import fs from 'fs';
 import sdk from 'microsoft-cognitiveservices-speech-sdk';
 import { load } from '../json_manager.js';
+import log from './logger.js';
 
 const secrets = load('secrets');
 
@@ -17,20 +18,20 @@ export default async function speechToText() {
             let text = "";
             switch (result.reason) {
                 case sdk.ResultReason.RecognizedSpeech:
-                    console.log(`RECOGNIZED: ${result.text}`);
+                    log(`RECOGNIZED: ${result.text}`);
                     text = result.text;
                     break;
                 case sdk.ResultReason.NoMatch:
-                    console.log("NOMATCH: Speech could not be recognized.");
+                    log("NOMATCH: Speech could not be recognized.");
                     break;
                 case sdk.ResultReason.Canceled:
                     const cancellation = sdk.CancellationDetails.fromResult(result);
-                    console.log(`CANCELED: ${cancellation.reason}`);
+                    log(`CANCELED: ${cancellation.reason}`);
 
                     if (cancellation.reason == sdk.CancellationReason.Error) {
-                        console.log(`CANCELED: ErrorCode=${cancellation.ErrorCode}`);
-                        console.log(`CANCELED: ErrorDetails=${cancellation.errorDetails}`);
-                        console.log("CANCELED: Did you set the speech resource key and region values?");
+                        log(`CANCELED: ErrorCode=${cancellation.ErrorCode}`);
+                        log(`CANCELED: ErrorDetails=${cancellation.errorDetails}`);
+                        log("CANCELED: Did you set the speech resource key and region values?");
                     }
                     break;
             }

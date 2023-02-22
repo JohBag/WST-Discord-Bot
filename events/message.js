@@ -2,6 +2,7 @@ import getAIResponse from "../common/gpt-3.js";
 import textToSpeech from '../common/syntheticSpeech.js';
 import emojiRegex from "emoji-regex";
 import { load } from '../json_manager.js';
+import log from '../common/logger.js';
 
 const secrets = load('secrets');
 const config = load('config');
@@ -80,14 +81,14 @@ function shouldRespond(interaction, clientId) {
 
     // Check if bot is mentioned
     if (nicknames.some(name => interaction.content.toLowerCase().includes(name)) || interaction.mentions.users.has(clientId)) {
-        console.log("Responding to mention");
+        log("Responding to mention");
         return true;
     }
 
     // Random chance to appear
     const rng = Math.random();
     if (rng > (1 - config.reactChance)) {
-        console.log("Random reply (" + rng + ")");
+        log("Random reply (" + rng + ")");
         return true;
     }
 

@@ -2,6 +2,7 @@ import { Configuration, OpenAIApi } from "openai";
 import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import { load } from '../json_manager.js';
 import fs from 'fs';
+import log from '../common/logger.js';
 
 const secrets = load('secrets');
 const configuration = new Configuration({
@@ -47,7 +48,7 @@ async function generateImage(prompt) {
         response_format: 'b64_json'
     });
     if (!response.status == 200) { // 200 = OK
-        console.log("Error: " + completion.status);
+        log("Error: " + completion.status);
         return false;
     }
     const b64 = response.data.data[0].b64_json;

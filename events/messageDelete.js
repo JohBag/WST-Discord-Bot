@@ -1,4 +1,5 @@
 import { save, load } from '../json_manager.js';
+import log from '../common/logger.js';
 
 const secrets = load('secrets');
 const config = load('config');
@@ -13,7 +14,7 @@ export default {
             // Delete the vote
             delete votes[id];
             save('votes', votes);
-            console.log("Deleted vote: " + id);
+            log("Deleted vote: " + id);
         }
     },
 };

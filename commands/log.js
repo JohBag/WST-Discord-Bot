@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { load } from '../json_manager.js';
+import log from '../common/logger.js';
 
 const secrets = load('secrets');
 
@@ -132,10 +133,10 @@ async function getReport(id) {
         // Get ID of most recent guild log
         const data = await sendQuery('{ reportData { reports(guildID: 66538, limit: 1) { data { code } } } }');
         id = data.data.reportData.reports.data[0].code
-        console.log("No valid ID provided. Most recent log: " + id);
+        log("No valid ID provided. Most recent log: " + id);
     }
 
-    console.log("Fetching report with ID: " + id);
+    log("Fetching report with ID: " + id);
     const query = `query{ reportData { report(code: "${id}") { code title zone {name} startTime fights(killType: Encounters) { name difficulty kill fightPercentage } rankings } } }`;
     const data = await sendQuery(query);
     const report = data.data.reportData.report;

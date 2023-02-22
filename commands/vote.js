@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
 import { save, load } from '../json_manager.js';
+import log from '../common/logger.js';
 
 const maxOptions = 5;
 
@@ -130,7 +131,7 @@ function registerVote(interaction) {
     }
 
     save('votes', votes);
-    console.log(vote.title + " | Vote registered for \"" + voteID + "\"");
+    log(vote.title + " | Vote registered for \"" + voteID + "\"");
 
     let tally = getResult(vote);
     interaction.update({ embeds: [tally] });
