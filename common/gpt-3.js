@@ -1,5 +1,6 @@
 import { Configuration, OpenAIApi } from "openai";
 import { load } from '../json_manager.js';
+import log from './logger.js';
 
 const secrets = load('secrets');
 const configuration = new Configuration({
@@ -8,16 +9,24 @@ const configuration = new Configuration({
 const openai = new OpenAIApi(configuration);
 
 export default async function getAIResponse(prompt) {
-    const completion = await openai.createCompletion({
-        model: "text-davinci-003",
-        prompt: prompt,
-        temperature: 1,
-        max_tokens: 128
-    });
-    if (!completion.status == 200) { // 200 = OK
-        console.log("Error: " + completion.status);
-        return "";
-    }
+    return new Promise(async (resolve) => {
+        let timer = setTimeout(() => {
+            log('Function timed out.');
+            resolve('');
+        }, 10000);
 
-    return completion.data.choices[0].text;
+        const completion = await openai.createCompletion({
+            model: "text-davinci-003",
+            prompt: prompt,
+            temperature: 1,
+            max_tokens: 128
+        });
+        if (!completion.status == 200) { // 200 = OK
+            log("Error: " + completion.status);
+            resolve("");
+        }
+
+        clearTimeout(timer);
+        resolve(completion.data.choices[0].text);
+    });
 }
