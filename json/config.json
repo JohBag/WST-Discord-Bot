@@ -3,7 +3,8 @@
     "nicknames": [
         "botty"
     ],
-    "soundsLike": [
+    "triggerWords": [
+        "spotty",
         "potty",
         "potsy",
         "patty",
@@ -15,7 +16,10 @@
         "button",
         "bottle",
         "batty",
-        "cortana"
+        "cortana",
+        "booty",
+        "bootsy",
+        "activate"
     ],
     "reactChance": 0.01,
     "reactWhitelist": [],

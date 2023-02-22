@@ -13,7 +13,7 @@ import log from '../common/logger.js';
 const config = load('config');
 const name = config.name;
 const nicknames = config.nicknames;
-const soundsLike = config.soundsLike;
+const triggerWords = config.triggerWords;
 
 const conversation = new Queue(10);
 const encoder = new OpusEncoder(48000, 2);
@@ -81,7 +81,7 @@ async function listen(connection, userID, username) {
     return new Promise((resolve) => {
         log("Listening...");
 
-        let receiver = connection.receiver.subscribe(userID, { end: { behavior: EndBehaviorType.AfterSilence, duration: 100 } });
+        let receiver = connection.receiver.subscribe(userID, { end: { behavior: EndBehaviorType.AfterSilence, duration: 2000 } });
         let fileStream = new wav.FileWriter("./output.wav", {
             sampleRate: 48000,
             channels: 2,
@@ -107,7 +107,7 @@ async function respond(username) {
 
     // Check if the input is valid
     let text = speechInput.toLowerCase();
-    const found = soundsLike.some(sound => {
+    const found = triggerWords.some(sound => {
         if (text.includes(sound)) {
             text = text.replace(sound, 'Botty');
             return true;
