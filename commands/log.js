@@ -23,7 +23,7 @@ export default {
             await interaction.followUp({ content: 'No report with id *' + id + '* could be found.', ephemeral: true });
             return interaction.deleteReply();
         }
-        let log = embedReport(report, id);
+        let log = await embedReport(report, id);
 
         return interaction.editReply({ embeds: [log] });
     },
@@ -91,53 +91,67 @@ function getBossSection(report) {
     return section;
 }
 
-function getParticipants(fights) {
-    return fights.reduce((participants, fight) => {
-        Object.entries(fight.roles).forEach(([role, roleData]) => {
-            if (!participants[role]) participants[role] = new Set();
-            roleData.characters.forEach(({ name }) => participants[role].add(name));
-        });
-        return participants;
-    }, {});
+async function getParticipants(report) {
+    const fights = report.fights.map(fight => fight.id);
+    const query = `query {
+        reportData {
+            report(code: "R6yGY4MdhQNTXq9V") {
+                playerDetails(fightIDs: [${fights}])
+            }
+        }
+    }`;
+    const data = await sendQuery(query);
+    return data.data.reportData.report.playerDetails.data.playerDetails;
 }
 
-function getParticipantSection(report) {
-    const participants = getParticipants(report.rankings.data);
-    return Object.fromEntries(
-        Object.entries(participants).map(([role, characters]) => [role, [...characters].sort().join('\n')])
-    );
-}
-
-function embedReport(report) {
+async function embedReport(report) {
     const embeddedMessage = new EmbedBuilder()
         .setColor(0x0099FF)
-        .setTitle(report.zone.name)
+        .setTitle(report.title)
         .setURL(`https://www.warcraftlogs.com/reports/${report.code}/`)
         .setDescription(formatTime(report.startTime));
 
     const bosses = getBossSection(report);
-    if (bosses[4]) embeddedMessage.addFields({ name: "Heroic", value: bosses[4] });
     if (bosses[3]) embeddedMessage.addFields({ name: "Normal", value: bosses[3] });
+    if (bosses[4]) embeddedMessage.addFields({ name: "Heroic", value: bosses[4] });
 
-    const participants = getParticipantSection(report);
-    const roles = Object.keys(participants);
-    embeddedMessage.addFields({ name: "Damage", value: participants[roles[2]], inline: true });
-    embeddedMessage.addFields({ name: "Healing", value: participants[roles[1]], inline: true });
-    embeddedMessage.addFields({ name: "Tanking", value: participants[roles[0]], inline: true });
+    const participants = await getParticipants(report);
+    const dps = participants["dps"].map(player => player.name).join('\n');
+    const healers = participants["healers"].map(player => player.name).join('\n');
+    const tanks = participants["tanks"].map(player => player.name).join('\n');
+
+    embeddedMessage.addFields({ name: "Damage", value: dps, inline: true });
+    embeddedMessage.addFields({ name: "Healing", value: healers, inline: true });
+    embeddedMessage.addFields({ name: "Tanking", value: tanks, inline: true });
 
     return embeddedMessage;
 }
 
 async function getReport(id) {
     if (!id) {
+        log("No ID provided. Fetching most recent log.")
         // Get ID of most recent guild log
         const data = await sendQuery('{ reportData { reports(guildID: 66538, limit: 1) { data { code } } } }');
         id = data.data.reportData.reports.data[0].code
-        log("No valid ID provided. Most recent log: " + id);
     }
 
     log("Fetching report with ID: " + id);
-    const query = `query{ reportData { report(code: "${id}") { code title zone {name} startTime fights(killType: Encounters) { name difficulty kill fightPercentage } rankings } } }`;
+    const query = `query{ 
+        reportData { 
+            report(code: "${id}") { 
+                code 
+                title
+                startTime 
+                fights(killType: Encounters) { 
+                    id
+                    name 
+                    difficulty 
+                    kill 
+                    fightPercentage 
+                }
+            } 
+        } 
+    }`;
     const data = await sendQuery(query);
     const report = data.data.reportData.report;
 
