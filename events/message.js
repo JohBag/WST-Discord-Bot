@@ -25,7 +25,6 @@ export default {
         // Get channel conversation
         const messages = await interaction.channel.messages.fetch({ limit: 10 });
         let conversation = await Promise.all(messages.map(async (message) => {
-            console.log("message");
             const member = await interaction.guild.members.fetch(message.author.id);
             const username = member.nickname || message.author.username;
             const role = username == name ? "assistant" : "user";
@@ -49,7 +48,7 @@ export default {
         */
 
         // Generate response
-        let response = await getAIResponse(`You are ${name}, a fun and helpful AI assistant.`, conversation);
+        let response = await getAIResponse(`You are ${name}, a fun and friendly AI who loves to talk to people and engage in conversation. You speak in a casual and friendly tone, as if to a friend.`, conversation);
         if (!response) {
             return;
         }
