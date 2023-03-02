@@ -23,15 +23,20 @@ export default {
         }
 
         // Get channel conversation
-        let conversation = "";
-        await interaction.channel.messages.fetch({ limit: 10 }).then(messages => {
-            const member = interaction.guild.members.fetch(interaction.author);
-            const username = member ? member.displayName : interaction.author.username;
-            messages.reverse().forEach(message => conversation += username + ": " + message.content + "\n");
-        });
+        const messages = await interaction.channel.messages.fetch({ limit: 10 });
+        let conversation = await Promise.all(messages.map(async (message) => {
+            console.log("message");
+            const member = await interaction.guild.members.fetch(message.author.id);
+            const username = member.nickname || message.author.username;
+            const role = username == name ? "assistant" : "user";
+            return { role: role, content: `${username}: ${message.content}` };
+        }));
+        conversation = conversation.reverse();
+        console.log(conversation);
 
+        /*
         // React with emoji
-        let reaction = await getAIResponse(`As ${name}, provide the unicode of a discord emoji suitable for the last message.\n${conversation}\n`);
+        let reaction = await getAIResponse(`As ${name}, provide the unicode of a discord emoji suitable for the last message.`, conversation);
         reaction = reaction.substring(reaction.indexOf(':'));
 
         // React if emoji is valid
@@ -41,14 +46,13 @@ export default {
             interaction.react(emoji);
             break;
         }
+        */
 
         // Generate response
-        let response = await getAIResponse(`Using the last 10 messages provided, generate an appropriate response as ${name} to the most recent message in the conversation.\n${conversation}\n`);
+        let response = await getAIResponse(`You are ${name}, a fun and helpful AI assistant.`, conversation);
         if (!response) {
             return;
         }
-
-        response = response.replace(name + ": ", '');
 
         // Convert to synthetic speech
         const file = await textToSpeech(response);
