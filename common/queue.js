@@ -18,8 +18,4 @@ export default class Queue {
     getAll() {
         return this.queue;
     }
-
-    getAllAsString() {
-        return this.queue.join('');
-    }
 }

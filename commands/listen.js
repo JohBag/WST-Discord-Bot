@@ -3,7 +3,7 @@ import getAIResponse from "../common/gpt-3.js";
 import textToSpeech from '../common/syntheticSpeech.js';
 import speechToText from '../common/speechRecognition.js';
 import { load } from '../json_manager.js';
-import { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, EndBehaviorType, VoiceConnectionStatus } from '@discordjs/voice';
+import { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, EndBehaviorType } from '@discordjs/voice';
 import Queue from '../common/queue.js';
 import pkg from '@discordjs/opus';
 const { OpusEncoder } = pkg;
@@ -121,9 +121,9 @@ async function respond(username) {
     }
 
     // Respond
-    conversation.add(`${username}: ${text}\n`);
+    conversation.add({ role: 'user', content: `${username}: ${text}` });
 
-    let response = await getAIResponse(`Respond as ${name} to the last message: \n"${conversation.getAllAsString()}"\n`);
+    let response = await getAIResponse(`You are ${name}, a fun and friendly AI who loves to talk to people and engage in conversation. You speak in a casual and friendly tone, as if to a friend.`, conversation.getAll());
     if (!response) {
         log("Error: No response");
         return;
@@ -131,7 +131,7 @@ async function respond(username) {
 
     response = response.replace(name + ":", '').replace(/(\r\n|\n|\r)/gm, '');
 
-    conversation.add(`${name}: ${response}\n`);
+    conversation.add({ role: 'assistant', content: `${name}: ${response}` });
     log(`${name}: ${response}`);
 
     await textToSpeech(response);
