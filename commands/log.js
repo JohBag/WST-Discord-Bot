@@ -116,9 +116,9 @@ async function embedReport(report) {
     if (bosses[4]) embeddedMessage.addFields({ name: "Heroic", value: bosses[4] });
 
     const participants = await getParticipants(report);
-    const dps = participants["dps"].map(player => player.name).join('\n');
-    const healers = participants["healers"].map(player => player.name).join('\n');
-    const tanks = participants["tanks"].map(player => player.name).join('\n');
+    const dps = participants["dps"].map(player => player.name).sort().join('\n');
+    const healers = participants["healers"].map(player => player.name).sort().join('\n');
+    const tanks = participants["tanks"].map(player => player.name).sort().join('\n');
 
     embeddedMessage.addFields({ name: "Damage", value: dps, inline: true });
     embeddedMessage.addFields({ name: "Healing", value: healers, inline: true });
