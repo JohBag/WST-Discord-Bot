@@ -31,7 +31,6 @@ export default {
             return { role: role, content: `${username}: ${message.content}` };
         }));
         conversation = conversation.reverse();
-        console.log(conversation);
 
         /*
         // React with emoji
