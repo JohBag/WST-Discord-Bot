@@ -23,7 +23,7 @@ export default {
         }
 
         // Get channel conversation
-        const messages = await interaction.channel.messages.fetch({ limit: 10 });
+        const messages = await interaction.channel.messages.fetch({ limit: 20 });
         let conversation = await Promise.all(messages.map(async (message) => {
             const member = await interaction.guild.members.fetch(message.author.id);
             const username = member.nickname || message.author.username;
