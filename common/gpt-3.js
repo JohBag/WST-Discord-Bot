@@ -16,7 +16,7 @@ export default async function getAIResponse(systemMessage, conversation) {
         let timer = setTimeout(() => {
             log('Function timed out.');
             resolve('');
-        }, 10000);
+        }, 30000);
 
         conversation.unshift({ role: "system", content: systemMessage })
         const completion = await openai.createChatCompletion({
