@@ -95,7 +95,7 @@ async function getParticipants(report) {
     const fights = report.fights.map(fight => fight.id);
     const query = `query {
         reportData {
-            report(code: "R6yGY4MdhQNTXq9V") {
+            report(code: "${report.code}") {
                 playerDetails(fightIDs: [${fights}])
             }
         }
