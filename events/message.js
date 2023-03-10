@@ -1,5 +1,5 @@
 import getAIResponse from "../common/gpt-3.js";
-import textToSpeech from '../common/syntheticSpeech.js';
+import textToSpeech from '../common/textToSpeech.js';
 import emojiRegex from "emoji-regex";
 import { load } from '../json_manager.js';
 import log from '../common/logger.js';
@@ -9,6 +9,7 @@ const config = load('config');
 
 const name = config.name;
 const nicknames = config.nicknames;
+const cutoff = config.cutoff;
 
 export default {
     name: 'messageCreate',
@@ -24,19 +25,26 @@ export default {
 
         // Get channel conversation
         const messages = await interaction.channel.messages.fetch({ limit: 20 });
-        let conversation = await Promise.all(messages.map(async (message) => {
+        const arr = Array.from(messages.values());
+        const cutoffIndex = arr.findIndex(message => message.content === cutoff);
+        const messagesUntilCutoff = cutoffIndex !== -1 ? arr.slice(0, cutoffIndex) : arr;
+        let conversation = await Promise.all(messagesUntilCutoff.map(async (message) => {
             const member = await interaction.guild.members.fetch(message.author.id);
             const username = member.nickname || message.author.username;
             const role = username == name ? "assistant" : "user";
+
             return { role: role, content: `${username}: ${message.content}` };
         }));
+        if (conversation.length === 0) {
+            return;
+        }
         conversation = conversation.reverse();
 
         /*
         // React with emoji
         let reaction = await getAIResponse(`As ${name}, provide the unicode of a discord emoji suitable for the last message.`, conversation);
         reaction = reaction.substring(reaction.indexOf(':'));
-
+ 
         // React if emoji is valid
         const regex = emojiRegex();
         for (const match of reaction.matchAll(regex)) {
@@ -47,25 +55,52 @@ export default {
         */
 
         // Generate response
-        let response = await getAIResponse(`You are ${name}, a fun and friendly AI who loves to talk to people and engage in conversation. You speak in a casual and friendly tone, as if to a friend.`, conversation);
+        let response = await getAIResponse(`
+            You are ${name}, a fun and charming AI who loves to talk to people and engage in conversation. 
+            Write in a casual and emotive style. Use emojis and gifs to make your responses more expressive.
+            When giving information, do so in a simple or humorous way. If you don't know the answer to a question, make that clear.
+            Current date: ${new Date()}.`,
+            conversation
+        );
         if (!response) {
             return;
         }
 
-        // Convert to synthetic speech
-        const file = await textToSpeech(response);
-
-        // Prepare message
-        let msg = { content: response };
-        if (file != null) {
-            msg['files'] = [{
-                attachment: file,
-                name: file
-            }];
+        // Split response into pieces of 2000 characters or less
+        const chunks = [];
+        if (response.length > 2000) {
+            while (response.length > 2000) {
+                const lastNewLine = response.lastIndexOf("\n", 2000);
+                const lastCodeBlock = response.lastIndexOf("```", 2000);
+                const index = Math.min(lastNewLine === -1 ? 2000 : lastNewLine, lastCodeBlock === -1 ? 2000 : lastCodeBlock);
+                if (index === -1) {
+                    break;
+                }
+                chunks.push(response.substring(0, index));
+                response = response.substring(index + 1);
+            }
+        }
+        else {
+            chunks.push(response);
         }
 
-        // Send
-        interaction.channel.send(msg);
+        // Send chunks
+        for (const chunk of chunks) {
+            // Convert to synthetic speech
+            const file = await textToSpeech(chunk);
+
+            // Prepare message
+            let msg = { content: chunk };
+            if (file != null) {
+                msg['files'] = [{
+                    attachment: file,
+                    name: file
+                }];
+            }
+
+            // Send
+            interaction.channel.send(msg);
+        }
     },
 };
 
