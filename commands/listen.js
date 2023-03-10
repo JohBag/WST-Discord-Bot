@@ -31,7 +31,7 @@ let listeningTo = [];
 export default {
     data: new SlashCommandBuilder()
         .setName('listen')
-        .setDescription('Listens and responds to "Botty"'),
+        .setDescription('Speak with the AI. Responds when mentioned if multiple users are in the voice channel.'),
     async execute(interaction) {
         console.log("Joining voice channel...");
 
@@ -149,11 +149,13 @@ async function respond(username) {
     const transcription = await transcribe("output.wav", "Hello Botty, when are you gonna join the raids?");
     if (!transcription) return false;
 
-    // Check if the input is valid
-    let text = transcription.toLowerCase();
-    if (!nicknames.some(nickname => text.includes(nickname))) {
-        console.log("Missing trigger word");
-        return false;
+    if (listeningTo.length > 1) {
+        // Check if the input is valid
+        let text = transcription.toLowerCase();
+        if (!nicknames.some(nickname => text.includes(nickname))) {
+            console.log("Missing trigger word");
+            return false;
+        }
     }
 
     // Respond
