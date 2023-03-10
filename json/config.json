@@ -3,28 +3,7 @@
     "nicknames": [
         "botty"
     ],
-    "triggerWords": [
-        "spotty",
-        "potty",
-        "potsy",
-        "patty",
-        "potted",
-        "buddy",
-        "brother",
-        "patsy",
-        "batsy",
-        "button",
-        "bottle",
-        "batty",
-        "cortana",
-        "booty",
-        "bootsy",
-        "body",
-        "party",
-        "boop",
-        "beep",
-        "activate"
-    ],
+    "cutoff": "#",
     "reactChance": 0.01,
     "reactWhitelist": [],
     "reactBlacklist": [
