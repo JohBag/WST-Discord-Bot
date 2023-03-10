@@ -11,8 +11,16 @@ export default class Queue {
         this.queue.push(item);
     }
 
+    size() {
+        return this.queue.length;
+    }
+
     clear() {
         this.queue = [];
+    }
+
+    getLast() {
+        return this.queue[this.queue.length - 1];
     }
 
     getAll() {
