@@ -2,9 +2,6 @@ import { Configuration, OpenAIApi } from "openai";
 import { load } from '../json_manager.js';
 import log from './logger.js';
 
-const config = load('config');
-const name = config.name;
-
 const secrets = load('secrets');
 const configuration = new Configuration({
     apiKey: secrets.apiKey,
@@ -16,22 +13,24 @@ export default async function getAIResponse(systemMessage, conversation) {
         let timer = setTimeout(() => {
             log('Function timed out.');
             resolve('');
-        }, 30000);
+        }, 60000); // 60 seconds
 
-        conversation.unshift({ role: "system", content: systemMessage })
-        const completion = await openai.createChatCompletion({
-            model: "gpt-3.5-turbo",
-            messages: conversation,
-        });
-
-        if (!completion.status == 200) { // 200 = OK
-            log("Error: " + completion.status);
+        conversation.unshift({ role: "system", content: systemMessage });
+        let completion = "";
+        try {
+            completion = await openai.createChatCompletion({
+                model: "gpt-3.5-turbo",
+                messages: conversation,
+            });
+        } catch (error) {
+            log("Invalid response");
             resolve("");
         }
 
         let response = completion.data.choices[0].message.content;
-        console.log("Response: " + response);
-        response = response.replace(name + ": ", '');
+
+        // Delete everything up to and including the first colon
+        response = response.substring(response.indexOf(":") + 1).trim();
 
         clearTimeout(timer);
         resolve(response);
