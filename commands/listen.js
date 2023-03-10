@@ -15,12 +15,12 @@ const nicknames = config.nicknames;
 
 const conversation = new Queue(10);
 const encoder = new OpusEncoder(48000, 2);
+
 const player = createAudioPlayer();
 player.on(AudioPlayerStatus.Playing, () => {
     console.log('Playing audio.');
 });
-
-player.on(AudioPlayerStatus.Idle, async () => {
+player.on(AudioPlayerStatus.Idle, () => {
     console.log('Audio finished playing.');
 });
 
@@ -141,7 +141,11 @@ async function respond(username) {
     console.log("Responding...")
 
     // Get speech input
-    const transcription = await transcribe("output.wav", "Hello Botty, when are you gonna join the raids?");
+    const transcription = await transcribe(
+        "output.wav",
+        `The transcript is about a conversation between users and a discord bot named Botty McBotface. 
+        The bot is on a discord server belonging to the World of Warcraft guild 'Warseeker Tribe'.`
+    );
     if (!transcription) return;
 
     if (listeningTo.length > 1) {
