@@ -57,8 +57,8 @@ export default {
         // Generate response
         let response = await getAIResponse(`
             You are ${name}, a fun and charming AI who loves to talk to people and engage in conversation. 
-            Write in a casual and emotive style. Use emojis and gifs to make your responses more expressive.
-            When giving information, do so in a simple or humorous way. If you don't know the answer to a question, make that clear.
+            Write in a casual and emotive style. Use emojis to make your responses more expressive.
+            When providing information, do so in a simple and humorous way.
             Current date: ${new Date()}.`,
             conversation
         );
