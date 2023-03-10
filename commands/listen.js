@@ -99,12 +99,7 @@ const networkStateChangeHandler = (oldNetworkState, newNetworkState) => {
 
 async function listenAndRespond(connection, userID, username) {
     if (await listen(connection, userID)) {
-        if (await respond(username)) {
-            await play('SyntheticSpeech');
-        }
-        else {
-            console.log("No response.")
-        }
+        await respond(username);
     }
 }
 
@@ -147,14 +142,14 @@ async function respond(username) {
 
     // Get speech input
     const transcription = await transcribe("output.wav", "Hello Botty, when are you gonna join the raids?");
-    if (!transcription) return false;
+    if (!transcription) return;
 
     if (listeningTo.length > 1) {
         // Check if the input is valid
         let text = transcription.toLowerCase();
         if (!nicknames.some(nickname => text.includes(nickname))) {
             console.log("Missing trigger word");
-            return false;
+            return;
         }
     }
 
@@ -171,12 +166,11 @@ async function respond(username) {
     if (!response) {
         console.log("Error: No response");
         await play('NoResponse');
-        return true
     }
 
     conversation.add({ role: 'assistant', content: `${name}: ${response}` });
     console.log(conversation.getLast());
 
     await textToSpeech(response);
-    return true
+    await play('SyntheticSpeech');
 }
