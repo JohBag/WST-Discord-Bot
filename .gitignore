@@ -1,7 +1,7 @@
 node_modules
 secrets.json
 votes.json
-*.png
-*.mp3
-*.wav
+image.png
+SyntheticSpeech.mp3
+output.wav
 log.txt
