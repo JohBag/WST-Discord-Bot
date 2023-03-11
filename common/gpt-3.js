@@ -30,7 +30,10 @@ export default async function getAIResponse(systemMessage, conversation) {
         let response = completion.data.choices[0].message.content;
 
         // Delete everything up to and including the first colon
-        response = response.substring(response.indexOf(":") + 1).trim();
+        const colonIndex = response.indexOf(":");
+        if (response.charAt(colonIndex + 1) === " ") {
+            response = response.substring(colonIndex + 2).trim();
+        }
 
         clearTimeout(timer);
         resolve(response);
