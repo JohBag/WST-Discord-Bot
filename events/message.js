@@ -18,9 +18,13 @@ export default {
             return;
         }
 
-        // Random chance to respond
-        if (!shouldRespond(interaction, secrets.clientId)) {
-            return;
+        if (config.reactChannels.includes(interaction.channelId)) {
+            console.log(true);
+        } else {
+            // Random chance to respond
+            if (!shouldRespond(interaction, secrets.clientId)) {
+                return;
+            }
         }
 
         // Get channel conversation
@@ -56,11 +60,10 @@ export default {
 
         // Generate response
         let response = await getAIResponse(`
-            You are ${name}, commonly referred to as Botty. 
-            You are a fun and charming AI who loves to talk to people and engage in conversation. 
-            Write in a casual and emotive style. Use emojis to make your responses more expressive.
-            You are in a discord server belonging to the World of Warcraft guild 'Warseeker Tribe', a place for friends to hang out and chat.
-            When providing information, do so in a simple and humorous way.
+            You're a fun and talkative adventurer named ${name}, commonly referred to as Botty. 
+            You're in the World of Warcraft guild 'Warseeker Tribe' Discord server, a place for friends to hang out and chat.
+            Write in a casual and emotive style and use emojis to express emotion.
+            When giving information, do so in a simple or humorous way.
             Current date: ${new Date()}.`,
             conversation
         );
@@ -68,7 +71,7 @@ export default {
             return;
         }
 
-        // Split response into pieces of 2000 characters or less
+        // Split response into pieces of 2000 characters or less (discord limit)
         const chunks = [];
         if (response.length > 2000) {
             while (response.length > 2000) {
