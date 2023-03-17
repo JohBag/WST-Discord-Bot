@@ -22,20 +22,20 @@ export default async function getAIResponse(systemMessage, conversation) {
                 model: "gpt-3.5-turbo",
                 messages: conversation,
             });
+
+            let response = completion.data.choices[0].message.content;
+
+            // Delete everything up to and including the first colon
+            const colonIndex = response.indexOf(":");
+            if (response.charAt(colonIndex + 1) === " ") {
+                response = response.substring(colonIndex + 2).trim();
+            }
+
+            clearTimeout(timer);
+            resolve(response);
         } catch (error) {
             log("Invalid response");
             resolve("");
         }
-
-        let response = completion.data.choices[0].message.content;
-
-        // Delete everything up to and including the first colon
-        const colonIndex = response.indexOf(":");
-        if (response.charAt(colonIndex + 1) === " ") {
-            response = response.substring(colonIndex + 2).trim();
-        }
-
-        clearTimeout(timer);
-        resolve(response);
     });
 }
