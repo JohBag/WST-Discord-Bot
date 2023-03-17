@@ -35,6 +35,7 @@ export default async function getAIResponse(systemMessage, conversation) {
             resolve(response);
         } catch (error) {
             log("Invalid response");
+            clearTimeout(timer);
             resolve("");
         }
     });
