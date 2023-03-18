@@ -19,7 +19,11 @@ export default {
         }
 
         if (config.reactChannels.includes(interaction.channelId)) {
-            console.log(true);
+            // Check if user is responding to other users
+            const mentioned = interaction.mentions.users
+            if (mentioned.size > 0 && !(mentioned.has(secrets.clientId))) {
+                return;
+            }
         } else {
             // Random chance to respond
             if (!shouldRespond(interaction, secrets.clientId)) {
