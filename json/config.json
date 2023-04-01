@@ -3,7 +3,7 @@
     "nicknames": [
         "botty"
     ],
-    "cutoff": "#",
+    "cutoff": "###",
     "reactChance": 0.01,
     "reactWhitelist": [],
     "reactBlacklist": [
@@ -14,7 +14,6 @@
         "1067582550488391730"
     ],
     "reactChannels": [
-        "1083851912878768218",
-        "452956966093062147"
+        "1083851912878768218"
     ]
 }
