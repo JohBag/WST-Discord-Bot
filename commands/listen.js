@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import getAIResponse from "../common/gpt-3.js";
+import getAIResponse from "../common/gpt.js";
 import textToSpeech from '../common/textToSpeech.js';
 import { load } from '../json_manager.js';
 import { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, EndBehaviorType } from '@discordjs/voice';
@@ -13,7 +13,7 @@ const config = load('config');
 const name = config.name;
 const nicknames = config.nicknames;
 
-const conversation = new Queue(10);
+const conversation = new Queue(32);
 const encoder = new OpusEncoder(48000, 2);
 
 const player = createAudioPlayer();
@@ -105,11 +105,6 @@ async function listenAndRespond(connection, userID, username) {
 
 async function listen(connection, userID) {
     return new Promise((resolve) => {
-        let timer = setTimeout(async () => {
-            console.log('Function timed out.');
-            resolve(false);
-        }, 600000); // 10 minutes
-
         console.log("Listening...");
 
         let receiver = connection.receiver.subscribe(userID, { end: { behavior: EndBehaviorType.AfterSilence, duration: 1500 } });
@@ -120,7 +115,6 @@ async function listen(connection, userID) {
         });
 
         receiver.on("data", (chunk) => {
-            clearTimeout(timer);
             fileStream.write(encoder.decode(chunk));
         });
         receiver.on("end", async () => {
