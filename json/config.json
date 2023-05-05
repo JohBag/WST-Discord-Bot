@@ -4,16 +4,30 @@
         "botty"
     ],
     "cutoff": "###",
-    "reactChance": 0.01,
-    "reactWhitelist": [],
-    "reactBlacklist": [
+    "basePrompt": "You are a fun and talkative person named Botty. Write in a casual and emotive style. ",
+    "channels": {
+        "default": {
+            "prompt": "You are in the World of Warcraft guild 'Warseeker Tribe' Discord server, a place for friends to hang out and chat.",
+            "messageLimit": 24,
+            "reactChance": 0.01,
+            "textToSpeech": true,
+            "gpt4": false
+        },
+        "voice": {
+            "prompt": "Do not use emojis.",
+            "messageLimit": 48
+        },
+        "1015931273920921610": {
+            "prompt": "You are a dungeon master and narrator. Create an interactive story for the players to overcome. Do not enact actions on behalf of the player characters that the players have not described.",
+            "messageLimit": 32,
+            "reactChance": 1
+        }
+    },
+    "blacklist": [
         "765518967904796692",
         "759058862845591562",
         "759862220279775274",
         "759856852317241375",
         "1067582550488391730"
-    ],
-    "reactChannels": [
-        "1083851912878768218"
     ]
 }
