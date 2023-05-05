@@ -20,6 +20,8 @@ export default async function getAIResponse(systemMessage, conversation, gpt4 = 
 
         const model = gpt4 ? "gpt-4" : "gpt-3.5-turbo";
 
+        console.log(`${systemMessage} (${model})`);
+
         conversation.unshift({ role: "system", content: systemMessage });
         let completion = "";
         try {
