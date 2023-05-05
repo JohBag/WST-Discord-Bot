@@ -21,7 +21,6 @@ export default {
 
         const channelID = interaction.channel.id;
         const settings = getSettings(channelID);
-        console.log(settings);
 
         if (!shouldRespond(interaction, settings)) {
             return;
@@ -76,13 +75,17 @@ async function getContext(interaction, messageLimit) {
     const cutoffIndex = arr.findIndex(message => message.content === cutoff);
     const messagesUntilCutoff = cutoffIndex !== -1 ? arr.slice(0, cutoffIndex) : arr;
 
-    let conversation = await Promise.all(messagesUntilCutoff.map(async (message) => {
-        const member = await interaction.guild.members.fetch(message.author.id);
-        const username = member.nickname || message.author.username;
-        const role = username == name ? "assistant" : "user";
+    let conversation = await Promise.all(
+        messagesUntilCutoff
+            .filter((message) => !message.content.startsWith(config.ignorePrefix))
+            .map(async (message) => {
+                const member = await interaction.guild.members.fetch(message.author.id);
+                const username = member.nickname || message.author.username;
+                const role = username === name ? "assistant" : "user";
 
-        return { role: role, content: `${username}: ${message.content}` };
-    }));
+                return { role: role, content: `${username}: ${message.content}` };
+            })
+    );
 
     return conversation.reverse();
 }
@@ -106,6 +109,11 @@ function shouldReactRandomly(reactChance) {
 
 function shouldRespond(interaction, settings) {
     const { channelId, mentions, content } = interaction;
+
+    if (content.startsWith(config.ignorePrefix)) {
+        console.log("Ignoring message");
+        return false;
+    }
 
     if (isInBlacklistedChannel(channelId)) {
         return false;
