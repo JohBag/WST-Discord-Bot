@@ -111,7 +111,7 @@ function shouldRespond(interaction, settings) {
         return false;
     }
 
-    if (!hasBotMention(mentions) && hasBotNickname(content)) {
+    if (hasBotMention(mentions) || hasBotNickname(content)) {
         log("Responding to mention");
         return true;
     }
