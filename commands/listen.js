@@ -16,10 +16,10 @@ const encoder = new OpusEncoder(48000, 2);
 
 const player = createAudioPlayer();
 player.on(AudioPlayerStatus.Playing, () => {
-    console.log('Playing audio.');
+    log('Playing audio.');
 });
 player.on(AudioPlayerStatus.Idle, () => {
-    console.log('Audio finished playing.');
+    log('Audio finished playing.');
 });
 
 let connection = null;
@@ -31,14 +31,14 @@ export default {
         .setName("listen")
         .setDescription("Speak with the AI. Responds when mentioned if its listening to multiple users."),
     async execute(interaction) {
-        console.log("Joining voice channel...");
+        log("Joining voice channel...");
 
         const username = interaction.member.displayName || interaction.author.username;
 
         // Check if user is in a voice channel
         let userChannel = interaction.member.voice.channel;
         if (!userChannel) {
-            console.log("User not in a voice channel.");
+            log("User not in a voice channel.");
             return interaction.reply({ content: "You need to join a voice channel first!", ephemeral: true });
         }
 
@@ -46,7 +46,7 @@ export default {
         if (userChannel == channel) {
             // Check if user is already being listened to
             if (listeningTo.includes(username)) {
-                console.log("Already listening to user.");
+                log("Already listening to user.");
                 return interaction.reply({ content: "I'm already listening.", ephemeral: true });
             }
         } else {
@@ -103,7 +103,7 @@ async function listenAndRespond(connection, userID, username) {
 
 async function listen(connection, userID) {
     return new Promise((resolve) => {
-        console.log("Listening...");
+        log("Listening...");
 
         let receiver = connection.receiver.subscribe(userID, { end: { behavior: EndBehaviorType.AfterSilence, duration: 1500 } });
         let fileStream = new wav.FileWriter("./media/output.wav", {
@@ -123,14 +123,14 @@ async function listen(connection, userID) {
 };
 
 async function play(filename) {
-    console.log("Preparing audio...")
+    log("Preparing audio...")
     const loc = process.cwd() + "\\media\\";
     let resource = createAudioResource(loc + filename + '.mp3');
     player.play(resource);
 }
 
 async function respond(username) {
-    console.log("Responding...")
+    log("Responding...")
 
     // Get speech input
     const transcription = await transcribe(
@@ -142,26 +142,26 @@ async function respond(username) {
         // Check if the input is valid
         let text = transcription.toLowerCase();
         if (!config.nicknames.some(nickname => text.includes(nickname))) {
-            console.log("Missing trigger word");
+            log("Missing trigger word");
             return;
         }
     }
 
     // Respond
     conversation.add({ role: 'user', content: `${username}: ${transcription}` });
-    console.log(conversation.getLast());
+    log(conversation.getLast());
 
     let response = await generateResponse(
         config.basePrompt + config.prompts.listen.prompt,
         conversation.getAll()
     );
     if (!response) {
-        console.log("Error: No response");
+        log("Error: No response");
         return await play('NoResponse');
     }
 
     conversation.add({ role: 'assistant', content: `${config.name}: ${response}` });
-    console.log(conversation.getLast());
+    log(conversation.getLast());
 
     await textToSpeech(response);
     await play('SyntheticSpeech');
