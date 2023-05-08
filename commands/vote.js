@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
-import { save, load } from '../json_manager.js';
-import log from '../common/logger.js';
+import { save, load } from '../modules/jsonHandler.js';
+import log from '../modules/logger.js';
 
 const maxOptions = 5;
 

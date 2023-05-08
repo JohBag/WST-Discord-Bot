@@ -1,17 +1,14 @@
 import { SlashCommandBuilder } from 'discord.js';
-import getAIResponse from "../common/gpt.js";
-import textToSpeech from '../common/textToSpeech.js';
-import { load } from '../json_manager.js';
+import textToSpeech from '../modules/textToSpeech.js';
+import { load } from '../modules/jsonHandler.js';
 import { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, EndBehaviorType } from '@discordjs/voice';
-import Queue from '../common/queue.js';
+import Queue from '../modules/queue.js';
 import pkg from '@discordjs/opus';
 const { OpusEncoder } = pkg;
 import wav from 'wav';
-import transcribe from '../common/whisper.js';
+import { transcribe, generateResponse } from '../modules/openai.js';
 
 const config = load('config');
-const name = config.name;
-const nicknames = config.nicknames;
 
 const conversation = new Queue(32);
 const encoder = new OpusEncoder(48000, 2);
@@ -30,8 +27,8 @@ let listeningTo = [];
 
 export default {
     data: new SlashCommandBuilder()
-        .setName('listen')
-        .setDescription('Speak with the AI. Responds when mentioned if multiple users are in the voice channel.'),
+        .setName("listen")
+        .setDescription("Speak with the AI. Responds when mentioned if its listening to multiple users."),
     async execute(interaction) {
         console.log("Joining voice channel...");
 
@@ -41,7 +38,7 @@ export default {
         let userChannel = interaction.member.voice.channel;
         if (!userChannel) {
             console.log("User not in a voice channel.");
-            return interaction.reply({ content: 'You need to join a voice channel first!', ephemeral: true });
+            return interaction.reply({ content: "You need to join a voice channel first!", ephemeral: true });
         }
 
         // Check if user is in the same voice channel as the bot
@@ -49,7 +46,7 @@ export default {
             // Check if user is already being listened to
             if (listeningTo.includes(username)) {
                 console.log("Already listening to user.");
-                return interaction.reply({ content: 'I am already listening.', ephemeral: true });
+                return interaction.reply({ content: "I'm already listening.", ephemeral: true });
             }
         } else {
             // Leave current voice channel
@@ -108,7 +105,7 @@ async function listen(connection, userID) {
         console.log("Listening...");
 
         let receiver = connection.receiver.subscribe(userID, { end: { behavior: EndBehaviorType.AfterSilence, duration: 1500 } });
-        let fileStream = new wav.FileWriter("./output.wav", {
+        let fileStream = new wav.FileWriter("./media/output.wav", {
             sampleRate: 48000,
             channels: 2,
             bitDepth: 16
@@ -126,7 +123,7 @@ async function listen(connection, userID) {
 
 async function play(filename) {
     console.log("Preparing audio...")
-    const loc = process.cwd() + '\/';
+    const loc = process.cwd() + "\\media\\";
     let resource = createAudioResource(loc + filename + '.mp3');
     player.play(resource);
 }
@@ -136,16 +133,14 @@ async function respond(username) {
 
     // Get speech input
     const transcription = await transcribe(
-        "output.wav",
-        `The transcript is about a conversation between users and a discord bot named Botty McBotface. 
-        The bot is on a discord server belonging to the World of Warcraft guild 'Warseeker Tribe'.`
+        "./media/output.wav"
     );
     if (!transcription) return;
 
     if (listeningTo.length > 1) {
         // Check if the input is valid
         let text = transcription.toLowerCase();
-        if (!nicknames.some(nickname => text.includes(nickname))) {
+        if (!config.nicknames.some(nickname => text.includes(nickname))) {
             console.log("Missing trigger word");
             return;
         }
@@ -155,18 +150,16 @@ async function respond(username) {
     conversation.add({ role: 'user', content: `${username}: ${transcription}` });
     console.log(conversation.getLast());
 
-    let response = await getAIResponse(
-        `You are ${name}, a fun and charming AI who loves to talk to people and engage in conversation. 
-        Respond in a casual manner, as if speaking with a close friend.
-        Current date: ${new Date()}.`,
+    let response = await generateResponse(
+        config.basePrompt + config.prompts.listen.prompt,
         conversation.getAll()
     );
     if (!response) {
         console.log("Error: No response");
-        await play('NoResponse');
+        return await play('NoResponse');
     }
 
-    conversation.add({ role: 'assistant', content: `${name}: ${response}` });
+    conversation.add({ role: 'assistant', content: `${config.name}: ${response}` });
     console.log(conversation.getLast());
 
     await textToSpeech(response);

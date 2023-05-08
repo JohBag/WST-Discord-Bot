@@ -1,6 +1,7 @@
 import { Configuration, OpenAIApi } from "openai";
-import { load } from '../json_manager.js';
+import { load } from './jsonHandler.js';
 import log from './logger.js';
+import fs from 'fs';
 
 const secrets = load('secrets');
 const config = load('config');
@@ -9,7 +10,12 @@ const configuration = new Configuration({
 });
 const openai = new OpenAIApi(configuration);
 
-export default async function getAIResponse(systemMessage, conversation, gpt4 = false) {
+export const models = {
+    "GPT4": "gpt-4",
+    "ChatGPT": "gpt-3.5-turbo",
+}
+
+export async function generateResponse(systemMessage, conversation, model = models.ChatGPT) {
     return new Promise(async (resolve) => {
         let timer = setTimeout(() => {
             log('Function timed out.');
@@ -18,9 +24,7 @@ export default async function getAIResponse(systemMessage, conversation, gpt4 = 
 
         systemMessage += `\nCurrent date: ${new Date()}.`;
 
-        const model = gpt4 ? "gpt-4" : "gpt-3.5-turbo";
-
-        console.log(`${systemMessage} (${model})`);
+        console.log(`[${model}]: ${systemMessage}`);
 
         conversation.unshift({ role: "system", content: systemMessage });
         let completion = "";
@@ -62,4 +66,46 @@ export default async function getAIResponse(systemMessage, conversation, gpt4 = 
             resolve("");
         }
     });
+}
+
+export async function transcribe(file) {
+    return new Promise(async (resolve) => {
+        let timer = setTimeout(() => {
+            log('Function timed out.');
+            resolve('');
+        }, 60000); // 60 seconds
+
+        const resp = await openai.createTranscription(
+            fs.createReadStream(file),
+            "whisper-1",
+            config.prompts.transcribe.prompt
+        );
+
+        clearTimeout(timer);
+        resolve(resp.data.text);
+    });
+}
+
+export async function generateImage(prompt) {
+    const response = await openai.createImage({
+        prompt: prompt,
+        n: 1,
+        size: "1024x1024",
+        response_format: 'b64_json'
+    });
+    if (!response.status == 200) { // 200 = OK
+        log("Error: " + completion.status);
+        return false;
+    }
+    const b64 = response.data.data[0].b64_json;
+
+    await convertBase64ToImage(b64);
+    return true;
+}
+
+async function convertBase64ToImage(data) {
+    // Convert base64 to buffer
+    const buffer = Buffer.from(data, "base64");
+    // Create image from buffer
+    fs.writeFileSync('image.png', buffer);
 }

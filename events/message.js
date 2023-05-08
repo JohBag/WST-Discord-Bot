@@ -1,16 +1,10 @@
-import getAIResponse from "../common/gpt.js";
-import textToSpeech from '../common/textToSpeech.js';
-import { load } from '../json_manager.js';
-import log from '../common/logger.js';
-import generateImage from '../common/image.js';
-import { EmbedBuilder } from 'discord.js';
+import { generateResponse } from "../modules/openai.js";
+import textToSpeech from '../modules/textToSpeech.js';
+import { load } from '../modules/jsonHandler.js';
+import log from '../modules/logger.js';
 
 const secrets = load('secrets');
 const config = load('config');
-
-const name = config.name;
-const nicknames = config.nicknames;
-const cutoff = config.cutoff;
 
 export default {
     name: 'messageCreate',
@@ -33,7 +27,7 @@ export default {
         }
 
         // Generate response
-        let response = await getAIResponse(
+        let response = await generateResponse(
             config.basePrompt + settings.prompt,
             context
         );
@@ -63,8 +57,36 @@ export default {
 };
 
 function getSettings(channelID) {
-    const { default: defaultSettings, [channelID]: channelSettings = {} } = config.channels;
+    const { default: defaultSettings, [channelID]: channelSettings = {} } = config.prompts;
     return { ...defaultSettings, ...channelSettings };
+}
+
+function removeAsteriskContent(message) {
+    return message.replace(/\s*\*\w*\*\s*/g, ' ').trim();
+}
+
+async function getConversation(messagesUntilCutoff, interaction) {
+    let conversation = await Promise.all(
+        messagesUntilCutoff
+            .map((message) => {
+                // Remove asterisk content and trim the message
+                const modifiedMessage = removeAsteriskContent(message.content);
+
+                // Add a modifiedContent property to each message object with the new message
+                message.modifiedContent = modifiedMessage;
+                return message;
+            })
+            .filter((message) => message.modifiedContent !== "") // Filter out empty messages
+            .map(async (message) => {
+                const member = await interaction.guild.members.fetch(message.author.id);
+                const username = member.nickname || message.author.username;
+                const role = username === config.name ? "assistant" : "user";
+
+                return { role: role, content: `${username}: ${message.modifiedContent}` };
+            })
+    );
+
+    return conversation.reverse();
 }
 
 async function getContext(interaction, messageLimit) {
@@ -72,22 +94,10 @@ async function getContext(interaction, messageLimit) {
     const messages = await interaction.channel.messages.fetch({ limit: messageLimit });
     const arr = Array.from(messages.values());
 
-    const cutoffIndex = arr.findIndex(message => message.content === cutoff);
+    const cutoffIndex = arr.findIndex(message => message.content === config.cutoff);
     const messagesUntilCutoff = cutoffIndex !== -1 ? arr.slice(0, cutoffIndex) : arr;
 
-    let conversation = await Promise.all(
-        messagesUntilCutoff
-            .filter((message) => !message.content.startsWith(config.ignorePrefix))
-            .map(async (message) => {
-                const member = await interaction.guild.members.fetch(message.author.id);
-                const username = member.nickname || message.author.username;
-                const role = username === name ? "assistant" : "user";
-
-                return { role: role, content: `${username}: ${message.content}` };
-            })
-    );
-
-    return conversation.reverse();
+    return await getConversation(messagesUntilCutoff, interaction);
 }
 
 function isInBlacklistedChannel(channelId) {
@@ -99,7 +109,7 @@ function hasBotMention(mentions) {
 }
 
 function hasBotNickname(content) {
-    return nicknames.some(name => content.toLowerCase().includes(name));
+    return config.nicknames.some(name => content.toLowerCase().includes(name));
 }
 
 function shouldReactRandomly(reactChance) {

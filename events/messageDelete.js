@@ -1,5 +1,5 @@
-import { save, load } from '../json_manager.js';
-import log from '../common/logger.js';
+import { save, load } from '../modules/jsonHandler.js';
+import log from '../modules/logger.js';
 
 const secrets = load('secrets');
 const config = load('config');

@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { load } from '../json_manager.js';
-import log from '../common/logger.js';
+import { load } from '../modules/jsonHandler.js';
+import log from '../modules/logger.js';
 
 const secrets = load('secrets');
 

@@ -1,5 +1,5 @@
 import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
-import generateImage from '../common/image.js';
+import { generateImage } from '../modules/openai.js';
 
 export default {
     data: new SlashCommandBuilder()

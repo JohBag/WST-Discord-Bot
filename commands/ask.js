@@ -1,6 +1,9 @@
 import { SlashCommandBuilder } from 'discord.js';
-import textToSpeech from '../common/textToSpeech.js';
-import getAIResponse from "../common/gpt.js";
+import textToSpeech from '../modules/textToSpeech.js';
+import { models, generateResponse } from "../modules/openai.js";
+import { load } from '../modules/jsonHandler.js';
+
+const config = load('config');
 
 export default {
     data: new SlashCommandBuilder()
@@ -8,7 +11,7 @@ export default {
         .setDescription('Answer a question with GPT-4')
         .addStringOption(option =>
             option.setName('input')
-                .setDescription('The question you want to ask')
+                .setDescription('Your question')
                 .setRequired(true)),
     async execute(interaction) {
         await interaction.deferReply(); // Defer to avoid 3 second limit on response
@@ -17,10 +20,10 @@ export default {
         const question = interaction.options.getString('input');
 
         // Get answer
-        const response = await getAIResponse(
-            "Write in a concise and informative style.",
+        const response = await generateResponse(
+            config.prompts.ask,
             [{ role: "user", content: question }],
-            true
+            models.GPT4
         );
         if (!response) {
             return interaction.editReply({ content: 'Error: No response. Try again later.', ephemeral: true });

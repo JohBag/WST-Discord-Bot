@@ -4,9 +4,9 @@
         "botty"
     ],
     "cutoff": "###",
-    "ignorePrefix": "*",
+    "ignoreSign": "*",
     "basePrompt": "You are a fun and talkative person named Botty. Write in a casual and emotive style, with occasional emojis ",
-    "channels": {
+    "prompts": {
         "default": {
             "prompt": "You are in the World of Warcraft guild 'Warseeker Tribe' Discord server. Keep the conversation going.",
             "messageLimit": 24,
@@ -14,9 +14,15 @@
             "textToSpeech": false,
             "gpt4": false
         },
-        "voice": {
+        "listen": {
             "prompt": "Do not use emojis.",
             "messageLimit": 48
+        },
+        "ask": {
+            "prompt": "Write in a concise and informative style."
+        },
+        "transcribe": {
+            "prompt": "Hi Botty McBotface, are you joining our WoW raid tonight?"
         },
         "1083851912878768218": {
             "reactChance": 1

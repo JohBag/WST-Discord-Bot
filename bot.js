@@ -1,5 +1,5 @@
 import { Client, Collection, GatewayIntentBits } from 'discord.js';
-import { load } from './json_manager.js';
+import { load } from './modules/jsonHandler.js';
 import * as events from './index/events.js'
 import * as commands from './index/commands.js'
 
