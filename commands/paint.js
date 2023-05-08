@@ -1,4 +1,4 @@
-import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder } from 'discord.js';
 import { generateImage } from '../modules/openai.js';
 
 export default {
@@ -20,13 +20,8 @@ export default {
             });
         }
 
-        const embed = new EmbedBuilder()
-            .setTitle(prompt)
-            .setImage('attachment://image.png');
-
         return interaction.editReply({
-            embeds: [embed],
-            files: ['./image.png']
+            files: ['./media/image.png']
         });
     },
 };
