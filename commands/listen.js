@@ -7,6 +7,7 @@ import pkg from '@discordjs/opus';
 const { OpusEncoder } = pkg;
 import wav from 'wav';
 import { transcribe, generateResponse } from '../modules/openai.js';
+import log from '../modules/logger.js';
 
 const config = load('config');
 

@@ -1,13 +1,14 @@
 import fs from "fs";
+import log from "./logger.js";
 
 export function load(fileName) {
     try {
         let rawdata = fs.readFileSync('json/' + fileName + '.json');
         return JSON.parse(rawdata);
     } catch (err) {
-        console.log("Failed to find file with name " + fileName);
+        log("Failed to find file with name " + fileName);
         save(fileName, {});
-        console.log("Created empty file");
+        log("Created empty file");
         return {};
     }
 }

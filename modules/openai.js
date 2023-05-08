@@ -24,7 +24,7 @@ export async function generateResponse(systemMessage, conversation, model = mode
 
         systemMessage += `\nCurrent date: ${new Date()}.`;
 
-        console.log(`[${model}]: ${systemMessage}`);
+        log(`[Prompt]: ${systemMessage}`);
 
         conversation.unshift({ role: "system", content: systemMessage });
         let completion = "";
@@ -42,7 +42,7 @@ export async function generateResponse(systemMessage, conversation, model = mode
                 resolve("");
             }
 
-            console.log(response);
+            log(`[${model}]: ${response}`);
 
             // Check if name is mentioned
             const nicknames = config.nicknames;
@@ -106,6 +106,7 @@ export async function generateImage(prompt) {
 async function convertBase64ToImage(data) {
     // Convert base64 to buffer
     const buffer = Buffer.from(data, "base64");
+
     // Create image from buffer
-    fs.writeFileSync('image.png', buffer);
+    fs.writeFileSync('./media/image.png', buffer);
 }
