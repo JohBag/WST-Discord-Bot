@@ -126,6 +126,7 @@ async function play(filename) {
     log("Preparing audio...")
     const loc = process.cwd() + "\\media\\";
     let resource = createAudioResource(loc + filename + '.mp3');
+    console.log(loc + filename + '.mp3');
     player.play(resource);
 }
 
