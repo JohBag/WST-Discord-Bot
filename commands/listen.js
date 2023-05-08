@@ -106,7 +106,7 @@ async function listen(connection, userID) {
         log("Listening...");
 
         let receiver = connection.receiver.subscribe(userID, { end: { behavior: EndBehaviorType.AfterSilence, duration: 1500 } });
-        let fileStream = new wav.FileWriter("./media/output.wav", {
+        let fileStream = new wav.FileWriter(".\\media\\output.wav", {
             sampleRate: 48000,
             channels: 2,
             bitDepth: 16
@@ -134,7 +134,7 @@ async function respond(username) {
 
     // Get speech input
     const transcription = await transcribe(
-        "./media/output.wav"
+        ".\\media\\output.wav"
     );
     if (!transcription) return;
 
