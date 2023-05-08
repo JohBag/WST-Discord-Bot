@@ -21,7 +21,6 @@ export default {
         }
 
         const context = await getContext(interaction, settings.messageLimit);
-        console.log(context);
         if (context.length === 0) {
             return;
         }
@@ -119,11 +118,6 @@ function shouldReactRandomly(reactChance) {
 
 function shouldRespond(interaction, settings) {
     const { channelId, mentions, content } = interaction;
-
-    if (content.startsWith(config.ignorePrefix)) {
-        console.log("Ignoring message");
-        return false;
-    }
 
     if (isInBlacklistedChannel(channelId)) {
         return false;
