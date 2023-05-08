@@ -108,5 +108,5 @@ async function convertBase64ToImage(data) {
     const buffer = Buffer.from(data, "base64");
 
     // Create image from buffer
-    fs.writeFileSync('.\\media\\image.png', buffer);
+    fs.writeFileSync('./media/image.png', buffer);
 }
