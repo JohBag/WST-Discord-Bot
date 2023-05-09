@@ -11,5 +11,5 @@ export default {
 };
 
 function flipCoin() {
-    return roll(0, 1) == 1 ? "Heads" : "Tails";
+    return roll(0, 1) == 1 ? 'Heads' : 'Tails';
 }

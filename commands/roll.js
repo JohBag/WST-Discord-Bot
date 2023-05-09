@@ -13,6 +13,6 @@ export default {
         const result = roll(1, max);
 
         const userName = interaction.member.displayName;
-        return interaction.reply(userName + " rolls " + result);
+        return interaction.reply(`${userName} rolls ${result}`);
     },
 };

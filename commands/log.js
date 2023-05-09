@@ -18,14 +18,12 @@ export default {
         const id = interaction.options.getString('id');
         let report = await getReport(id);
         if (!report) {
-            // Weird solution to produce an ephemeral error message (edit doesn't work)
-            await interaction.editReply({ content: 'Error', ephemeral: true });
-            await interaction.followUp({ content: 'No report with id *' + id + '* could be found.', ephemeral: true });
-            return interaction.deleteReply();
+            return await interaction.editReply({ content: `No report with ID **${id}** could be found.` });
         }
         let log = await embedReport(report, id);
 
-        return interaction.editReply({ embeds: [log] });
+        interaction.editReply({ embeds: [log] });
+        return;
     },
 };
 
@@ -112,30 +110,30 @@ async function embedReport(report) {
         .setDescription(formatTime(report.startTime));
 
     const bosses = getBossSection(report);
-    if (bosses[3]) embeddedMessage.addFields({ name: "Normal", value: bosses[3] });
-    if (bosses[4]) embeddedMessage.addFields({ name: "Heroic", value: bosses[4] });
+    if (bosses[3]) embeddedMessage.addFields({ name: 'Normal', value: bosses[3] });
+    if (bosses[4]) embeddedMessage.addFields({ name: 'Heroic', value: bosses[4] });
 
     const participants = await getParticipants(report);
-    const dps = participants["dps"].map(player => player.name).sort().join('\n');
-    const healers = participants["healers"].map(player => player.name).sort().join('\n');
-    const tanks = participants["tanks"].map(player => player.name).sort().join('\n');
+    const dps = participants['dps'].map(player => player.name).sort().join('\n');
+    const healers = participants['healers'].map(player => player.name).sort().join('\n');
+    const tanks = participants['tanks'].map(player => player.name).sort().join('\n');
 
-    embeddedMessage.addFields({ name: "Damage", value: dps, inline: true });
-    embeddedMessage.addFields({ name: "Healing", value: healers, inline: true });
-    embeddedMessage.addFields({ name: "Tanking", value: tanks, inline: true });
+    embeddedMessage.addFields({ name: 'Damage', value: dps, inline: true });
+    embeddedMessage.addFields({ name: 'Healing', value: healers, inline: true });
+    embeddedMessage.addFields({ name: 'Tanking', value: tanks, inline: true });
 
     return embeddedMessage;
 }
 
 async function getReport(id) {
     if (!id) {
-        log("No ID provided. Fetching most recent log.")
+        log('No ID provided. Fetching most recent log.')
         // Get ID of most recent guild log
         const data = await sendQuery('{ reportData { reports(guildID: 66538, limit: 1) { data { code } } } }');
         id = data.data.reportData.reports.data[0].code
     }
 
-    log("Fetching report with ID: " + id);
+    log('Fetching report with ID: ' + id);
     const query = `query{ 
         reportData { 
             report(code: "${id}") { 

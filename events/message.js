@@ -1,4 +1,4 @@
-import { generateResponse } from "../modules/openai.js";
+import { generateResponse } from '../modules/openai.js';
 import textToSpeech from '../modules/textToSpeech.js';
 import { load } from '../modules/jsonHandler.js';
 import log from '../modules/logger.js';
@@ -75,11 +75,11 @@ async function getConversation(messagesUntilCutoff, interaction) {
                 message.modifiedContent = modifiedMessage;
                 return message;
             })
-            .filter((message) => message.modifiedContent !== "") // Filter out empty messages
+            .filter((message) => message.modifiedContent !== '') // Filter out empty messages
             .map(async (message) => {
                 const member = await interaction.guild.members.fetch(message.author.id);
                 const username = member.nickname || message.author.username;
-                const role = username === config.name ? "assistant" : "user";
+                const role = username === config.name ? 'assistant' : 'user';
 
                 return { role: role, content: `${username}: ${message.modifiedContent}` };
             })
@@ -124,7 +124,7 @@ function shouldRespond(interaction, settings) {
     }
 
     if (hasBotMention(mentions) || hasBotNickname(content)) {
-        log("Responding to mention");
+        log('Responding to mention');
         return true;
     }
 
@@ -149,8 +149,8 @@ function splitResponse(response) {
 }
 
 function findSplitIndex(response) {
-    const lastNewLine = response.lastIndexOf("\n", 2000);
-    const lastCodeBlock = response.lastIndexOf("```", 2000);
+    const lastNewLine = response.lastIndexOf('\n', 2000);
+    const lastCodeBlock = response.lastIndexOf('```', 2000);
 
     const splitIndex = Math.min(
         lastNewLine > -1 ? lastNewLine : 2000,

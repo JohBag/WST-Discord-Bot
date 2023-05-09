@@ -28,26 +28,30 @@ let listeningTo = [];
 
 export default {
     data: new SlashCommandBuilder()
-        .setName("listen")
-        .setDescription("Speak with the AI. Responds when mentioned if its listening to multiple users."),
+        .setName('listen')
+        .setDescription('Speak with the AI. Responds when mentioned if its listening to multiple users.'),
     async execute(interaction) {
-        log("Joining voice channel...");
+        log('Joining voice channel...');
 
         const username = interaction.member.displayName || interaction.author.username;
 
         // Check if user is in a voice channel
         let userChannel = interaction.member.voice.channel;
         if (!userChannel) {
-            log("User not in a voice channel.");
-            return interaction.reply({ content: "You need to join a voice channel first!", ephemeral: true });
+            log('User not in a voice channel.');
+            return interaction.reply({
+                content: 'You need to join a voice channel first!', ephemeral: true
+            });
         }
 
         // Check if user is in the same voice channel as the bot
         if (userChannel == channel) {
             // Check if user is already being listened to
             if (listeningTo.includes(username)) {
-                log("Already listening to user.");
-                return interaction.reply({ content: "I'm already listening.", ephemeral: true });
+                log('Already listening to user.');
+                return interaction.reply({
+                    content: 'I am already listening.', ephemeral: true
+                });
             }
         } else {
             // Leave current voice channel
@@ -81,7 +85,9 @@ export default {
         listeningTo.push(username);
 
         // Start listening
-        interaction.reply({ content: "I'm listening", ephemeral: true });
+        interaction.reply({
+            content: 'I am listening', ephemeral: true
+        });
 
         while (true) {
             await listenAndRespond(connection, interaction.member.user.id, username);
@@ -103,19 +109,19 @@ async function listenAndRespond(connection, userID, username) {
 
 async function listen(connection, userID) {
     return new Promise((resolve) => {
-        log("Listening...");
+        log('Listening...');
 
         let receiver = connection.receiver.subscribe(userID, { end: { behavior: EndBehaviorType.AfterSilence, duration: 1500 } });
-        let fileStream = new wav.FileWriter("./media/output.wav", {
+        let fileStream = new wav.FileWriter('./media/output.wav', {
             sampleRate: 48000,
             channels: 2,
             bitDepth: 16
         });
 
-        receiver.on("data", (chunk) => {
+        receiver.on('data', (chunk) => {
             fileStream.write(encoder.decode(chunk));
         });
-        receiver.on("end", async () => {
+        receiver.on('end', async () => {
             fileStream.end();
             resolve(true);
         });
@@ -123,19 +129,18 @@ async function listen(connection, userID) {
 };
 
 async function play(filename) {
-    log("Preparing audio...")
-    const loc = process.cwd() + "/media/";
-    let resource = createAudioResource(loc + filename + '.mp3');
-    console.log(loc + filename + '.mp3');
+    log('Preparing audio...')
+    const loc = `${process.cwd()}/media/`;
+    let resource = createAudioResource(`${loc}${filename}.mp3`);
     player.play(resource);
 }
 
 async function respond(username) {
-    log("Responding...")
+    log('Responding...')
 
     // Get speech input
     const transcription = await transcribe(
-        "./media/output.wav"
+        './media/output.wav'
     );
     if (!transcription) return;
 
@@ -143,7 +148,7 @@ async function respond(username) {
         // Check if the input is valid
         let text = transcription.toLowerCase();
         if (!config.nicknames.some(nickname => text.includes(nickname))) {
-            log("Missing trigger word");
+            log('Missing trigger word');
             return;
         }
     }
@@ -157,7 +162,7 @@ async function respond(username) {
         conversation.getAll()
     );
     if (!response) {
-        log("Error: No response");
+        log('Error: No response');
         return await play('NoResponse');
     }
 

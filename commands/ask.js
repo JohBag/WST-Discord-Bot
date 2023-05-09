@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import textToSpeech from '../modules/textToSpeech.js';
-import { models, generateResponse } from "../modules/openai.js";
+import { models, generateResponse } from '../modules/openai.js';
 import { load } from '../modules/jsonHandler.js';
 
 const config = load('config');
@@ -22,7 +22,7 @@ export default {
         // Get answer
         const response = await generateResponse(
             config.prompts.ask,
-            [{ role: "user", content: question }],
+            [{ role: 'user', content: question }],
             models.GPT4
         );
         if (!response) {
@@ -33,7 +33,7 @@ export default {
         let msg = { content: `*${question}*\n\n${response}\n`, files: [] };
 
         const speechFile = await textToSpeech(response);
-        if (speechFile != null) {
+        if (speechFile) {
             msg.files.push({
                 attachment: speechFile,
                 name: speechFile

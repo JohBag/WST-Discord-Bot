@@ -16,7 +16,7 @@ const rest = new REST({ version: '10' }).setToken(secrets.token);
 		console.log(`Started refreshing ${commandsData.length} application (/) commands.`);
 
 		let data;
-		console.log("Deploying commands globally");
+		console.log('Deploying commands globally');
 		data = await rest.put(
 			Routes.applicationCommands(secrets.clientId),
 			{ body: commandsData },

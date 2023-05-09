@@ -3,7 +3,7 @@ import log from '../modules/logger.js';
 export default {
     name: 'interactionCreate',
     async execute(interaction) {
-        var commandName = "";
+        var commandName = '';
         if (interaction.isButton()) {
             commandName = interaction.message.interaction.commandName;
         } else if (interaction.isChatInputCommand()) {
@@ -12,10 +12,10 @@ export default {
             // Log use
             let username = interaction.user.username;
             const nickname = interaction.member.nickname;
-            if (nickname != null) {
-                username += " (" + nickname + ")";
+            if (nickname) {
+                username += ` (${nickname})`;
             }
-            log(username + " used /" + commandName);
+            log(`${username} used /${commandName}`);
         } else {
             return;
         }

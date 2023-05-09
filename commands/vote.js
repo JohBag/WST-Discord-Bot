@@ -21,7 +21,7 @@ export default {
         .addStringOption(option =>
             option
                 .setName('options')
-                .setDescription('Comma-separated list (max ' + maxOptions + ')')
+                .setDescription(`Comma-separated list (max ${maxOptions} options)`)
                 .setRequired(true))
         .addStringOption(option =>
             option
@@ -131,7 +131,7 @@ function registerVote(interaction) {
     }
 
     save('votes', votes);
-    log(vote.title + " | Vote registered for \"" + voteID + "\"");
+    log(`[${vote.title}]: Vote registered for '${voteID}'`);
 
     let tally = getResult(vote);
     interaction.update({ embeds: [tally] });
@@ -149,7 +149,7 @@ function getResult(vote) {
             result = data;
         } else {
             for (let ii in data) {
-                result += data[ii] + '\n';
+                result += `${data[ii]}\n`;
             }
         }
 

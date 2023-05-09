@@ -1,4 +1,4 @@
-import { Configuration, OpenAIApi } from "openai";
+import { Configuration, OpenAIApi } from 'openai';
 import { load } from './jsonHandler.js';
 import log from './logger.js';
 import fs from 'fs';
@@ -11,8 +11,8 @@ const configuration = new Configuration({
 const openai = new OpenAIApi(configuration);
 
 export const models = {
-    "GPT4": "gpt-4",
-    "ChatGPT": "gpt-3.5-turbo",
+    'GPT4': 'gpt-4',
+    'ChatGPT': 'gpt-3.5-turbo',
 }
 
 export async function generateResponse(systemMessage, conversation, model = models.ChatGPT) {
@@ -26,8 +26,10 @@ export async function generateResponse(systemMessage, conversation, model = mode
 
         log(`[Prompt]: ${systemMessage}`);
 
-        conversation.unshift({ role: "system", content: systemMessage });
-        let completion = "";
+        conversation.unshift({
+            role: 'system', content: systemMessage
+        });
+        let completion = '';
         try {
             completion = await openai.createChatCompletion({
                 model: model,
@@ -37,9 +39,9 @@ export async function generateResponse(systemMessage, conversation, model = mode
             let response = completion.data.choices[0].message.content;
 
             if (!response) {
-                log("Invalid response");
+                log('Invalid response');
                 clearTimeout(timer);
-                resolve("");
+                resolve('');
             }
 
             log(`[${model}]: ${response}`);
@@ -50,8 +52,8 @@ export async function generateResponse(systemMessage, conversation, model = mode
                 // Check if nickname is part of response
                 if (response.toLowerCase().includes(name)) {
                     // Delete everything up to and including the first colon
-                    const colonIndex = response.indexOf(":");
-                    if (response.charAt(colonIndex + 1) === " ") {
+                    const colonIndex = response.indexOf(':');
+                    if (response.charAt(colonIndex + 1) === ' ') {
                         response = response.substring(colonIndex + 2).trim();
                     }
                     break;
@@ -61,9 +63,9 @@ export async function generateResponse(systemMessage, conversation, model = mode
             clearTimeout(timer);
             resolve(response);
         } catch (error) {
-            log("Invalid response");
+            log('Invalid response');
             clearTimeout(timer);
-            resolve("");
+            resolve('');
         }
     });
 }
@@ -77,7 +79,7 @@ export async function transcribe(file) {
 
         const resp = await openai.createTranscription(
             fs.createReadStream(file),
-            "whisper-1",
+            'whisper-1',
             config.prompts.transcribe.prompt
         );
 
@@ -90,11 +92,11 @@ export async function generateImage(prompt) {
     const response = await openai.createImage({
         prompt: prompt,
         n: 1,
-        size: "1024x1024",
+        size: '1024x1024',
         response_format: 'b64_json'
     });
     if (!response.status == 200) { // 200 = OK
-        log("Error: " + completion.status);
+        log('Error: ' + completion.status);
         return false;
     }
     const b64 = response.data.data[0].b64_json;
@@ -105,7 +107,7 @@ export async function generateImage(prompt) {
 
 async function convertBase64ToImage(data) {
     // Convert base64 to buffer
-    const buffer = Buffer.from(data, "base64");
+    const buffer = Buffer.from(data, 'base64');
 
     // Create image from buffer
     fs.writeFileSync('./media/image.png', buffer);

@@ -14,7 +14,7 @@ export default {
             // Delete the vote
             delete votes[id];
             save('votes', votes);
-            log("Deleted vote: " + id);
+            log('Deleted vote: ' + id);
         }
     },
 };
