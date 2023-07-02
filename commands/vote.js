@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
 import { save, load } from '../modules/jsonHandler.js';
 import log from '../modules/logger.js';
+import { getUsername } from '../modules/messageHandler.js';
 
 const maxOptions = 5;
 
@@ -97,8 +98,8 @@ async function sendVote(interaction, vote) {
     save('votes', votes);
 }
 
-function registerVote(interaction) {
-    let votes = load('votes');
+async function registerVote(interaction) {
+    let votes = await load('votes');
 
     // Check if vote exists
     const id = interaction.message.id;
@@ -125,12 +126,12 @@ function registerVote(interaction) {
         }
         else {
             // Allow multiple votes
-            const name = interaction.member.nickname ?? interaction.user.username; // Get nickname or discord name
+            const name = await getUsername(interaction); // Get nickname or discord name
             vote.options[voteID][userID] = name;
         }
     }
 
-    save('votes', votes);
+    await save('votes', votes);
     log(`[${vote.title}]: Vote registered for '${voteID}'`);
 
     let tally = getResult(vote);

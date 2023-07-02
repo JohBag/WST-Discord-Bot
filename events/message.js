@@ -2,6 +2,7 @@ import { generateResponse } from '../modules/openai.js';
 import textToSpeech from '../modules/textToSpeech.js';
 import { load } from '../modules/jsonHandler.js';
 import log from '../modules/logger.js';
+import { getUsername } from '../modules/messageHandler.js';
 
 const secrets = load('secrets');
 const config = load('config');
@@ -42,7 +43,7 @@ export default {
 
             if (settings.textToSpeech) {
                 const speechFile = await textToSpeech(message);
-                if (speechFile != null) {
+                if (speechFile) {
                     msg.files.push({
                         attachment: speechFile,
                         name: speechFile
@@ -77,8 +78,7 @@ async function getConversation(messagesUntilCutoff, interaction) {
             })
             .filter((message) => message.modifiedContent !== '') // Filter out empty messages
             .map(async (message) => {
-                const member = await interaction.guild.members.fetch(message.author.id);
-                const username = member.nickname || message.author.username;
+                const username = await getUsername(message);
                 const role = username === config.name ? 'assistant' : 'user';
 
                 return { role: role, content: `${username}: ${message.modifiedContent}` };
