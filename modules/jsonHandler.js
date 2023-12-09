@@ -1,5 +1,5 @@
 import fs from 'fs';
-import log from './logger.js';
+import log from './log.js';
 
 export function load(fileName) {
     try {

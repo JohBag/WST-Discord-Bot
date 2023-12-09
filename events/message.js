@@ -1,11 +1,13 @@
-import { generateResponse } from '../modules/openai.js';
+import generateResponse from '../modules/generateResponse.js';
 import textToSpeech from '../modules/textToSpeech.js';
 import { load } from '../modules/jsonHandler.js';
-import log from '../modules/logger.js';
-import { getUsername } from '../modules/messageHandler.js';
+import log from '../modules/log.js';
+import { getUserName } from '../modules/getUserName.js';
 
 const secrets = load('secrets');
 const config = load('config');
+
+const messageCharLimit = 2000;
 
 export default {
     name: 'messageCreate',
@@ -28,7 +30,7 @@ export default {
 
         // Generate response
         let response = await generateResponse(
-            config.basePrompt + settings.prompt,
+            config.basePrompt + " " + settings.prompt,
             context
         );
         if (!response) {
@@ -46,7 +48,7 @@ export default {
                 if (speechFile) {
                     msg.files.push({
                         attachment: speechFile,
-                        name: speechFile
+                        name: 'SyntheticSpeech.mp3',
                     });
                 }
             }
@@ -78,7 +80,7 @@ async function getConversation(messagesUntilCutoff, interaction) {
             })
             .filter((message) => message.modifiedContent !== '') // Filter out empty messages
             .map(async (message) => {
-                const username = await getUsername(message);
+                const username = await getUserName(message);
                 const role = username === config.name ? 'assistant' : 'user';
 
                 return { role: role, content: `${username}: ${message.modifiedContent}` };
@@ -100,7 +102,7 @@ async function getContext(interaction, messageLimit) {
 }
 
 function isInBlacklistedChannel(channelId) {
-    return config.blacklist.includes(channelId);
+    return channelId in config.blacklist;
 }
 
 function hasBotMention(mentions) {
@@ -140,7 +142,7 @@ function splitResponse(response) {
     const chunks = [];
 
     while (response.length) {
-        const splitIndex = response.length <= 2000 ? response.length : findSplitIndex(response);
+        const splitIndex = response.length <= messageCharLimit ? response.length : findSplitIndex(response);
         chunks.push(response.substring(0, splitIndex));
         response = response.substring(splitIndex).trim();
     }
@@ -149,12 +151,12 @@ function splitResponse(response) {
 }
 
 function findSplitIndex(response) {
-    const lastNewLine = response.lastIndexOf('\n', 2000);
-    const lastCodeBlock = response.lastIndexOf('```', 2000);
+    const lastNewLine = response.lastIndexOf('\n', messageCharLimit);
+    const lastCodeBlock = response.lastIndexOf('```', messageCharLimit);
 
     const splitIndex = Math.min(
-        lastNewLine > -1 ? lastNewLine : 2000,
-        lastCodeBlock > -1 ? lastCodeBlock : 2000
+        lastNewLine > -1 ? lastNewLine : messageCharLimit,
+        lastCodeBlock > -1 ? lastCodeBlock : messageCharLimit
     );
 
     return splitIndex;

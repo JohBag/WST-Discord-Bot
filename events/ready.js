@@ -1,4 +1,4 @@
-import log from '../modules/logger.js';
+import log from '../modules/log.js';
 
 export default {
     name: 'ready',

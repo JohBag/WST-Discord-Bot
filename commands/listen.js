@@ -6,12 +6,14 @@ import Queue from '../modules/queue.js';
 import pkg from '@discordjs/opus';
 const { OpusEncoder } = pkg;
 import wav from 'wav';
-import { transcribe, generateResponse } from '../modules/openai.js';
-import log from '../modules/logger.js';
+import speechToText from '../modules/speechToText.js';
+import generateResponse from '../modules/generateResponse.js';
+import log from '../modules/log.js';
+import { getUserName } from '../modules/getUserName.js';
 
 const config = load('config');
 
-const conversation = new Queue(32);
+const conversation = new Queue(config.prompts.listen.messageLimit);
 const encoder = new OpusEncoder(48000, 2);
 
 const player = createAudioPlayer();
@@ -31,66 +33,70 @@ export default {
         .setName('listen')
         .setDescription('Speak with the AI. Responds when mentioned if its listening to multiple users.'),
     async execute(interaction) {
-        log('Joining voice channel...');
+        try {
+            log('Joining voice channel...');
 
-        const username = interaction.member.displayName || interaction.author.username;
+            const username = getUserName(interaction);
 
-        // Check if user is in a voice channel
-        let userChannel = interaction.member.voice.channel;
-        if (!userChannel) {
-            log('User not in a voice channel.');
-            return interaction.reply({
-                content: 'You need to join a voice channel first!', ephemeral: true
-            });
-        }
-
-        // Check if user is in the same voice channel as the bot
-        if (userChannel == channel) {
-            // Check if user is already being listened to
-            if (listeningTo.includes(username)) {
-                log('Already listening to user.');
+            // Check if user is in a voice channel
+            let userChannel = interaction.member.voice.channel;
+            if (!userChannel) {
+                log('User not in a voice channel.');
                 return interaction.reply({
-                    content: 'I am already listening.', ephemeral: true
+                    content: 'You need to join a voice channel first!', ephemeral: true
                 });
             }
-        } else {
-            // Leave current voice channel
-            channel = interaction.member.voice.channel;
 
-            // Destroy connection if it exists
-            if (connection) {
-                connection.destroy();
-                listeningTo = [];
-                conversation.clear();
+            // Check if user is in the same voice channel as the bot
+            if (userChannel == channel) {
+                // Check if user is already being listened to
+                if (listeningTo.includes(username)) {
+                    log('Already listening to user.');
+                    return interaction.reply({
+                        content: "I'm already listening to you", ephemeral: true
+                    });
+                }
+            } else {
+                // Leave current voice channel
+                channel = interaction.member.voice.channel;
+
+                // Destroy connection if it exists
+                if (connection) {
+                    connection.destroy();
+                    listeningTo = [];
+                    conversation.clear();
+                }
+
+                // Join voice channel
+                connection = joinVoiceChannel({
+                    channelId: channel.id,
+                    guildId: channel.guild.id,
+                    adapterCreator: channel.guild.voiceAdapterCreator,
+                });
+
+                // Prevent disconnect bug
+                connection.on('stateChange', (oldState, newState) => {
+                    const oldNetworking = Reflect.get(oldState, 'networking');
+                    const newNetworking = Reflect.get(newState, 'networking');
+
+                    oldNetworking?.off('stateChange', networkStateChangeHandler);
+                    newNetworking?.on('stateChange', networkStateChangeHandler);
+                });
+
+                connection.subscribe(player);
             }
+            listeningTo.push(username);
 
-            // Join voice channel
-            connection = joinVoiceChannel({
-                channelId: channel.id,
-                guildId: channel.guild.id,
-                adapterCreator: channel.guild.voiceAdapterCreator,
-            })
-
-            // Prevent disconnect bug
-            connection.on('stateChange', (oldState, newState) => {
-                const oldNetworking = Reflect.get(oldState, 'networking');
-                const newNetworking = Reflect.get(newState, 'networking');
-
-                oldNetworking?.off('stateChange', networkStateChangeHandler);
-                newNetworking?.on('stateChange', networkStateChangeHandler);
+            // Start listening
+            interaction.reply({
+                content: "I'm listening", ephemeral: true
             });
 
-            connection.subscribe(player);
-        }
-        listeningTo.push(username);
-
-        // Start listening
-        interaction.reply({
-            content: 'I am listening', ephemeral: true
-        });
-
-        while (true) {
-            await listenAndRespond(connection, interaction.member.user.id, username);
+            while (true) {
+                await listenAndRespond(connection, interaction.member.user.id, username);
+            }
+        } catch (error) {
+            log(error);
         }
     },
 };
@@ -139,7 +145,7 @@ async function respond(username) {
     log('Responding...')
 
     // Get speech input
-    const transcription = await transcribe(
+    const transcription = await speechToText(
         './media/output.wav'
     );
     if (!transcription) return;
@@ -158,7 +164,7 @@ async function respond(username) {
     log(conversation.getLast());
 
     let response = await generateResponse(
-        config.basePrompt + config.prompts.listen.prompt,
+        config.basePrompt + " " + config.prompts.listen.prompt,
         conversation.getAll()
     );
     if (!response) {

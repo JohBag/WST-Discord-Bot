@@ -1,8 +1,5 @@
 import { save, load } from '../modules/jsonHandler.js';
-import log from '../modules/logger.js';
-
-const secrets = load('secrets');
-const config = load('config');
+import log from '../modules/log.js';
 
 export default {
     name: 'messageDelete',

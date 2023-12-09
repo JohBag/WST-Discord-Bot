@@ -37,7 +37,6 @@ export default async function textToSpeech(text) {
                 synthesizer.close();
                 synthesizer = null;
                 resolve();
-                console.log('Speech synthesis succeeded.')
             },
             function (err) {
                 console.trace('err - ' + err);

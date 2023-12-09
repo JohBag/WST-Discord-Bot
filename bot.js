@@ -2,7 +2,7 @@ import { Client, Collection, GatewayIntentBits } from 'discord.js';
 import { load } from './modules/jsonHandler.js';
 import * as events from './index/events.js'
 import * as commands from './index/commands.js'
-import log from './modules/logger.js';
+import log from './modules/log.js';
 
 const client = new Client({
 	intents: [
@@ -19,7 +19,7 @@ function safeHandler(handler) {
 		try {
 			await handler(...args);
 		} catch (error) {
-			console.error(`Error in event handler: ${error}`);
+			log(`Error in event handler: ${error}`);
 		}
 	};
 }

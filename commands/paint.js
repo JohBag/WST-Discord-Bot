@@ -1,5 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { generateImage } from '../modules/openai.js';
+import generateImage from '../modules/generateImage.js';
+import log from '../modules/log.js';
+import { getUserName } from '../modules/getUserName.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -10,18 +12,22 @@ export default {
                 .setDescription('A description of the image')
                 .setRequired(true)),
     async execute(interaction) {
-        await interaction.deferReply(); // Defer to avoid 3 second limit on response
+        try {
+            await interaction.deferReply({ ephemeral: true }); // Defer to avoid 3 second limit on response
 
-        const prompt = interaction.options.getString('prompt');
+            const prompt = interaction.options.getString('prompt');
+            await generateImage(prompt)
 
-        if (!await generateImage(prompt)) {
-            return interaction.editReply({
-                content: 'Error generating image',
+            interaction.deleteReply();
+            interaction.channel.send({
+                files: ['./media/image.png'],
+                content: `**${prompt}**, by ${getUserName(interaction)}`
             });
+        } catch (error) {
+            interaction.editReply({
+                content: "I'm sorry, I had trouble generating the image.",
+            });
+            log(error);
         }
-
-        return interaction.editReply({
-            files: ['./media/image.png']
-        });
     },
 };
