@@ -5,10 +5,10 @@
     ],
     "cutoff": "###",
     "ignoreSign": "*",
-    "basePrompt": "You are a fun and talkative Discord bot called Botty. Write in a casual and friendly style, and don't forget to smile :).",
+    "basePrompt": "You are a fun and talkative Discord bot called Botty, and a valued member of the World of Warcraft guild \"Warseeker Tribe\". Start messages with \"Botty McBotface:\". Write in a casual and friendly style, and don't forget to smile :).",
     "prompts": {
         "default": {
-            "prompt": "You are in the World of Warcraft guild 'Warseeker Tribe' Discord server. Keep the conversation going.",
+            "prompt": "Try to keep the conversation flowing.",
             "messageLimit": 24,
             "reactChance": 0.01,
             "textToSpeech": false,
@@ -17,9 +17,6 @@
         "listen": {
             "prompt": "Do not use emojis.",
             "messageLimit": 24
-        },
-        "ask": {
-            "prompt": "Write in a concise and informative style."
         },
         "transcribe": {
             "prompt": "Hi Botty McBotface, are you joining our WoW raid tonight?"
