@@ -1,8 +1,20 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { load } from '../modules/jsonHandler.js';
-import log from '../modules/logger.js';
+import log from '../modules/log.js';
 
 const secrets = load('secrets');
+
+const difficultyNames = {
+    '3': 'Normal',
+    '4': 'Heroic',
+    '5': 'Mythic'
+}
+
+const roles = {
+    'dps': 'Damage',
+    'healers': 'Healing',
+    'tanks': 'Tanking'
+}
 
 export default {
     data: new SlashCommandBuilder()
@@ -13,17 +25,24 @@ export default {
                 .setDescription('The report ID')
                 .setRequired(true)),
     async execute(interaction) {
-        await interaction.deferReply(); // Defer to avoid 3 second limit on response
+        try {
+            await interaction.deferReply({ ephemeral: true }); // Defer to avoid 3 second limit on response
 
-        const id = interaction.options.getString('id');
-        let report = await getReport(id);
-        if (!report) {
-            return await interaction.editReply({ content: `No report with ID **${id}** could be found.` });
+            const id = interaction.options.getString('id');
+            let report = await getReport(id);
+            if (!report) {
+                throw new Error(`No report with ID **${id}** could be found.`);
+            }
+            let log = await embedReport(report, id);
+
+            interaction.deleteReply();
+            interaction.channel.send({ embeds: [log] });
+        } catch (error) {
+            interaction.editReply({
+                content: "I'm sorry, I had trouble fetching the log.",
+            });
+            log(error);
         }
-        let log = await embedReport(report, id);
-
-        interaction.editReply({ embeds: [log] });
-        return;
     },
 };
 
@@ -105,22 +124,20 @@ async function getParticipants(report) {
 async function embedReport(report) {
     const embeddedMessage = new EmbedBuilder()
         .setColor(0x0099FF)
-        .setTitle(report.title)
+        .setTitle(report.zone.name)
         .setURL(`https://www.warcraftlogs.com/reports/${report.code}/`)
         .setDescription(formatTime(report.startTime));
 
     const bosses = getBossSection(report);
-    if (bosses[3]) embeddedMessage.addFields({ name: 'Normal', value: bosses[3] });
-    if (bosses[4]) embeddedMessage.addFields({ name: 'Heroic', value: bosses[4] });
+    for (let difficulty in bosses) {
+        embeddedMessage.addFields({ name: difficultyNames[difficulty], value: bosses[difficulty] });
+    }
 
     const participants = await getParticipants(report);
-    const dps = participants['dps'].map(player => player.name).sort().join('\n');
-    const healers = participants['healers'].map(player => player.name).sort().join('\n');
-    const tanks = participants['tanks'].map(player => player.name).sort().join('\n');
-
-    embeddedMessage.addFields({ name: 'Damage', value: dps, inline: true });
-    embeddedMessage.addFields({ name: 'Healing', value: healers, inline: true });
-    embeddedMessage.addFields({ name: 'Tanking', value: tanks, inline: true });
+    for (let role in roles) {
+        const names = participants[role].map(player => player.name).sort().join('\n');
+        embeddedMessage.addFields({ name: roles[role], value: names, inline: true });
+    }
 
     return embeddedMessage;
 }
@@ -137,8 +154,10 @@ async function getReport(id) {
     const query = `query{ 
         reportData { 
             report(code: "${id}") { 
+                zone {
+                    name 
+                }
                 code 
-                title
                 startTime 
                 fights(killType: Encounters) { 
                     id

@@ -1,5 +1,5 @@
 import { REST, Routes } from 'discord.js';
-import { load } from './jsonHandler.js';
+import { load } from './modules/jsonHandler.js';
 
 const secrets = load('secrets');
 const rest = new REST({ version: '10' }).setToken(secrets.token);

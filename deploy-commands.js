@@ -1,5 +1,5 @@
 import { REST, Routes } from 'discord.js';
-import { load } from './jsonHandler.js';
+import { load } from './modules/jsonHandler.js';
 import * as commands from './index/commands.js'
 
 const secrets = load('secrets');

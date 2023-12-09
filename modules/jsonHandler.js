@@ -1,5 +1,5 @@
 import fs from 'fs';
-import log from './logger.js';
+import log from './log.js';
 
 export function load(fileName) {
     try {
@@ -7,8 +7,6 @@ export function load(fileName) {
         return JSON.parse(rawdata);
     } catch (err) {
         log('Failed to find file with name ' + fileName);
-        log('Terminating process');
-        process.exit(1);
     }
 }
 

@@ -1,9 +1,9 @@
 import { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
 import { save, load } from '../modules/jsonHandler.js';
-import log from '../modules/logger.js';
-import { getUsername } from '../modules/messageHandler.js';
+import log from '../modules/log.js';
+import getUsername from '../modules/getUsername.js';
 
-const maxOptions = 5;
+const maxOptions = 5; // Discord limit
 
 export default {
     data: new SlashCommandBuilder()
@@ -12,41 +12,42 @@ export default {
         .addStringOption(option =>
             option
                 .setName('title')
-                .setDescription('The issue to vote about')
-                .setRequired(true))
-        .addBooleanOption(option =>
-            option
-                .setName('anonymity')
-                .setDescription('True: Show only score. False: Show who voted for each option. Anonymous votes can not be changed.')
+                .setDescription('Vote title')
                 .setRequired(true))
         .addStringOption(option =>
             option
                 .setName('options')
                 .setDescription(`Comma-separated list (max ${maxOptions} options)`)
                 .setRequired(true))
-        .addStringOption(option =>
+        .addBooleanOption(option =>
             option
-                .setName('description')
-                .setDescription('A short description (optional)')),
+                .setName('anonymity')
+                .setDescription('Name/score-based view (default: false)')),
     async execute(interaction) {
-        if (interaction.isButton()) {
-            return registerVote(interaction);
+        try {
+            if (interaction.isButton()) {
+                try {
+                    return await registerVote(interaction);
+                } catch (error) {
+                    log(error);
+                    return interaction.reply({ content: "I'm sorry, I had trouble registering your vote.", ephemeral: true });
+                }
+            }
+
+            // Get arguments/default values
+            const title = interaction.options.getString('title');
+            const optionString = interaction.options.getString('options');
+            const anonymity = interaction.options.getBoolean('anonymity') || false;
+
+            const vote = createVote(title, optionString, anonymity);
+            if (!vote) {
+                throw new Error('Failed to create vote');
+            }
+
+            await sendVote(interaction, vote);
+        } catch (error) {
+            log(error);
         }
-
-        const args = interaction.options._hoistedOptions;
-        const title = args[0].value
-        const anonymity = args[1].value;
-        const optionString = args[2].value;
-        const descr = args.length > 3 ? args[3].value : null;
-
-        const vote = createVote(title, descr, anonymity, optionString);
-        if (!vote) {
-            return interaction.reply({ content: 'Failed to create vote', ephemeral: true });
-        }
-
-        sendVote(interaction, vote);
-
-        return;
     },
 };
 
@@ -54,7 +55,7 @@ function splitOptions(optionString, anonymity) {
     return optionString
         .split(',')
         .map(i => i.trim())
-        .filter(i => i)
+        //.filter(i => i)
         .slice(0, maxOptions)
         .reduce((options, i) => {
             options[i] = anonymity ? 0 : {};
@@ -62,13 +63,12 @@ function splitOptions(optionString, anonymity) {
         }, {});
 }
 
-function createVote(title, descr, anonymity, optionString) {
+function createVote(title, optionString, anonymity) {
     return {
         title: title,
-        description: descr,
         options: splitOptions(optionString, anonymity),
         voters: [],
-        anonymity: anonymity
+        anonymity: anonymity,
     };
 }
 
@@ -131,7 +131,7 @@ async function registerVote(interaction) {
         }
     }
 
-    await save('votes', votes);
+    save('votes', votes);
     log(`[${vote.title}]: Vote registered for '${voteID}'`);
 
     let tally = getResult(vote);
