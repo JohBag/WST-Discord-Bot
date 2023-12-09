@@ -1,5 +1,6 @@
 import log from './log.js';
 import { load } from './jsonHandler.js';
+import { ChatInputCommandInteraction } from 'discord.js';
 
 const config = load('config');
 const secrets = load('secrets');
@@ -16,24 +17,30 @@ function hasBotNickname(content) {
     return config.nicknames.some(name => content.toLowerCase().includes(name));
 }
 
-function shouldReactRandomly(reactChance) {
+function isRandomResponse(reactChance) {
     const rng = Math.random();
     return rng > (1 - reactChance);
 }
 
-export function shouldRespond(interaction, settings) {
-    const { channelId, mentions, content } = interaction;
+export default function getResponseAllowed(interaction, reactChance) {
+    if (interaction instanceof ChatInputCommandInteraction) {
+        return true;
+    }
 
-    if (isInBlacklistedChannel(channelId)) {
+    if (interaction.author.bot) {
         return false;
     }
 
-    if (hasBotMention(mentions) || hasBotNickname(content)) {
+    if (isInBlacklistedChannel(interaction.channelId)) {
+        return false;
+    }
+
+    if (hasBotMention(interaction.mentions) || hasBotNickname(interaction.content)) {
         log('Responding to mention');
         return true;
     }
 
-    if (shouldReactRandomly(settings.reactChance)) {
+    if (isRandomResponse(reactChance)) {
         log(`Random reply (${Math.random()})`);
         return true;
     }

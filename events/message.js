@@ -5,11 +5,7 @@ export default {
     name: 'messageCreate',
     async execute(interaction) {
         try {
-            if (interaction.author.bot) {
-                return;
-            }
-
-            generateResponse(interaction);
+            await generateResponse(interaction);
         } catch (error) {
             log(`Error: ${error}`);
         }

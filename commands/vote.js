@@ -26,7 +26,12 @@ export default {
     async execute(interaction) {
         try {
             if (interaction.isButton()) {
-                return registerVote(interaction);
+                try {
+                    return await registerVote(interaction);
+                } catch (error) {
+                    log(error);
+                    return interaction.reply({ content: "I'm sorry, I had trouble registering your vote.", ephemeral: true });
+                }
             }
 
             // Get arguments/default values
@@ -39,12 +44,8 @@ export default {
                 throw new Error('Failed to create vote');
             }
 
-            sendVote(interaction, vote);
+            await sendVote(interaction, vote);
         } catch (error) {
-            interaction.reply({
-                content: "I'm sorry, I had trouble creating the vote.",
-                ephemeral: true,
-            });
             log(error);
         }
     },
@@ -130,7 +131,7 @@ async function registerVote(interaction) {
         }
     }
 
-    await save('votes', votes);
+    save('votes', votes);
     log(`[${vote.title}]: Vote registered for '${voteID}'`);
 
     let tally = getResult(vote);

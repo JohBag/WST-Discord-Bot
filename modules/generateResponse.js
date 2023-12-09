@@ -3,12 +3,17 @@ import log from './log.js';
 import { load } from './jsonHandler.js';
 import getConversation from './conversationHandler.js';
 import sendMessage from './complexMessage.js';
+import getResponseAllowed from '../modules/responseAllowed.js';
 
 const config = load('config');
 
 export default async function generateResponse(interaction) {
     const settings = getSettings(interaction.channel.id);
     const conversation = await getConversation(interaction, settings.messageLimit);
+
+    if (!getResponseAllowed(interaction, settings.reactChance)) {
+        return;
+    }
 
     // Generate response
     let response = await getCompletion(

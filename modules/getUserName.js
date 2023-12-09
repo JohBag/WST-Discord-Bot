@@ -1,9 +1,14 @@
 export default async function getUsername(message) {
     try {
         let user = message.author;
-        console.log("Message type: " + message.type);
         if (message.type == 3) { // Button interaction
             user = message.user;
+        }
+
+        try {
+            return interaction.member.nickname
+        } catch (error) {
+            // Ignore
         }
 
         try {

@@ -18,10 +18,12 @@ export default {
             const prompt = interaction.options.getString('prompt');
             await generateImage(prompt)
 
+            const username = await getUsername(interaction);
+
             interaction.deleteReply();
             interaction.channel.send({
                 files: ['./media/image.png'],
-                content: `**${prompt}**, by ${getUsername(interaction)}`
+                content: `**${prompt}**, by ${username}`
             });
         } catch (error) {
             interaction.editReply({

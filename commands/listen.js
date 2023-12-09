@@ -36,7 +36,7 @@ export default {
         try {
             log('Joining voice channel...');
 
-            const username = getUsername(interaction);
+            const username = await getUsername(interaction);
 
             // Check if user is in a voice channel
             let userChannel = interaction.member.voice.channel;

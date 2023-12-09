@@ -12,11 +12,7 @@ export default {
                 commandName = interaction.commandName;
 
                 // Log use
-                let username = getUsername(interaction);
-                const nickname = interaction.member.nickname;
-                if (nickname) {
-                    username += ` (${nickname})`;
-                }
+                const username = await getUsername(interaction);
                 log(`${username} used /${commandName}`);
             } else {
                 return;
