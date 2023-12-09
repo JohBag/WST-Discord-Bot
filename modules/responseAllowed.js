@@ -18,6 +18,13 @@ function hasBotNickname(content) {
 }
 
 function isRandomResponse(reactChance) {
+    if (reactChance === 0) {
+        return false;
+    }
+    if (reactChance === 1) {
+        return true;
+    }
+
     const rng = Math.random();
     return rng > (1 - reactChance);
 }
@@ -41,7 +48,7 @@ export default function getResponseAllowed(interaction, reactChance) {
     }
 
     if (isRandomResponse(reactChance)) {
-        log(`Random reply (${Math.random()})`);
+        log(`Random reply (${reactChance}% chance)`);
         return true;
     }
 
