@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
 import { save, load } from '../modules/jsonHandler.js';
 import log from '../modules/log.js';
-import { getUserName } from '../modules/getUserName.js';
+import getUsername from '../modules/getUsername.js';
 
 const maxOptions = 5; // Discord limit
 
@@ -36,7 +36,7 @@ export default {
 
             const vote = createVote(title, optionString, anonymity);
             if (!vote) {
-                throw 'Failed to create vote';
+                throw new Error('Failed to create vote');
             }
 
             sendVote(interaction, vote);
@@ -125,7 +125,7 @@ async function registerVote(interaction) {
         }
         else {
             // Allow multiple votes
-            const name = await getUserName(interaction); // Get nickname or discord name
+            const name = await getUsername(interaction); // Get nickname or discord name
             vote.options[voteID][userID] = name;
         }
     }

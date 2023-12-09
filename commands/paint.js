@@ -1,7 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
 import generateImage from '../modules/generateImage.js';
 import log from '../modules/log.js';
-import { getUserName } from '../modules/getUserName.js';
+import getUsername from '../modules/getUsername.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -21,7 +21,7 @@ export default {
             interaction.deleteReply();
             interaction.channel.send({
                 files: ['./media/image.png'],
-                content: `**${prompt}**, by ${getUserName(interaction)}`
+                content: `**${prompt}**, by ${getUsername(interaction)}`
             });
         } catch (error) {
             interaction.editReply({

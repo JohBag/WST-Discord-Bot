@@ -1,14 +1,12 @@
+import { SlashCommandBuilder } from 'discord.js';
 import log from '../modules/log.js';
-import generateResponse from '../modules/generateResponse.js';
 
 export default {
-    name: 'messageCreate',
+    data: new SlashCommandBuilder()
+        .setName('respond')
+        .setDescription('Prompt the bot to generate a response'),
     async execute(interaction) {
         try {
-            if (interaction.author.bot) {
-                return;
-            }
-
             generateResponse(interaction);
         } catch (error) {
             log(`Error: ${error}`);

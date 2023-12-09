@@ -9,7 +9,7 @@ import wav from 'wav';
 import speechToText from '../modules/speechToText.js';
 import generateResponse from '../modules/generateResponse.js';
 import log from '../modules/log.js';
-import { getUserName } from '../modules/getUserName.js';
+import getUsername from '../modules/getUsername.js';
 
 const config = load('config');
 
@@ -36,7 +36,7 @@ export default {
         try {
             log('Joining voice channel...');
 
-            const username = getUserName(interaction);
+            const username = getUsername(interaction);
 
             // Check if user is in a voice channel
             let userChannel = interaction.member.voice.channel;

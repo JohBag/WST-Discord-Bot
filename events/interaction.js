@@ -1,5 +1,5 @@
 import log from '../modules/log.js';
-import { getUserName } from '../modules/getUserName.js';
+import getUsername from '../modules/getUsername.js';
 
 export default {
     name: 'interactionCreate',
@@ -12,7 +12,7 @@ export default {
                 commandName = interaction.commandName;
 
                 // Log use
-                let username = getUserName(interaction);
+                let username = getUsername(interaction);
                 const nickname = interaction.member.nickname;
                 if (nickname) {
                     username += ` (${nickname})`;

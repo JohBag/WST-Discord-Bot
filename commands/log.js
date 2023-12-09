@@ -31,7 +31,7 @@ export default {
             const id = interaction.options.getString('id');
             let report = await getReport(id);
             if (!report) {
-                throw `No report with ID **${id}** could be found.`;
+                throw new Error(`No report with ID **${id}** could be found.`);
             }
             let log = await embedReport(report, id);
 

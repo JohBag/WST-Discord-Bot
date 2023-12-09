@@ -1,4 +1,4 @@
-export async function getUserName(message) {
+export default async function getUsername(message) {
     try {
         let user = message.author;
         console.log("Message type: " + message.type);
