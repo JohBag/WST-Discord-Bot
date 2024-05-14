@@ -27,7 +27,7 @@ export default {
             });
         } catch (error) {
             interaction.editReply({
-                content: "I'm sorry, I had trouble generating the image.",
+                content: "I'm sorry, I couldn't generate the image.",
             });
             log(error);
         }

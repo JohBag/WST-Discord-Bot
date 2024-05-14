@@ -1,11 +1,9 @@
 import { openai } from './openai.js';
 import log from './log.js';
-import { load } from './jsonHandler.js';
+import { config } from './data.js';
 import getConversation from './conversationHandler.js';
 import sendMessage from './complexMessage.js';
 import getResponseAllowed from '../modules/responseAllowed.js';
-
-const config = load('config');
 
 export default async function generateResponse(interaction) {
     const settings = getSettings(interaction.channel.id);
@@ -42,8 +40,10 @@ async function getCompletion(systemMessage, conversation) {
         });
         log(`[Prompt]: ${systemMessage}`);
 
+        console.log(conversation);
+
         try {
-            const model = 'gpt-4';
+            const model = config.model;
             const completion = await openai.chat.completions.create({
                 model: model,
                 messages: conversation,

@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
-import { load } from './jsonHandler.js';
+import { secrets } from './data.js';
 
-const secrets = load('secrets');
 const openai = new OpenAI({ apiKey: secrets.apiKey });
+
 export { openai };

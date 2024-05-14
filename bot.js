@@ -1,5 +1,5 @@
 import { Client, Collection, GatewayIntentBits } from 'discord.js';
-import { load } from './modules/jsonHandler.js';
+import { secrets } from './modules/data.js';
 import * as events from './index/events.js'
 import * as commands from './index/commands.js'
 import log from './modules/log.js';
@@ -12,7 +12,6 @@ const client = new Client({
 		GatewayIntentBits.GuildVoiceStates
 	]
 });
-const secrets = load('secrets');
 
 function safeHandler(handler) {
 	return async (...args) => {

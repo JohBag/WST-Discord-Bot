@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import textToSpeech from '../modules/textToSpeech.js';
-import { load } from '../modules/jsonHandler.js';
+import { config } from '../modules/data.js';
 import { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, EndBehaviorType } from '@discordjs/voice';
 import Queue from '../modules/queue.js';
 import pkg from '@discordjs/opus';
@@ -10,8 +10,6 @@ import speechToText from '../modules/speechToText.js';
 import generateResponse from '../modules/generateResponse.js';
 import log from '../modules/log.js';
 import getUsername from '../modules/getUsername.js';
-
-const config = load('config');
 
 const conversation = new Queue(config.prompts.listen.messageLimit);
 const encoder = new OpusEncoder(48000, 2);

@@ -1,33 +1,6 @@
 import log from './log.js';
-import { load } from './jsonHandler.js';
+import { config, secrets } from './data.js';
 import { ChatInputCommandInteraction } from 'discord.js';
-
-const config = load('config');
-const secrets = load('secrets');
-
-function isInBlacklistedChannel(channelId) {
-    return channelId in config.blacklist;
-}
-
-function hasBotMention(mentions) {
-    return mentions.users.size > 0 && mentions.users.has(secrets.clientId);
-}
-
-function hasBotNickname(content) {
-    return config.nicknames.some(name => content.toLowerCase().includes(name));
-}
-
-function isRandomResponse(reactChance) {
-    if (reactChance === 0) {
-        return false;
-    }
-    if (reactChance === 1) {
-        return true;
-    }
-
-    const rng = Math.random();
-    return rng > (1 - reactChance);
-}
 
 export default function getResponseAllowed(interaction, reactChance) {
     if (interaction instanceof ChatInputCommandInteraction) {
@@ -53,4 +26,28 @@ export default function getResponseAllowed(interaction, reactChance) {
     }
 
     return false;
+}
+
+function isInBlacklistedChannel(channelId) {
+    return channelId in config.blacklist;
+}
+
+function hasBotMention(mentions) {
+    return mentions.users.size > 0 && mentions.users.has(secrets.clientId);
+}
+
+function hasBotNickname(content) {
+    return config.nicknames.some(name => content.toLowerCase().includes(name));
+}
+
+function isRandomResponse(reactChance) {
+    if (reactChance === 0) {
+        return false;
+    }
+    if (reactChance === 1) {
+        return true;
+    }
+
+    const rng = Math.random();
+    return rng > (1 - reactChance);
 }
