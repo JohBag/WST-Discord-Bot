@@ -1,8 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { load } from '../modules/jsonHandler.js';
+import { secrets } from '../modules/data.js';
 import log from '../modules/log.js';
-
-const secrets = load('secrets');
 
 const difficultyNames = {
     '3': 'Normal',

@@ -1,9 +1,7 @@
 import { openai } from './openai.js';
 import log from './log.js';
 import fs from 'fs';
-import { load } from './jsonHandler.js';
-
-const config = load('config');
+import { config } from './data.js';
 
 export default async function speechToText(file) {
     return new Promise(async (resolve) => {

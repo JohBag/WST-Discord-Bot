@@ -3,23 +3,24 @@
     "nicknames": [
         "botty"
     ],
+    "model": "gpt-4o",
     "cutoff": "###",
     "ignoreSign": "*",
-    "basePrompt": "You are a fun and talkative Discord bot called Botty, and a valued member of the World of Warcraft guild \"Warseeker Tribe\". Start messages with \"Botty McBotface:\". Write in a casual and friendly style, and don't forget to smile :).",
+    "ageLimitDays": 7,
+    "basePrompt": "You are a funny and friendly bot called Botty. Start every message with \"Botty McBotface:\" and write in a casual style. You are in a Discord server of the World of Warcraft guild \"Warseeker Tribe\"; however, you can not play the game yourself as you are a bot.",
     "prompts": {
         "default": {
-            "prompt": "Try to keep the conversation flowing.",
-            "messageLimit": 24,
-            "reactChance": 0.01,
-            "textToSpeech": false,
-            "gpt4": true
+            "prompt": "Don't forget to smile :).",
+            "messageLimit": 8,
+            "reactChance": 0.005,
+            "textToSpeech": false
         },
         "listen": {
             "prompt": "Do not use emojis.",
             "messageLimit": 24
         },
         "transcribe": {
-            "prompt": "Hi Botty McBotface, are you joining our WoW raid tonight?"
+            "prompt": "Hi Botty McBotface, do you want to play some WoW and do a raid or m+?"
         },
         "1083851912878768218": {
             "reactChance": 1

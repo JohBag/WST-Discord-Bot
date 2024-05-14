@@ -1,8 +1,6 @@
 import { REST, Routes } from 'discord.js';
-import { load } from './modules/jsonHandler.js';
+import { secrets } from './modules/data.js';
 import * as commands from './index/commands.js'
-
-const secrets = load('secrets');
 
 const commandsData = [];
 for (const command of Object.values(commands)) {

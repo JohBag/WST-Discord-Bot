@@ -1,8 +1,5 @@
-import { load } from '../modules/jsonHandler.js';
+import { secrets, voice } from '../modules/data.js';
 import sdk from 'microsoft-cognitiveservices-speech-sdk';
-
-const secrets = load('secrets');
-const voice = load('voice');
 
 export default async function textToSpeech(text) {
     var fileName = './media/SyntheticSpeech.mp3';
