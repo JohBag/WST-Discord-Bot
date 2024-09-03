@@ -1,7 +1,7 @@
-import { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
-import { save, load } from '../modules/jsonHandler.js';
-import log from '../modules/log.js';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import getUsername from '../modules/getUsername.js';
+import { load, save } from '../modules/jsonHandler.js';
+import log from '../modules/log.js';
 
 const maxOptions = 5; // Discord limit
 
@@ -51,11 +51,15 @@ export default {
     },
 };
 
-function splitOptions(optionString, anonymity) {
+function fixEmojis(inputString) {
+    const regex = /<:(.*?):\d+>/g;
+    return inputString.replace(regex, ':$1:');
+}
+
+export function splitOptions(optionString, anonymity) {
     return optionString
         .split(',')
-        .map(i => i.trim())
-        //.filter(i => i)
+        .map(i => fixEmojis(i.trim()))
         .slice(0, maxOptions)
         .reduce((options, i) => {
             options[i] = anonymity ? 0 : {};
