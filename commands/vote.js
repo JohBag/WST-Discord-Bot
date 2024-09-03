@@ -80,19 +80,19 @@ function createVote(title, optionString, anonymity) {
 async function sendVote(interaction, vote) {
     // Create buttons
     let buttons = new ActionRowBuilder()
+    let voteId = 1;
     for (let option in vote.options) {
-        const button = new ButtonBuilder();
+        const button = new ButtonBuilder()
+        .setCustomId("vote" + voteId++)
+        .setStyle(ButtonStyle.Primary);
 
         const emoji = getEmoji(option);
         if (emoji) {
             button.setEmoji(emoji);
             option = option.replace(emoji, '').trim() || ' ';
         }
-        
-        button
-        .setCustomId(option)
-        .setLabel(option)
-        .setStyle(ButtonStyle.Primary);
+
+        button.setLabel(option);
 
         buttons.addComponents(button);
     }
