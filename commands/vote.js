@@ -81,18 +81,18 @@ async function sendVote(interaction, vote) {
     // Create buttons
     let buttons = new ActionRowBuilder()
     for (let option in vote.options) {
-        const button = new ButtonBuilder()
+        const button = new ButtonBuilder();
 
         const emoji = getEmoji(option);
         if (emoji) {
             button.setEmoji(emoji);
-            option = option.replace(emoji, '').trim();
+            option = option.replace(emoji, '').trim() || ' ';
         }
         
         button
         .setCustomId(option)
         .setLabel(option)
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(ButtonStyle.Primary);
 
         buttons.addComponents(button);
     }
