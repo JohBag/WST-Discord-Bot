@@ -51,15 +51,16 @@ export default {
     },
 };
 
-function fixEmojis(inputString) {
+function getEmoji(inputString) {
     const regex = /<:(.*?):\d+>/g;
-    return inputString.replace(regex, ':$1:');
+    const matches = inputString.match(regex);
+    return matches ? matches[0] : null;
 }
 
-export function splitOptions(optionString, anonymity) {
+function splitOptions(optionString, anonymity) {
     return optionString
         .split(',')
-        .map(i => fixEmojis(i.trim()))
+        .map(i => i.trim())
         .slice(0, maxOptions)
         .reduce((options, i) => {
             options[i] = anonymity ? 0 : {};
@@ -79,14 +80,21 @@ function createVote(title, optionString, anonymity) {
 async function sendVote(interaction, vote) {
     // Create buttons
     let buttons = new ActionRowBuilder()
-    for (let i in vote.options) {
-        buttons
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId(i)
-                    .setLabel(i)
-                    .setStyle(ButtonStyle.Primary),
-            );
+    for (let option in vote.options) {
+        const button = new ButtonBuilder()
+
+        const emoji = getEmoji(option);
+        if (emoji) {
+            button.setEmoji(emoji);
+            option = option.replace(emoji, '').trim();
+        }
+        
+        button
+        .setCustomId(option)
+        .setLabel(option)
+        .setStyle(ButtonStyle.Primary)
+
+        buttons.addComponents(button);
     }
 
     // Send reply
