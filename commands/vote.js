@@ -80,10 +80,9 @@ function createVote(title, optionString, anonymity) {
 async function sendVote(interaction, vote) {
     // Create buttons
     let buttons = new ActionRowBuilder()
-    let voteId = 1;
     for (let option in vote.options) {
         const button = new ButtonBuilder()
-        .setCustomId("vote" + voteId++)
+        .setCustomId(option)
         .setStyle(ButtonStyle.Primary);
 
         const emoji = getEmoji(option);
@@ -132,6 +131,8 @@ async function registerVote(interaction) {
         vote.options[voteID] += 1;
     } else {
         // Remove previous vote
+        console.log(vote.options)
+        console.log("VoteID: " + voteID);
         let option = vote.options[voteID];
         if (userID in option) {
             delete option[userID];
