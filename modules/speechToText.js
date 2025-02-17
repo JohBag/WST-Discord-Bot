@@ -10,13 +10,13 @@ export default async function speechToText(file) {
             resolve('');
         }, 60000); // 60 seconds
 
-        const resp = await openai.createTranscription(
+        const response = await openai.createTranscription(
             fs.createReadStream(file),
             'whisper-1',
             config.prompts.transcribe.prompt
         );
 
         clearTimeout(timer);
-        resolve(resp.data.text);
+        resolve(response.data.text);
     });
 }
