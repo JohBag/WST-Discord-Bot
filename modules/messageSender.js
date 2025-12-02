@@ -3,7 +3,7 @@ import textToSpeech from './textToSpeech.js';
 const messageCharLimit = 2000;
 
 export default async function sendMessage(interaction, response, useTextToSpeech = false) {
-    // Split response into pieces of 2000 characters or less (discord limit)
+    // Split response into pieces of 2000 characters or less (Discord limit)
     const messages = splitResponse(response);
     for (const message of messages) {
         let msg = { content: message, files: [] };
