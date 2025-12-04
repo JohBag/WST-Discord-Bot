@@ -1,7 +1,5 @@
 node_modules
+media
 secrets.json
 votes.json
-image.png
-SyntheticSpeech.mp3
-output.wav
 log.txt

@@ -1,7 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { generateImage } from '../modules/gemini.js';
 import log from '../modules/log.js';
-import getUsername from '../modules/getUsername.js';
+import getUsername from '../modules/get-username.js';
 
 export default {
 	data: new SlashCommandBuilder()
@@ -9,20 +9,20 @@ export default {
 		.setDescription('Generate an image')
 		.addStringOption(option =>
 			option.setName('prompt')
-				.setDescription('A description of the image')
+				.setDescription('Describe the image you want to generate')
 				.setRequired(true)),
 	async execute(interaction) {
 		try {
 			await interaction.deferReply({ ephemeral: true }); // Defer to avoid 3 second limit on response
 
 			const prompt = interaction.options.getString('prompt');
-			await generateImage(prompt)
+			await generateImage(prompt);
 
 			const username = await getUsername(interaction);
 
 			interaction.deleteReply();
 			interaction.channel.send({
-				files: ['./media/gemini-image.png'],
+				files: ['./media/image.png'],
 				content: `**${prompt}**, by ${username}`
 			});
 		} catch (error) {

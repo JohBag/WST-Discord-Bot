@@ -1,4 +1,4 @@
-import getUsername from './getUsername.js';
+import getUsername from './get-username.js';
 import { config } from './data.js';
 
 export default async function getConversation(interaction, messageLimit) {

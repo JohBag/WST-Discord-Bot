@@ -1,4 +1,4 @@
-import { load } from './jsonHandler.js';
+import { load } from './json.js';
 
 const config = load('config');
 const secrets = load('secrets');

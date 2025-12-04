@@ -1,7 +1,7 @@
 import { config } from './data.js';
-import getConversation from './conversationHandler.js';
-import sendMessage from './messageSender.js';
-import getResponseAllowed from './responseAllowed.js';
+import getConversation from './conversations.js';
+import sendMessage from './send-message.js';
+import getResponseAllowed from './response-allowed.js';
 import { generateResponse } from './gemini.js';
 
 export default async function tryGenerateResponse(interaction) {

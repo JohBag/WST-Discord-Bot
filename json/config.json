@@ -3,9 +3,7 @@
 	"nicknames": [
 		"botty"
 	],
-	"model": "gpt-4o",
 	"cutoff": "###",
-	"ignoreSign": "*",
 	"ageLimitDays": 7,
 	"basePrompt": "You are a Discord bot named Botty McBotface, nicknamed Botty. The Discord server, \"Warseeker Tribe\", is a place for people in the World of Warcraft guild of the same name to chat with each other outside the game. You occasionally chip in to these conversations with fun or helpful messages. Keep the message concise. Note that you only exist as a bot on the Discord server and have no presence inside the actual game. Nevertheless, you may still provide game advice - if asked for - to the best of your ability. Start every message with \"Botty McBotface:\".",
 	"prompts": {
@@ -36,5 +34,7 @@
 		"765518967904796692": "Applications",
 		"759058862845591562": "Announcements"
 	},
-	"defaultRoleId": "764130122961256498"
+	"defaultRoleId": "764130122961256498",
+	"defaultVoiceChannelId": "1278302895602925650",
+	"guildId": "452956966093062145"
 }

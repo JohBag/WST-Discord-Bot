@@ -15,23 +15,11 @@ const client = new Client({
 	]
 });
 
-function safeHandler(handler) {
-	return async (...args) => {
-		try {
-			await handler(...args);
-		} catch (error) {
-			log(`Error in event handler: ${error}`);
-		}
-	};
-}
-
 for (const event of Object.values(events)) {
-	const handler = safeHandler(event.execute);
-
 	if (event.once) {
-		client.once(event.name, handler);
+		client.once(event.name, event.execute);
 	} else {
-		client.on(event.name, handler);
+		client.on(event.name, event.execute);
 	}
 
 	log(`Loaded event: ${event.name}`);
@@ -44,4 +32,4 @@ for (const command of Object.values(commands)) {
 	log(`Loaded command: ${command.data.name}`);
 }
 
-client.login(secrets.token);
+client.login(secrets.discord.token);

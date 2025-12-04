@@ -1,5 +1,5 @@
 import log from '../modules/log.js';
-import tryGenerateResponse from '../modules/generateResponse.js';
+import tryGenerateResponse from '../modules/generate-response.js';
 
 export default {
 	name: 'messageCreate',
