@@ -3,3 +3,6 @@ media
 secrets.json
 votes.json
 log.txt
+
+debug_output.pcm
+verify.wav

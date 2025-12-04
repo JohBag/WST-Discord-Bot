@@ -14,8 +14,7 @@ export default async function tryGenerateResponse(interaction) {
 	const conversation = await getConversation(interaction, channelSettings.messageLimit);
 
 	// Generate response
-	const systemPrompt = config.basePrompt + " " + channelSettings.prompt;
-	let response = await generateResponse(systemPrompt, conversation);
+	let response = await generateResponse(config.prompt, conversation);
 	if (!response) {
 		throw new Error('No response');
 	}
@@ -41,6 +40,6 @@ function filterName(message) {
 }
 
 function getChannelSettings(channelID) {
-	const { default: defaultSettings, [channelID]: channelSettings = {} } = config.prompts;
+	const { default: defaultSettings, [channelID]: channelSettings = {} } = config.channelSettings;
 	return { ...defaultSettings, ...channelSettings };
 }

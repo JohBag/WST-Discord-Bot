@@ -3,38 +3,34 @@
 	"nicknames": [
 		"botty"
 	],
-	"cutoff": "###",
-	"ageLimitDays": 7,
-	"basePrompt": "You are a Discord bot named Botty McBotface, nicknamed Botty. The Discord server, \"Warseeker Tribe\", is a place for people in the World of Warcraft guild of the same name to chat with each other outside the game. You occasionally chip in to these conversations with fun or helpful messages. Keep the message concise. Note that you only exist as a bot on the Discord server and have no presence inside the actual game. Nevertheless, you may still provide game advice - if asked for - to the best of your ability. Start every message with \"Botty McBotface:\".",
-	"prompts": {
+	"prompt": "You are a Discord bot named Botty McBotface, nicknamed Botty. The Discord server, \"Warseeker Tribe\", is a place for people in the World of Warcraft guild of the same name to chat with each other outside the game. You occasionally chip in to these conversations with fun or helpful messages. Keep the message concise. Note that you only exist as a bot on the Discord server and have no presence inside the actual game. Nevertheless, you may still provide game advice - if asked for - to the best of your ability.",
+	"channelSettings": {
 		"default": {
-			"prompt": "Don't forget to smile :).",
-			"messageLimit": 8,
+			"messageLimit": 16,
 			"reactChance": 0.005,
-			"textToSpeech": false
-		},
-		"listen": {
-			"prompt": "Do not use emojis.",
-			"messageLimit": 24
-		},
-		"transcribe": {
-			"prompt": "Hi Botty McBotface, do you want to play some WoW and do a raid or m+?"
+			"textToSpeech": true
 		},
 		"1083851912878768218": {
 			"reactChance": 1
-		},
-		"1103954950893096970": {
-			"prompt": "You are a Dungeons and Dragons-style DM. Create an interactive story for the players to overcome.",
-			"messageLimit": 32,
-			"reactChance": 1,
-			"textToSpeech": true
 		}
 	},
+	"models": {
+		"text": "gemini-2.5-flash",
+		"transcribe": "gemini-2.5-flash",
+		"speech": "gemini-2.5-pro-preview-tts",
+		"image": "gemini-2.5-flash-image",
+		"voice": "models/gemini-2.0-flash-exp"
+	},
+	"voice": "Zephyr",
+	"cutoff": "###",
+	"ageLimitDays": 7,
 	"blacklist": {
 		"765518967904796692": "Applications",
 		"759058862845591562": "Announcements"
 	},
 	"defaultRoleId": "764130122961256498",
-	"defaultVoiceChannelId": "1278302895602925650",
-	"guildId": "452956966093062145"
+	"voiceChannelId": "1278302895602925650",
+	"guildId": "452956966093062145",
+	"speechFile": "./media/speech.wav",
+	"imageFile": "./media/image.png"
 }

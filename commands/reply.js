@@ -4,7 +4,7 @@ import tryGenerateResponse from '../modules/generate-response.js';
 
 export default {
 	data: new SlashCommandBuilder()
-		.setName('respond')
+		.setName('reply')
 		.setDescription('Prompt the bot to generate a response'),
 	async execute(interaction) {
 		try {

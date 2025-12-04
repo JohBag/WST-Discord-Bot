@@ -37,11 +37,6 @@ async function formatConversation(messages) {
 	return conversation;
 }
 
-/**
- * Filters messages by date.
- * @param {Message[]} messages - The messages to filter.
- * @returns {Message[]} The filtered messages.
- */
 function filterByDate(messages) {
 	const ageLimit = config.ageLimitDays * (1000 * 60 * 60 * 24);
 	const currentDate = new Date();
@@ -59,21 +54,11 @@ function filterByDate(messages) {
 	return messages;
 }
 
-/**
- * Remove messages after the cutoff message, including the cutoff message
- * @param {Message[]} messages - The messages to filter.
- * @returns {Message[]} The filtered messages.
- */
 function filterByCutoff(messages) {
 	const cutoffIndex = messages.findIndex((message) => message.content === config.cutoff);
 	return cutoffIndex === -1 ? messages : messages.slice(0, cutoffIndex);
 }
 
-/**
- * Remove empty messages
- * @param {Message[]} messages - The messages to filter.
- * @returns {Message[]} The filtered messages.
- */
 function filterEmpty(messages) {
 	return messages.filter((message) => message !== '');
 }

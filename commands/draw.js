@@ -2,10 +2,11 @@ import { SlashCommandBuilder } from 'discord.js';
 import { generateImage } from '../modules/gemini.js';
 import log from '../modules/log.js';
 import getUsername from '../modules/get-username.js';
+import { config } from '../modules/data.js';
 
 export default {
 	data: new SlashCommandBuilder()
-		.setName('paint')
+		.setName('draw')
 		.setDescription('Generate an image')
 		.addStringOption(option =>
 			option.setName('prompt')
@@ -22,7 +23,7 @@ export default {
 
 			interaction.deleteReply();
 			interaction.channel.send({
-				files: ['./media/image.png'],
+				files: [config.imageFile],
 				content: `**${prompt}**, by ${username}`
 			});
 		} catch (error) {

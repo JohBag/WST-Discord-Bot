@@ -4,8 +4,6 @@ import {
 	createAudioPlayer,
 	createAudioResource,
 	AudioPlayerStatus,
-	VoiceConnectionStatus,
-	entersState,
 	EndBehaviorType,
 	StreamType
 } from '@discordjs/voice';
@@ -15,15 +13,16 @@ import { PassThrough } from 'stream';
 import ffmpegPath from 'ffmpeg-static';
 import 'sodium-native';
 import { config, secrets } from '../modules/data.js';
+import fs from 'fs';
 
 process.env.FFMPEG_PATH = ffmpegPath;
 
 const CONFIG = {
 	TOKEN: secrets.discord.token,
 	GEMINI_API_KEY: secrets.keys.gemini,
-	MODEL: 'models/gemini-2.0-flash-exp',
+	MODEL: config.models.voice,
 	GuildID: config.guildId,
-	ChannelID: config.defaultVoiceChannelId,
+	ChannelID: config.voiceChannelId,
 };
 
 const client = new Client({
@@ -36,10 +35,24 @@ const client = new Client({
 });
 
 let voiceConnection = null;
-let audioPlayer = createAudioPlayer();
 let geminiWs = null;
 let isBotSpeaking = false;
 let currentResponseStream = null;
+
+let audioPlayer = createAudioPlayer();
+audioPlayer.on(AudioPlayerStatus.Idle, () => {
+	if (isBotSpeaking) {
+		isBotSpeaking = false;
+		endStream();
+	}
+});
+
+const debugAudioFile = fs.createWriteStream('./debug_output.pcm');
+
+export default async function listen() {
+	await connectToGemini();
+	await joinChannel(CONFIG.ChannelID);
+}
 
 async function connectToGemini() {
 	const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${CONFIG.GEMINI_API_KEY}`;
@@ -50,11 +63,18 @@ async function connectToGemini() {
 		const setupMessage = {
 			setup: {
 				model: CONFIG.MODEL,
-				generation_config: {
-					response_modalities: ["AUDIO"],
-					speech_config: {
-						voice_config: { prebuilt_voice_config: { voice_name: "Puck" } }
+				generationConfig: {
+					responseModalities: ["AUDIO"],
+					speechConfig: {
+						voiceConfig: { prebuiltVoiceConfig: { voiceName: config.voice } }
 					}
+				},
+				systemInstruction: {
+					parts: [
+						{
+							text: config.prompt
+						}
+					]
 				}
 			}
 		};
@@ -66,14 +86,50 @@ async function connectToGemini() {
 	geminiWs.on('error', (err) => console.error('Gemini Error:', err));
 }
 
+async function joinChannel(channelId) {
+	let channel = client.channels.cache.get(channelId);
+
+	let attempts = 0;
+	while (!channel && attempts < 10) {
+		await new Promise(resolve => setTimeout(resolve, 1000));
+		channel = client.channels.cache.get(channelId);
+		attempts++;
+	}
+
+	console.log("Attempts: ", attempts + 1);
+
+	if (!channel) {
+		console.error(`Channel ${channelId} not found. Please check ID and Permissions.`);
+		return;
+	}
+
+	voiceConnection = joinVoiceChannel({
+		channelId: channel.id,
+		guildId: channel.guild.id,
+		adapterCreator: channel.guild.voiceAdapterCreator,
+		selfDeaf: false,
+		selfMute: false
+	});
+
+	voiceConnection.on('error', (error) => {
+		console.warn('Connection Error:', error);
+	});
+
+	voiceConnection.subscribe(audioPlayer);
+	console.log("Joined Voice Channel.");
+
+	voiceConnection.receiver.speaking.on('start', (userId) => {
+		if (userId === client.user.id) return;
+
+		processUserAudio(userId);
+	});
+}
+
 async function handleGeminiMessage(data) {
 	try {
 		const response = JSON.parse(data.toString());
 
-		if (response.error) {
-			console.error("Gemini API Error:", response.error);
-		}
-
+		// 1. Handle Audio & Text
 		if (response.serverContent?.modelTurn?.parts) {
 			for (const part of response.serverContent.modelTurn.parts) {
 				if (part.inlineData && part.inlineData.mimeType.startsWith('audio/')) {
@@ -82,17 +138,30 @@ async function handleGeminiMessage(data) {
 				}
 			}
 		}
+
+		if (response.serverContent?.turnComplete) {
+			endStream();
+		}
+
 	} catch (e) {
 		console.error("Error parsing Gemini message:", e);
+	}
+}
+
+function endStream() {
+	if (currentResponseStream) {
+		currentResponseStream.end();
+		currentResponseStream = null;
 	}
 }
 
 function playResponse(pcmBuffer) {
 	if (!isBotSpeaking || !currentResponseStream) {
 		isBotSpeaking = true;
-		console.log("▶️ Bot started speaking...");
 
-		currentResponseStream = new PassThrough();
+		if (!currentResponseStream) {
+			currentResponseStream = new PassThrough();
+		}
 
 		const ffmpeg = new prism.FFmpeg({
 			args: [
@@ -113,50 +182,10 @@ function playResponse(pcmBuffer) {
 	currentResponseStream.write(pcmBuffer);
 }
 
-audioPlayer.on(AudioPlayerStatus.Idle, () => {
-	if (isBotSpeaking) {
-		console.log("⏹️ Bot finished speaking.");
-		isBotSpeaking = false;
-		if (currentResponseStream) {
-			currentResponseStream.end();
-			currentResponseStream = null;
-		}
-	}
-});
+async function processUserAudio(userId) {
+	const user = await client.users.fetch(userId).catch(() => null);
+	const username = user ? user.username : "Dave";
 
-export default {
-	name: 'clientReady',
-	once: true,
-	async execute() {
-		await connectToGemini();
-		await joinChannel(CONFIG.ChannelID);
-	},
-};
-
-async function joinChannel(channelId) {
-	const channel = await client.channels.fetch(channelId);
-	voiceConnection = joinVoiceChannel({
-		channelId: channel.id,
-		guildId: channel.guild.id,
-		adapterCreator: channel.guild.voiceAdapterCreator,
-		selfDeaf: false,
-		selfMute: false
-	});
-
-	voiceConnection.on('error', (error) => {
-		console.warn('Connection Error:', error);
-	});
-
-	voiceConnection.subscribe(audioPlayer);
-	console.log("🎧 Joined Voice Channel.");
-
-	voiceConnection.receiver.speaking.on('start', (userId) => {
-		if (userId === client.user.id || isBotSpeaking) return;
-		processUserAudio(userId);
-	});
-}
-
-function processUserAudio(userId) {
 	const opusStream = voiceConnection.receiver.subscribe(userId, {
 		end: { behavior: EndBehaviorType.AfterSilence, duration: 500 }
 	});
@@ -178,26 +207,31 @@ function processUserAudio(userId) {
 	});
 	transcoder.on('error', (e) => console.warn(`FFmpeg Error: ${e.message}`));
 
+	transcoder.on('data', (chunk) => {
+		console.log("Writing chunk");
+		debugAudioFile.write(chunk);
+	});
+
 	try {
 		const pcmStream = opusStream.pipe(opusDecoder).pipe(transcoder);
 
 		pcmStream.on('data', (chunk) => {
-			sendToGemini(chunk);
+			sendBuffer(chunk);
 		});
 	} catch (e) {
 		console.warn("Pipeline construction failed", e);
 	}
 }
 
-function sendToGemini(pcmBuffer) {
+function sendBuffer(pcmBuffer) {
 	if (!geminiWs || geminiWs.readyState !== WebSocket.OPEN) return;
 
 	geminiWs.send(JSON.stringify({
-		realtime_input: {
-			media_chunks: [{
-				mime_type: "audio/pcm",
+		realtimeInput: {
+			audio: {
+				mimeType: "audio/pcm",
 				data: pcmBuffer.toString('base64')
-			}]
+			}
 		}
 	}));
 }
