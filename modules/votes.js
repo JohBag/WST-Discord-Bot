@@ -8,6 +8,7 @@ const maxOptions = 5; // Discord limit
 import Message from './message.js';
 
 export async function createVote(interaction, title, optionString, anonymity = false) {
+	const message = new Message()
 	try {
 		if (title === undefined || optionString === undefined || anonymity === undefined) {
 			// Get arguments/default values
@@ -26,11 +27,9 @@ export async function createVote(interaction, title, optionString, anonymity = f
 		const buttons = createVoteButtons(vote);
 		const tally = getResult(vote);
 
-		const message = new Message()
-			.addEmbed(tally)
-			.addComponents([buttons]);
+		message.addEmbed(tally).addComponents([buttons]);
 
-		message.onSend = async (sentMessage) => {
+		message.onSend = async (sentMessage, message) => {
 			const id = sentMessage.id;
 			let votes = await load('votes');
 			votes[id] = vote;
@@ -40,7 +39,10 @@ export async function createVote(interaction, title, optionString, anonymity = f
 		return message;
 	} catch (error) {
 		log(error);
-		return new Message().addText('Failed to create vote.');
+
+		message.addText("I'm sorry, I had trouble creating the vote.");
+		message.success = false;
+		return message;
 	}
 };
 

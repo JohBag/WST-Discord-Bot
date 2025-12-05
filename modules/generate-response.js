@@ -5,6 +5,7 @@ import { generateResponse, generateImage } from './gemini.js';
 import createWarcraftLog from './warcraft-log.js';
 import { createVote } from './votes.js';
 import Message from './message.js';
+import log from './log.js';
 
 export default async function tryGenerateResponse(interaction) {
 	const channelSettings = getChannelSettings(interaction.channel.id);
@@ -18,7 +19,8 @@ export default async function tryGenerateResponse(interaction) {
 	// Generate response
 	let response = await generateResponse(config.prompt, conversation);
 	if (!response) {
-		throw new Error('No response');
+		log('No response');
+		return;
 	}
 
 	let message = new Message();
@@ -34,19 +36,13 @@ export default async function tryGenerateResponse(interaction) {
 				break;
 			case 'create_warcraft_log':
 				message = await createWarcraftLog(args.id);
-				if (message.embeds.length > 0) { // Success
+				if (message.success) {
 					let successResponse = await generateResponse(config.prompt + '\nThe Warcraft Logs report was generated successfully! Give the user a positive response.', conversation, false);
 					let successMessage = new Message();
 					successMessage.addText(successResponse.text);
-					successMessage.send(channel);
+					successMessage.send(interaction.channel);
 
-					if (config.logChannelId) {
-						channel = interaction.guild.channels.cache.get(config.logChannelId) || channel;
-					}
-				} else {
-					let failureMessage = new Message();
-					failureMessage.addText('Failed to generate Warcraft Logs report. Please try again later.');
-					failureMessage.send(channel);
+					channel = message.channel;
 				}
 				break;
 			case 'create_vote':

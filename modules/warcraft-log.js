@@ -2,6 +2,7 @@ import { EmbedBuilder } from 'discord.js';
 import { secrets } from '../modules/data.js';
 import log from '../modules/log.js';
 import Message from '../modules/message.js';
+import { config } from '../modules/data.js';
 
 const difficultyNames = {
 	'3': 'Normal',
@@ -15,24 +16,31 @@ const roles = {
 	'tanks': 'Tanking'
 }
 
-export default async function createWarcraftLog(id) {
+let logChannel = null;
+
+export default async function createWarcraftLog(interaction, id) {
 	let embed = await getLogEmbed(id);
 
 	const message = new Message();
+	message.channel = await getLogChannel(interaction);
 	if (embed) {
 		message.addEmbed(embed);
-		message.onSend = async (sentMessage) => {
-			let successResponse = await generateResponse(config.prompt + '\nThe Warcraft Logs report was generated successfully! Give the user a positive response.', conversation, false);
-			let successMessage = new Message();
-			successMessage.addText(successResponse.text);
-			successMessage.send(channel);
-		}
 	} else {
 		message.addText('I was unable to fetch the report. Please try again later.');
+		message.success = false;
 	}
 
 	return message;
 };
+
+async function getLogChannel(interaction) {
+	if (!logChannel) {
+		if (config.logChannelId) {
+			logChannel = interaction.guild.channels.cache.get(config.logChannelId);
+		}
+	}
+	return logChannel;
+}
 
 async function getLogEmbed(id) {
 	let report = await getReport(id);

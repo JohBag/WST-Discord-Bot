@@ -23,19 +23,16 @@ export default {
 				.setName('anonymity')
 				.setDescription('Hide voter names. Only score is shown (default: false)')),
 	async execute(interaction) {
-		try {
-			if (interaction.isButton()) {
-				try {
-					await registerVote(interaction);
-				} catch (error) {
-					log(error);
-					interaction.reply({ content: "I'm sorry, I had trouble registering your vote.", ephemeral: true });
-				}
-			} else {
-				createVote(interaction);
-			}
-		} catch (error) {
-			log(error);
+		if (interaction.isButton()) {
+			await registerVote(interaction);
+			return;
+		}
+
+		const message = await createVote(interaction);
+		if (message.success) {
+			message.send(interaction.channel);
+		} else {
+			interaction.reply({ content: message.text, ephemeral: true });
 		}
 	},
 };

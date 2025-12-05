@@ -9,7 +9,8 @@ export default async function getConversation(interaction, messageLimit) {
 	messages = filterEmpty(messages);
 
 	if (messages.length === 0) {
-		throw new Error('No messages remaining.');
+		log('No messages remaining.');
+		return;
 	}
 
 	return await formatConversation(messages);

@@ -20,12 +20,19 @@ export default {
 
 			// Get command
 			const command = interaction.client.commands.get(commandName);
-
 			if (!command) {
-				throw new Error(`No command matching ${commandName} was found.`);
+				log(`No command matching ${commandName} was found.`);
+				return;
 			}
 
-			await command.execute(interaction);
+			try {
+				await interaction.deferReply({ ephemeral: true });
+				await command.execute(interaction);
+				await interaction.deleteReply();
+			} catch (error) {
+				log(`Error: ${error}`);
+				await interaction.editReply({ content: "I'm sorry, I encountered an error while processing your interaction." });
+			}
 		} catch (error) {
 			log(`Error: ${error}`);
 		}

@@ -7,6 +7,8 @@ export default class Message {
 		this.embeds = [];
 		this.components = [];
 		this.onSend = null;
+		this.channel = null;
+		this.success = true;
 	}
 
 	setText(text) {
@@ -38,6 +40,10 @@ export default class Message {
 	}
 
 	async send(channel) {
+		if (channel) {
+			this.channel = channel;
+		}
+
 		let chunks = splitResponse(this.text);
 		chunks = chunks.map(chunk => ({
 			content: chunk,
@@ -48,20 +54,20 @@ export default class Message {
 		lastChunk.embeds = this.embeds;
 		lastChunk.components = this.components;
 
-		let message;
+		let sentMessage;
 		for (const chunk of chunks) {
 			try {
-				message = await channel.send(chunk);
+				sentMessage = await this.channel.send(chunk);
 			} catch (error) {
 				console.error('Failed to send message:', error);
 			}
 		}
 
 		if (this.onSend) {
-			await this.onSend(message);
+			await this.onSend(sentMessage, this);
 		}
 
-		return message;
+		return sentMessage;
 	}
 }
 
