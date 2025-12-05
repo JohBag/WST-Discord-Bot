@@ -33,9 +33,20 @@ export default async function tryGenerateResponse(interaction) {
 				message = await generateImage(args.prompt);
 				break;
 			case 'create_warcraft_log':
-				message = await createWarcraftLog(args.id, conversation);
-				if (config.logChannelId && message.embeds.length > 0) {
-					channel = interaction.guild.channels.cache.get(config.logChannelId) || channel;
+				message = await createWarcraftLog(args.id);
+				if (message.embeds.length > 0) { // Success
+					let successResponse = await generateResponse(config.prompt + '\nThe Warcraft Logs report was generated successfully! Give the user a positive response.', conversation, false);
+					let successMessage = new Message();
+					successMessage.addText(successResponse.text);
+					successMessage.send(channel);
+
+					if (config.logChannelId) {
+						channel = interaction.guild.channels.cache.get(config.logChannelId) || channel;
+					}
+				} else {
+					let failureMessage = new Message();
+					failureMessage.addText('Failed to generate Warcraft Logs report. Please try again later.');
+					failureMessage.send(channel);
 				}
 				break;
 			case 'create_vote':

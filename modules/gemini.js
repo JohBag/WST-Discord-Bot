@@ -17,19 +17,22 @@ const textModel = models.text;
 const speechModel = models.speech;
 const imageModel = models.image;
 const transcribeModel = models.transcribe;
-const functionDeclarations = [];
+const functionDeclarations = [{ functionDeclarations: [] }];
 
-export async function generateResponse(systemPrompt, conversation) {
-	const response = await ai.models.generateContent({
+export async function generateResponse(systemPrompt, conversation, allowFunctions = true) {
+	const parameters = {
 		model: textModel,
 		contents: conversation,
 		config: {
 			systemInstruction: systemPrompt,
-			tools: [{
-				functionDeclarations: functionDeclarations
-			}]
 		}
-	});
+	}
+
+	if (allowFunctions) {
+		parameters.config.tools = functionDeclarations;
+	}
+
+	const response = await ai.models.generateContent(parameters);
 
 	return response;
 }
@@ -157,4 +160,4 @@ const createVoteFunction = {
 		required: ['title', 'options'],
 	},
 };
-functionDeclarations.push(generatePictureFunction, createWarcraftLogFunction, createVoteFunction);
+functionDeclarations[0].functionDeclarations.push(generatePictureFunction, createWarcraftLogFunction, createVoteFunction);

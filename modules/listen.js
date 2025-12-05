@@ -20,6 +20,9 @@ const geminiApiKey = secrets.keys.gemini;
 const model = config.models.voice;
 const defaultVoiceChannelId = config.defaultVoiceChannelId;
 
+const maxRetries = 3;
+let reconnectAttempts = 0;
+
 let voiceConnection = null;
 let geminiWs = null;
 let isBotSpeaking = false;
@@ -72,6 +75,7 @@ async function connectToGemini() {
 
 	geminiWs.on('open', () => {
 		console.log('✅ Connected to Gemini Live API');
+		reconnectAttempts = 0; // Reset attempts on successful connection
 		const setupMessage = {
 			setup: {
 				model: model,
@@ -94,8 +98,30 @@ async function connectToGemini() {
 	});
 
 	geminiWs.on('message', (data) => handleGeminiMessage(data));
-	geminiWs.on('close', (code) => console.log(`Gemini Disconnected: ${code}`));
+	geminiWs.on('close', (code) => {
+		console.log(`Gemini Disconnected: ${code}`);
+		if (reconnectAttempts < maxRetries) {
+			reconnectAttempts++;
+			console.log(`Reconnecting to Gemini (Attempt ${reconnectAttempts}/${maxRetries})...`);
+			setTimeout(connectToGemini, 1000 * reconnectAttempts);
+		} else {
+			console.error("Max retries reached. Disconnecting from voice.");
+			disconnectVoice();
+		}
+	});
 	geminiWs.on('error', (err) => console.error('Gemini Error:', err));
+}
+
+function disconnectVoice() {
+	if (voiceConnection) {
+		voiceConnection.destroy();
+		voiceConnection = null;
+	}
+	if (geminiWs) {
+		geminiWs.close(); // Ensure socket is closed
+		geminiWs = null;
+	}
+	console.log("Disconnected from Voice and Gemini.");
 }
 
 async function joinChannel(channel) {

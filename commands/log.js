@@ -14,8 +14,7 @@ export default {
 		try {
 			await interaction.deferReply({ ephemeral: true }); // Defer to avoid 3 second limit on response
 
-			const id = interaction.options.getString('id');
-			const log = await createWarcraftLog(id);
+			const message = await createWarcraftLog(id);
 
 			interaction.deleteReply();
 			interaction.channel.send({ embeds: [log] });

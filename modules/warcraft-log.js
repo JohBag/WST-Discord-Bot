@@ -1,6 +1,5 @@
 import { EmbedBuilder } from 'discord.js';
-import { secrets, config } from '../modules/data.js';
-import { generateResponse } from '../modules/gemini.js';
+import { secrets } from '../modules/data.js';
 import log from '../modules/log.js';
 import Message from '../modules/message.js';
 
@@ -16,25 +15,33 @@ const roles = {
 	'tanks': 'Tanking'
 }
 
-export default async function createWarcraftLog(id, conversation) {
-	try {
-		let report = await getReport(id);
-		if (!report) {
-			log('No report found with ID: ' + id);
-			return await getFailResponse(conversation);
-		}
+export default async function createWarcraftLog(id) {
+	let embed = await getLogEmbed(id);
 
-		let embed = await embedReport(report, id);
-		return new Message().addEmbed(embed);
-	} catch (error) {
-		log(error);
-		return await getFailResponse(conversation);
+	const message = new Message();
+	if (embed) {
+		message.addEmbed(embed);
+		message.onSend = async (sentMessage) => {
+			let successResponse = await generateResponse(config.prompt + '\nThe Warcraft Logs report was generated successfully! Give the user a positive response.', conversation, false);
+			let successMessage = new Message();
+			successMessage.addText(successResponse.text);
+			successMessage.send(channel);
+		}
+	} else {
+		message.addText('I was unable to fetch the report. Please try again later.');
 	}
+
+	return message;
 };
 
-async function getFailResponse(conversation) {
-	const failResponse = await generateResponse(config.prompt + '\nYou attempted unsuccessfully to create a Warcraft log. Apologise to the user and attempt to help them troubleshoot the issue.', conversation);
-	return new Message().addText(failResponse.text);
+async function getLogEmbed(id) {
+	let report = await getReport(id);
+	if (!report) {
+		log('No report found with ID: ' + id);
+		return null;
+	}
+
+	return await embedReport(report);
 }
 
 async function getAccessToken() {
