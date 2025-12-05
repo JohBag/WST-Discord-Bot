@@ -32,4 +32,4 @@ for (const command of Object.values(commands)) {
 	log(`Loaded command: ${command.data.name}`);
 }
 
-client.login(secrets.discord.token);
+client.login(secrets.discord.botToken);

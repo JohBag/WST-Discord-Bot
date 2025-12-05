@@ -33,7 +33,7 @@ function isInBlacklistedChannel(channelId) {
 }
 
 function hasBotMention(mentions) {
-	return mentions.users.size > 0 && mentions.users.has(secrets.discord.clientId);
+	return mentions.users.size > 0 && mentions.users.has(secrets.discord.appId);
 }
 
 function hasBotNickname(content) {

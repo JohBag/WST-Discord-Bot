@@ -7,7 +7,7 @@ for (const command of Object.values(commands)) {
 	commandsData.push(command.data.toJSON());
 }
 
-const rest = new REST({ version: '10' }).setToken(secrets.discord.token);
+const rest = new REST({ version: '10' }).setToken(secrets.discord.botToken);
 
 (async () => {
 	try {
@@ -16,7 +16,7 @@ const rest = new REST({ version: '10' }).setToken(secrets.discord.token);
 		let data;
 		console.log('Deploying commands globally');
 		data = await rest.put(
-			Routes.applicationCommands(secrets.discord.clientId),
+			Routes.applicationCommands(secrets.discord.appId),
 			{ body: commandsData },
 		);
 

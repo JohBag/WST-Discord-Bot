@@ -1,4 +1,3 @@
-import { Client, GatewayIntentBits, Events } from 'discord.js';
 import {
 	joinVoiceChannel,
 	createAudioPlayer,
@@ -17,22 +16,9 @@ import fs from 'fs';
 
 process.env.FFMPEG_PATH = ffmpegPath;
 
-const CONFIG = {
-	TOKEN: secrets.discord.token,
-	GEMINI_API_KEY: secrets.keys.gemini,
-	MODEL: config.models.voice,
-	GuildID: config.guildId,
-	ChannelID: config.defaultVoiceChannelId,
-};
-
-const client = new Client({
-	intents: [
-		GatewayIntentBits.Guilds,
-		GatewayIntentBits.GuildVoiceStates,
-		GatewayIntentBits.GuildMessages,
-		GatewayIntentBits.MessageContent
-	]
-});
+const geminiApiKey = secrets.keys.gemini;
+const model = config.models.voice;
+const defaultVoiceChannelId = config.defaultVoiceChannelId;
 
 let voiceConnection = null;
 let geminiWs = null;
@@ -49,20 +35,40 @@ audioPlayer.on(AudioPlayerStatus.Idle, () => {
 
 const debugAudioFile = fs.createWriteStream('./debug_output.pcm');
 
-export default async function listen() {
+let client;
+
+export default async function listen(interaction) {
+	let channelId = interaction === undefined ? defaultVoiceChannelId : interaction.member.voice.channelId;
+	const channel = await getChannel(channelId);
+	if (!channel) {
+		console.error(`Invalid channel.`);
+		return;
+	}
+
 	await connectToGemini();
-	await joinChannel(CONFIG.ChannelID);
+	await joinChannel(channel);
+}
+
+async function getChannel(channelId) {
+	let channel;
+	let attempts = 0;
+	while (!channel && attempts < 10) {
+		channel = await client.channels.fetch(channelId);
+		attempts++;
+	}
+	console.log(`Attempts: ${attempts}`);
+	return channel;
 }
 
 async function connectToGemini() {
-	const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${CONFIG.GEMINI_API_KEY}`;
+	const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${geminiApiKey}`;
 	geminiWs = new WebSocket(url);
 
 	geminiWs.on('open', () => {
 		console.log('✅ Connected to Gemini Live API');
 		const setupMessage = {
 			setup: {
-				model: CONFIG.MODEL,
+				model: model,
 				generationConfig: {
 					responseModalities: ["AUDIO"],
 					speechConfig: {
@@ -86,20 +92,9 @@ async function connectToGemini() {
 	geminiWs.on('error', (err) => console.error('Gemini Error:', err));
 }
 
-async function joinChannel(channelId) {
-	let channel = client.channels.cache.get(channelId);
-
-	let attempts = 0;
-	while (!channel && attempts < 10) {
-		await new Promise(resolve => setTimeout(resolve, 1000));
-		channel = client.channels.cache.get(channelId);
-		attempts++;
-	}
-
-	console.log("Attempts: ", attempts + 1);
-
+async function joinChannel(channel) {
 	if (!channel) {
-		console.error(`Channel ${channelId} not found. Please check ID and Permissions.`);
+		console.error(`Invalid channel.`);
 		return;
 	}
 
@@ -234,5 +229,3 @@ function sendBuffer(pcmBuffer) {
 		}
 	}));
 }
-
-client.login(CONFIG.TOKEN);
