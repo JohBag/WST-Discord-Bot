@@ -7,7 +7,7 @@ export default {
 		try {
 			var commandName = '';
 			if (interaction.isButton()) {
-				commandName = interaction.message.interaction.commandName;
+				commandName = "vote"; // TODO: Identify button parent type without commandName
 			} else if (interaction.isChatInputCommand()) {
 				commandName = interaction.commandName;
 

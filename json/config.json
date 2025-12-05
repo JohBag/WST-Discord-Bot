@@ -32,5 +32,6 @@
 	"voiceChannelId": "1278302895602925650",
 	"guildId": "452956966093062145",
 	"speechFile": "./media/speech.wav",
-	"imageFile": "./media/image.png"
+	"imageFile": "./media/image.png",
+	"logChannelId": "1446438208102469663"
 }

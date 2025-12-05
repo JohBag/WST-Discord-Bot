@@ -208,7 +208,6 @@ async function processUserAudio(userId) {
 	transcoder.on('error', (e) => console.warn(`FFmpeg Error: ${e.message}`));
 
 	transcoder.on('data', (chunk) => {
-		console.log("Writing chunk");
 		debugAudioFile.write(chunk);
 	});
 
