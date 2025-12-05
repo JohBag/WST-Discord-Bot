@@ -22,7 +22,7 @@ const CONFIG = {
 	GEMINI_API_KEY: secrets.keys.gemini,
 	MODEL: config.models.voice,
 	GuildID: config.guildId,
-	ChannelID: config.voiceChannelId,
+	ChannelID: config.defaultVoiceChannelId,
 };
 
 const client = new Client({

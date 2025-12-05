@@ -5,6 +5,8 @@ import getUsername from '../modules/get-username.js';
 
 const maxOptions = 5; // Discord limit
 
+import Message from './message.js';
+
 export async function createVote(interaction, title, optionString, anonymity = false) {
 	try {
 		if (title === undefined || optionString === undefined || anonymity === undefined) {
@@ -21,9 +23,24 @@ export async function createVote(interaction, title, optionString, anonymity = f
 			anonymity: anonymity,
 		};
 
-		sendVote(interaction, vote);
+		const buttons = createVoteButtons(vote);
+		const tally = getResult(vote);
+
+		const message = new Message()
+			.addEmbed(tally)
+			.addComponents([buttons]);
+
+		message.onSend = async (sentMessage) => {
+			const id = sentMessage.id;
+			let votes = await load('votes');
+			votes[id] = vote;
+			save('votes', votes);
+		};
+
+		return message;
 	} catch (error) {
 		log(error);
+		return new Message().addText('Failed to create vote.');
 	}
 };
 
@@ -122,7 +139,7 @@ function splitOptions(optionString, anonymity) {
 		}, {});
 }
 
-async function sendVote(interaction, vote) {
+function createVoteButtons(vote) {
 	// Create buttons
 	let buttons = new ActionRowBuilder()
 	for (let option in vote.options) {
@@ -140,15 +157,5 @@ async function sendVote(interaction, vote) {
 
 		buttons.addComponents(button);
 	}
-
-	// Send reply
-	const tally = getResult(vote);
-	const reply = await interaction.reply({ embeds: [tally], components: [buttons] });
-
-	// Store vote locally
-	const id = reply.id;
-
-	let votes = load('votes');
-	votes[id] = vote;
-	save('votes', votes);
+	return buttons;
 }

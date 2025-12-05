@@ -28,8 +28,8 @@
 		"765518967904796692": "Applications",
 		"759058862845591562": "Announcements"
 	},
-	"defaultRoleId": "764130122961256498",
-	"voiceChannelId": "1278302895602925650",
+	"newUsersRoleId": "764130122961256498",
+	"defaultVoiceChannelId": "1278302895602925650",
 	"guildId": "452956966093062145",
 	"speechFile": "./media/speech.wav",
 	"imageFile": "./media/image.png",

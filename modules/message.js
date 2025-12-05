@@ -5,6 +5,8 @@ export default class Message {
 		this.text = '';
 		this.files = [];
 		this.embeds = [];
+		this.components = [];
+		this.onSend = null;
 	}
 
 	setText(text) {
@@ -30,7 +32,12 @@ export default class Message {
 		return this;
 	}
 
-	send(channel) {
+	addComponents(components) {
+		this.components = components;
+		return this;
+	}
+
+	async send(channel) {
 		let chunks = splitResponse(this.text);
 		chunks = chunks.map(chunk => ({
 			content: chunk,
@@ -39,12 +46,22 @@ export default class Message {
 		const lastChunk = chunks[chunks.length - 1];
 		lastChunk.files = this.files;
 		lastChunk.embeds = this.embeds;
+		lastChunk.components = this.components;
 
-		chunks.forEach(chunk => {
-			channel.send(chunk).catch(error => {
+		let message;
+		for (const chunk of chunks) {
+			try {
+				message = await channel.send(chunk);
+			} catch (error) {
 				console.error('Failed to send message:', error);
-			});
-		});
+			}
+		}
+
+		if (this.onSend) {
+			await this.onSend(message);
+		}
+
+		return message;
 	}
 }
 

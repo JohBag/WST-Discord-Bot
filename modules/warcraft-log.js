@@ -1,5 +1,6 @@
 import { EmbedBuilder } from 'discord.js';
-import { secrets } from '../modules/data.js';
+import { secrets, config } from '../modules/data.js';
+import { generateResponse } from '../modules/gemini.js';
 import log from '../modules/log.js';
 import Message from '../modules/message.js';
 
@@ -15,21 +16,26 @@ const roles = {
 	'tanks': 'Tanking'
 }
 
-export default async function createWarcraftLog(id) {
+export default async function createWarcraftLog(id, conversation) {
 	try {
 		let report = await getReport(id);
 		if (!report) {
 			log('No report found with ID: ' + id);
-			return null;
+			return await getFailResponse(conversation);
 		}
 
-		let log = await embedReport(report, id);
-		return log;
+		let embed = await embedReport(report, id);
+		return new Message().addEmbed(embed);
 	} catch (error) {
 		log(error);
-		return null;
+		return await getFailResponse(conversation);
 	}
 };
+
+async function getFailResponse(conversation) {
+	const failResponse = await generateResponse(config.prompt + '\nYou attempted unsuccessfully to create a Warcraft log. Apologise to the user and attempt to help them troubleshoot the issue.', conversation);
+	return new Message().addText(failResponse.text);
+}
 
 async function getAccessToken() {
 	const response = await fetch('https://www.warcraftlogs.com/oauth/token', {

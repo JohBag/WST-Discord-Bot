@@ -33,19 +33,14 @@ export default async function tryGenerateResponse(interaction) {
 				message = await generateImage(args.prompt);
 				break;
 			case 'create_warcraft_log':
-				let log = await createWarcraftLog(args.id);
-				if (log) {
-					message.addEmbed(log);
-					if (config.logChannelId) {
-						channel = interaction.guild.channels.cache.get(config.logChannelId) || channel;
-					}
-				} else {
-					let failResponse = await generateResponse(config.prompt + '\nYou attempted unsuccessfully to create a Warcraft log. Apologise to the user and attempt to help them troubleshoot the issue.', conversation);
-					message.addText(failResponse.text);
+				message = await createWarcraftLog(args.id, conversation);
+				if (config.logChannelId && message.embeds.length > 0) {
+					channel = interaction.guild.channels.cache.get(config.logChannelId) || channel;
 				}
 				break;
 			case 'create_vote':
-				return await createVote(interaction, args.title, args.options, args.anonymity);
+				message = await createVote(interaction, args.title, args.options, args.anonymity);
+				break;
 			default:
 				console.log(`Unknown function: ${functionCall.name}`);
 				break;
