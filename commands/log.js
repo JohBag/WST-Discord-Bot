@@ -15,9 +15,7 @@ export default {
 		if (message.success) {
 			message.send();
 		} else {
-			interaction.editReply({
-				content: message.text,
-			});
+			throw new Error(message.text);
 		}
 	},
 };

@@ -5,7 +5,6 @@ import { generateResponse, generateImage } from './gemini.js';
 import createWarcraftLog from './warcraft-log.js';
 import { createVote } from './votes.js';
 import Message from './message.js';
-import log from './log.js';
 
 export default async function tryGenerateResponse(interaction) {
 	const channelSettings = getChannelSettings(interaction.channel.id);
@@ -19,8 +18,7 @@ export default async function tryGenerateResponse(interaction) {
 	// Generate response
 	let response = await generateResponse(config.prompt, conversation);
 	if (!response) {
-		log('No response');
-		return;
+		throw new Error('No response');
 	}
 
 	let message = new Message();
@@ -53,6 +51,9 @@ export default async function tryGenerateResponse(interaction) {
 				break;
 		}
 	} else {
+		if (response.text === undefined) {
+			throw new Error('No text in response');
+		}
 		message.addText(response.text);
 	}
 	message.send(channel);

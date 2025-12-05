@@ -4,10 +4,6 @@ import tryGenerateResponse from '../modules/generate-response.js';
 export default {
 	name: 'messageCreate',
 	async execute(interaction) {
-		try {
-			await tryGenerateResponse(interaction);
-		} catch (error) {
-			log(`Error: ${error}`);
-		}
+		await tryGenerateResponse(interaction);
 	},
 };

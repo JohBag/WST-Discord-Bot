@@ -15,11 +15,23 @@ const client = new Client({
 	]
 });
 
+function safeHandler(handler) {
+	return async (...args) => {
+		try {
+			await handler(...args);
+		} catch (error) {
+			log(`Error in safe handler: ${error}`);
+		}
+	};
+}
+
 for (const event of Object.values(events)) {
+	const handler = safeHandler(event.execute);
+
 	if (event.once) {
-		client.once(event.name, event.execute);
+		client.once(event.name, handler);
 	} else {
-		client.on(event.name, event.execute);
+		client.on(event.name, handler);
 	}
 
 	log(`Loaded event: ${event.name}`);
@@ -28,7 +40,8 @@ for (const event of Object.values(events)) {
 // Load commands
 client.commands = new Collection();
 for (const command of Object.values(commands)) {
-	client.commands.set(command.data.name, command);
+	const handler = safeHandler(command.execute);
+	client.commands.set(command.data.name, handler);
 	log(`Loaded command: ${command.data.name}`);
 }
 

@@ -4,8 +4,8 @@ import listen from '../modules/listen.js';
 export default {
 	name: 'clientReady',
 	once: true,
-	execute(client) {
+	async execute(client) {
 		log('Ready!');
-		listen(client);
+		await listen(client);
 	},
 };
