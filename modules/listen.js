@@ -37,8 +37,14 @@ const debugAudioFile = fs.createWriteStream('./debug_output.pcm');
 
 let client;
 
-export default async function listen(interaction) {
-	let channelId = interaction === undefined ? defaultVoiceChannelId : interaction.member.voice.channelId;
+export default async function listen(source) {
+	if (source.ws) {
+		client = source;
+	} else {
+		client = source.client;
+	}
+
+	let channelId = source.member ? source.member.voice.channelId : defaultVoiceChannelId;
 	const channel = await getChannel(channelId);
 	if (!channel) {
 		console.error(`Invalid channel.`);
