@@ -44,4 +44,14 @@ for (const command of Object.values(commands)) {
 	log(`Loaded command: ${command.data.name}`);
 }
 
-client.login(secrets.discord.botToken);
+process.on('unhandledRejection', (reason, promise) => {
+	log(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
+});
+
+process.on('uncaughtException', (error) => {
+	log(`Uncaught Exception: ${error}`);
+});
+
+client.login(secrets.discord.botToken).catch(error => {
+	log(`Failed to login: ${error}`);
+});
