@@ -18,9 +18,9 @@ process.env.FFMPEG_PATH = ffmpegPath;
 
 const geminiApiKey = secrets.keys.gemini;
 const model = config.models.voice;
-const defaultVoiceChannelId = config.defaultVoiceChannelId;
+const defaultVoiceChannelId = config.voiceChat.defaultChannelId;
 
-const maxRetries = 3;
+const maxRetries = config.voiceChat.maxReconnectAttempts;
 let reconnectAttempts = 0;
 
 let voiceConnection = null;
@@ -50,8 +50,7 @@ export default async function listen(source) {
 	let channelId = source.member ? source.member.voice.channelId : defaultVoiceChannelId;
 	const channel = await getChannel(channelId);
 	if (!channel) {
-		console.error(`Invalid channel.`);
-		return;
+		throw new Error('Invalid channel.');
 	}
 
 	await connectToGemini();
@@ -82,7 +81,7 @@ async function connectToGemini() {
 				generationConfig: {
 					responseModalities: ["AUDIO"],
 					speechConfig: {
-						voiceConfig: { prebuiltVoiceConfig: { voiceName: config.voice } }
+						voiceConfig: { prebuiltVoiceConfig: { voiceName: config.voiceChat.voiceName } }
 					}
 				},
 				systemInstruction: {

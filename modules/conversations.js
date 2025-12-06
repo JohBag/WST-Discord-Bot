@@ -39,7 +39,7 @@ async function formatConversation(messages) {
 }
 
 function filterByDate(messages) {
-	const ageLimit = config.ageLimitDays * (1000 * 60 * 60 * 24);
+	const ageLimit = config.chat.ageLimitDays * (1000 * 60 * 60 * 24);
 	const currentDate = new Date();
 	for (let i = 0; i < messages.length; i++) {
 		const message = messages[i];
@@ -56,7 +56,7 @@ function filterByDate(messages) {
 }
 
 function filterByCutoff(messages) {
-	const cutoffIndex = messages.findIndex((message) => message.content === config.cutoff);
+	const cutoffIndex = messages.findIndex((message) => message.content === config.chat.cutoff);
 	return cutoffIndex === -1 ? messages : messages.slice(0, cutoffIndex);
 }
 

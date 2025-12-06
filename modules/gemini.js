@@ -20,6 +20,8 @@ const transcribeModel = models.transcribe;
 const functionDeclarations = [{ functionDeclarations: [] }];
 
 export async function generateResponse(systemPrompt, conversation, allowFunctions = true) {
+	console.log("Generating response");
+
 	const parameters = {
 		model: textModel,
 		contents: conversation,
@@ -38,6 +40,8 @@ export async function generateResponse(systemPrompt, conversation, allowFunction
 }
 
 export async function generateImage(prompt) {
+	console.log("Generating image");
+
 	const message = new Message();
 	const response = await ai.models.generateContent({
 		model: imageModel,
@@ -49,8 +53,8 @@ export async function generateImage(prompt) {
 		} else if (part.inlineData) {
 			const imageData = part.inlineData.data;
 			const buffer = Buffer.from(imageData, "base64");
-			fs.writeFileSync(config.imageFile, buffer);
-			message.addFile(config.imageFile);
+			fs.writeFileSync(config.media.imageFile, buffer);
+			message.addFile(config.media.imageFile);
 		}
 	}
 
@@ -58,6 +62,8 @@ export async function generateImage(prompt) {
 }
 
 export async function transcribeAudio(filename) {
+	console.log("Transcribing audio");
+
 	const myfile = await ai.files.upload({
 		file: filename,
 		config: { mimeType: "audio/mp3" },
@@ -74,6 +80,8 @@ export async function transcribeAudio(filename) {
 }
 
 export async function generateSpeech(text) {
+	console.log("Generating speech");
+
 	const response = await ai.models.generateContent({
 		model: speechModel,
 		contents: [{ parts: [{ text: text }] }],
@@ -81,7 +89,7 @@ export async function generateSpeech(text) {
 			responseModalities: ['AUDIO'],
 			speechConfig: {
 				voiceConfig: {
-					prebuiltVoiceConfig: { voiceName: config.voice },
+					prebuiltVoiceConfig: { voiceName: config.voiceChat.voiceName },
 				},
 			}
 		}
@@ -95,7 +103,7 @@ export async function generateSpeech(text) {
 
 async function saveWaveFile(pcmData) {
 	return new Promise((resolve, reject) => {
-		const writer = new wav.FileWriter(config.speechFile, {
+		const writer = new wav.FileWriter(config.media.speechFile, {
 			channels: 1,
 			sampleRate: 24000,
 			bitDepth: 16,
@@ -160,4 +168,13 @@ const createVoteFunction = {
 		required: ['title', 'options'],
 	},
 };
-functionDeclarations[0].functionDeclarations.push(generatePictureFunction, createWarcraftLogFunction, createVoteFunction);
+const listenFunction = {
+	name: 'listen',
+	description: "Joins the user's voice channel. Only do this if explicitly asked by the user.",
+	parameters: {
+		type: Type.OBJECT,
+		properties: {},
+		required: [],
+	},
+};
+functionDeclarations[0].functionDeclarations.push(generatePictureFunction, createWarcraftLogFunction, createVoteFunction, listenFunction);

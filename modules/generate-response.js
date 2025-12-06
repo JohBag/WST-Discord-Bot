@@ -5,6 +5,7 @@ import { generateResponse, generateImage } from './gemini.js';
 import createWarcraftLog from './warcraft-log.js';
 import { createVote } from './votes.js';
 import Message from './message.js';
+import listen from './listen.js';
 
 export default async function tryGenerateResponse(interaction) {
 	const channelSettings = getChannelSettings(interaction.channel.id);
@@ -28,12 +29,15 @@ export default async function tryGenerateResponse(interaction) {
 	if (response.functionCalls && response.functionCalls.length > 0) {
 		const functionCall = response.functionCalls[0]; // Assuming one function call
 		const args = functionCall.args;
+		console.log("Calling function: ", functionCall.name);
+		console.log("Args: ", args);
+
 		switch (functionCall.name) {
 			case 'generate_picture':
 				message = await generateImage(args.prompt);
 				break;
 			case 'create_warcraft_log':
-				message = await createWarcraftLog(args.id);
+				message = await createWarcraftLog(interaction, args.id);
 				if (message.success) {
 					let successResponse = await generateResponse(config.prompt + '\nThe Warcraft Logs report was generated successfully! Give the user a positive response.', conversation, false);
 					let successMessage = new Message();
@@ -45,6 +49,17 @@ export default async function tryGenerateResponse(interaction) {
 				break;
 			case 'create_vote':
 				message = await createVote(interaction, args.title, args.options, args.anonymity);
+				break;
+			case 'listen':
+				let success = true;
+				try {
+					await listen(interaction);
+				} catch (error) {
+					success = false;
+				}
+				let prompt = success ? "You successfully joined the user's voice channel! Give the user a positive response." : "You tried unsuccessfully to join the user's voice channel, let them know with an apology. Perhaps they are not in a voice channel?";
+				let reactionResponse = await generateResponse(config.prompt + '\n' + prompt, conversation, false);
+				message.addText(reactionResponse.text);
 				break;
 			default:
 				console.log(`Unknown function: ${functionCall.name}`);
