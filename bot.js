@@ -40,8 +40,7 @@ for (const event of Object.values(events)) {
 // Load commands
 client.commands = new Collection();
 for (const command of Object.values(commands)) {
-	const handler = safeHandler(command.execute);
-	client.commands.set(command.data.name, handler);
+	client.commands.set(command.data.name, command);
 	log(`Loaded command: ${command.data.name}`);
 }
 

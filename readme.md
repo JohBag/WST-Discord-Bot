@@ -11,8 +11,8 @@ Add a new file named 'secrets.json' to the json folder and replace the values wi
 ```
 {
 	"discord": {
-		"clientId": DISCORD_CLIENT_ID,
-		"token": DISCORD_BOT_TOKEN
+		"appId": DISCORD_CLIENT_ID,
+		"botToken": DISCORD_BOT_TOKEN
 	},
 	"keys": {
 		"gemini": GEMINI_API_KEY,
