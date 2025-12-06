@@ -20,7 +20,7 @@ function safeHandler(handler) {
 		try {
 			await handler(...args);
 		} catch (error) {
-			log(`Error in event handler: ${error}`);
+			log(`Error in safe handler: ${error}`);
 		}
 	};
 }
@@ -44,4 +44,14 @@ for (const command of Object.values(commands)) {
 	log(`Loaded command: ${command.data.name}`);
 }
 
-client.login(secrets.token);
+process.on('unhandledRejection', (reason, promise) => {
+	log(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
+});
+
+process.on('uncaughtException', (error) => {
+	log(`Uncaught Exception: ${error}`);
+});
+
+client.login(secrets.discord.botToken).catch(error => {
+	log(`Failed to login: ${error}`);
+});

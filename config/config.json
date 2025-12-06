@@ -1,0 +1,36 @@
+{
+	"name": "Warseeker Test Bot",
+	"nicknames": [
+		"botty"
+	],
+	"channelSettings": {
+		"default": {
+			"messageLimit": 16,
+			"reactChance": 0.005,
+			"textToSpeech": true
+		},
+		"1083851912878768218": {
+			"reactChance": 1
+		}
+	},
+	"models": {
+		"text": "gemini-2.5-flash",
+		"transcribe": "gemini-2.5-flash",
+		"speech": "gemini-2.5-pro-preview-tts",
+		"image": "gemini-3-pro-image-preview",
+		"voice": "models/gemini-2.0-flash-exp"
+	},
+	"voice": "Zephyr",
+	"cutoff": "###",
+	"ageLimitDays": 7,
+	"blacklist": {
+		"765518967904796692": "Applications",
+		"759058862845591562": "Announcements"
+	},
+	"newUsersRoleId": "764130122961256498",
+	"defaultVoiceChannelId": "1278302895602925650",
+	"guildId": "452956966093062145",
+	"speechFile": "./media/speech.wav",
+	"imageFile": "./media/image.png",
+	"logChannelId": "1446438208102469663"
+}
