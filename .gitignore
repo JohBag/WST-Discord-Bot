@@ -3,6 +3,7 @@ media
 config.json
 secrets.json
 votes.json
+prompt.txt
 log.txt
 
 debug_output.pcm
