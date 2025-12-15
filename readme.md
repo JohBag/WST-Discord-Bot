@@ -34,8 +34,6 @@ The bot requires the following files in the `config/` directory:
 * `secrets.json` (Create from `secrets-example.json`)
 * `prompt.txt` (Contains your AI system prompt)
 
-**Note:** Ensure `secrets.json` is never committed to version control.
-
 ## Setup
 
 ### Deploy Commands
