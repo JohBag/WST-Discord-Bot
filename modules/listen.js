@@ -53,8 +53,8 @@ export default async function listen(source) {
 		throw new Error('Invalid channel.');
 	}
 
-	await connectToGemini();
-	await joinChannel(channel);
+	//await connectToGemini();
+	//await joinChannel(channel);
 }
 
 async function getChannel(channelId) {
@@ -69,7 +69,7 @@ async function getChannel(channelId) {
 }
 
 async function connectToGemini() {
-	const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${geminiApiKey}`;
+	const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${geminiApiKey}`;
 	geminiWs = new WebSocket(url);
 
 	geminiWs.on('open', () => {
