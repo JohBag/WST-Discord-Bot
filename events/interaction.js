@@ -12,10 +12,6 @@ export default {
 			return;
 		} else if (interaction.isChatInputCommand()) {
 			commandName = interaction.commandName;
-
-			// Log use
-			const username = await getUsername(interaction);
-			log(`${username} used /${commandName}`);
 		} else {
 			return;
 		}
@@ -28,7 +24,13 @@ export default {
 		}
 
 		try {
+			// Defer immediately before doing ANY other async work
 			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+			// Now safe to do other async operations
+			const username = await getUsername(interaction);
+			log(`${username} used /${commandName}`);
+
 			await command.execute(interaction);
 		} catch (error) {
 			log(`Error: ${error}`);
