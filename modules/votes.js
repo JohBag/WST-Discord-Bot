@@ -29,14 +29,23 @@ export async function createVote(interaction, title, optionString, anonymity = f
 
 		message.addEmbed(tally).addComponents([buttons]);
 
-		message.onSend = async (sentMessage, message) => {
+		message.onSend = async (sentMessage, messageObj) => {
+			console.log('onSend called with sentMessage:', sentMessage?.id, 'vote:', vote);
 			try {
+				if (!sentMessage) {
+					throw new Error('sentMessage is undefined');
+				}
 				const id = sentMessage.id;
+				console.log('Loading votes...');
 				let votes = load('votes');
+				console.log('Current votes:', votes);
 				votes[id] = vote;
+				console.log('Updated votes:', votes);
 				save('votes', votes);
+				console.log('Votes saved to file');
 				log(`Vote '${vote.title}' saved with ID ${id}`);
 			} catch (error) {
+				console.error('Error in onSend callback:', error);
 				log(`Failed to save vote: ${error}`);
 			}
 		};

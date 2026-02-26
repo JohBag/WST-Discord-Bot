@@ -58,13 +58,17 @@ export default class Message {
 		for (const chunk of chunks) {
 			try {
 				sentMessage = await this.channel.send(chunk);
+				console.log('Message sent, ID:', sentMessage.id);
 			} catch (error) {
 				console.error('Failed to send message:', error);
+				throw error;
 			}
 		}
 
 		if (this.onSend) {
+			console.log('Calling onSend callback...');
 			await this.onSend(sentMessage, this);
+			console.log('onSend callback completed');
 		}
 
 		return sentMessage;
