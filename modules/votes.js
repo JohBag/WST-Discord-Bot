@@ -30,10 +30,15 @@ export async function createVote(interaction, title, optionString, anonymity = f
 		message.addEmbed(tally).addComponents([buttons]);
 
 		message.onSend = async (sentMessage, message) => {
-			const id = sentMessage.id;
-			let votes = await load('votes');
-			votes[id] = vote;
-			save('votes', votes);
+			try {
+				const id = sentMessage.id;
+				let votes = load('votes');
+				votes[id] = vote;
+				save('votes', votes);
+				log(`Vote '${vote.title}' saved with ID ${id}`);
+			} catch (error) {
+				log(`Failed to save vote: ${error}`);
+			}
 		};
 
 		return message;
@@ -83,45 +88,54 @@ export function getResult(vote) {
 }
 
 export async function registerVote(interaction) {
-	let votes = await load('votes');
+	try {
+		let votes = await load('votes');
 
-	// Check if vote exists
-	const id = interaction.message.id;
-	let vote = votes[id];
-	if (!vote) {
-		return interaction.reply({ content: 'Failed to register vote', flags: MessageFlags.Ephemeral });
+		// Check if vote exists
+		const id = interaction.message.id;
+		let vote = votes[id];
+		if (!vote) {
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+			return await interaction.editReply({ content: 'Failed to register vote' });
+		}
+
+		// Add vote
+		const voteID = interaction.customId;
+		const userID = interaction.user.id;
+		if (vote.anonymity) {
+			if (vote.voters.includes(userID)) {
+				// Prevent change if anonymous
+				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+				return await interaction.editReply({ content: 'Anonymous votes can not be changed' });
+			}
+			vote.voters.push(userID);
+			vote.options[voteID] += 1;
+		} else {
+			// Remove previous vote
+			console.log(vote.options)
+			console.log("VoteID: " + voteID);
+			let option = vote.options[voteID];
+			if (userID in option) {
+				delete option[userID];
+			}
+			else {
+				// Allow multiple votes
+				const name = await getUsername(interaction); // Get nickname or discord name
+				vote.options[voteID][userID] = name;
+			}
+		}
+
+		save('votes', votes);
+		log(`[${vote.title}]: Vote registered for '${voteID}'`);
+
+		let tally = getResult(vote);
+		await interaction.update({ embeds: [tally] });
+	} catch (error) {
+		log(`Error in registerVote: ${error}`);
+		if (!interaction.replied && !interaction.deferred) {
+			await interaction.reply({ content: 'An error occurred while registering your vote.', flags: MessageFlags.Ephemeral });
+		}
 	}
-
-	// Add vote
-	const voteID = interaction.customId;
-	const userID = interaction.user.id;
-	if (vote.anonymity) {
-		if (vote.voters.includes(userID)) {
-			// Prevent change if anonymous
-			return interaction.reply({ content: 'Anonymous votes can not be changed', flags: MessageFlags.Ephemeral });
-		}
-		vote.voters.push(userID);
-		vote.options[voteID] += 1;
-	} else {
-		// Remove previous vote
-		console.log(vote.options)
-		console.log("VoteID: " + voteID);
-		let option = vote.options[voteID];
-		if (userID in option) {
-			delete option[userID];
-		}
-		else {
-			// Allow multiple votes
-			const name = await getUsername(interaction); // Get nickname or discord name
-			vote.options[voteID][userID] = name;
-		}
-	}
-
-	save('votes', votes);
-	log(`[${vote.title}]: Vote registered for '${voteID}'`);
-
-	let tally = getResult(vote);
-	interaction.update({ embeds: [tally] });
 }
 
 function getEmoji(inputString) {

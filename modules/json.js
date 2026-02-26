@@ -7,6 +7,7 @@ export function load(fileName) {
 		return JSON.parse(rawdata);
 	} catch (err) {
 		log('Failed to find file with name ' + fileName);
+		return {}; // Return empty object if file doesn't exist
 	}
 }
 
