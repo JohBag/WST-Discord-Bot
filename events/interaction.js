@@ -33,7 +33,11 @@ export default {
 			await interaction.deleteReply();
 		} catch (error) {
 			log(`Error: ${error}`);
-			await interaction.editReply({ content: "I'm sorry, I encountered an error while processing your interaction." });
+			if (!interaction.deferred) {
+				await interaction.reply({ content: "I'm sorry, I encountered an error while processing your interaction.", flags: MessageFlags.Ephemeral });
+			} else {
+				await interaction.editReply({ content: "I'm sorry, I encountered an error while processing your interaction." });
+			}
 		}
 	},
 };

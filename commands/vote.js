@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { createVote } from '../modules/votes.js';
 
 const maxOptions = 5; // Discord limit
