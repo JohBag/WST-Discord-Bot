@@ -30,12 +30,6 @@ export default {
 		try {
 			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 			await command.execute(interaction);
-			try {
-				await interaction.deleteReply();
-			} catch (deleteError) {
-				// Ignore errors from deleteReply - command may have already handled the interaction
-				log(`Note: Could not delete reply - ${deleteError.message}`);
-			}
 		} catch (error) {
 			log(`Error: ${error}`);
 			if (!interaction.deferred) {
