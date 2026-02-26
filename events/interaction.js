@@ -30,13 +30,22 @@ export default {
 		try {
 			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 			await command.execute(interaction);
-			await interaction.deleteReply();
+			try {
+				await interaction.deleteReply();
+			} catch (deleteError) {
+				// Ignore errors from deleteReply - command may have already handled the interaction
+				log(`Note: Could not delete reply - ${deleteError.message}`);
+			}
 		} catch (error) {
 			log(`Error: ${error}`);
 			if (!interaction.deferred) {
 				await interaction.reply({ content: "I'm sorry, I encountered an error while processing your interaction.", flags: MessageFlags.Ephemeral });
 			} else {
-				await interaction.editReply({ content: "I'm sorry, I encountered an error while processing your interaction." });
+				try {
+					await interaction.editReply({ content: "I'm sorry, I encountered an error while processing your interaction." });
+				} catch (editError) {
+					log(`Could not edit reply - ${editError.message}`);
+				}
 			}
 		}
 	},
