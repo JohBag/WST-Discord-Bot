@@ -49,6 +49,21 @@ export default class Message {
 			content: chunk,
 		}));
 
+		// Filter out chunks with only empty content (unless it's the only chunk with embeds/components)
+		chunks = chunks.filter((chunk, idx) => {
+			const hasContent = chunk.content.trim().length > 0;
+			const isLastChunk = idx === chunks.length - 1;
+			const hasEmbeds = this.embeds.length > 0;
+			const hasComponents = this.components.length > 0;
+
+			return hasContent || (isLastChunk && (hasEmbeds || hasComponents));
+		});
+
+		// If no chunks remain, create one with just embeds/components
+		if (chunks.length === 0) {
+			chunks = [{ content: '' }];
+		}
+
 		const lastChunk = chunks[chunks.length - 1];
 		lastChunk.files = this.files;
 		lastChunk.embeds = this.embeds;

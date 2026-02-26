@@ -1,7 +1,6 @@
 import log from '../modules/log.js';
 import getUsername from '../modules/get-username.js';
 import { registerVote } from '../modules/votes.js';
-import { MessageFlags } from 'discord.js';
 
 export default {
 	name: 'interactionCreate',
