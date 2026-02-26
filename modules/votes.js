@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, MessageFlags } from 'discord.js';
 import { load, save } from '../modules/json.js';
 import log from '../modules/log.js';
 import getUsername from '../modules/get-username.js';
@@ -89,7 +89,7 @@ export async function registerVote(interaction) {
 	const id = interaction.message.id;
 	let vote = votes[id];
 	if (!vote) {
-		return interaction.reply({ content: 'Failed to register vote', ephemeral: true });
+		return interaction.reply({ content: 'Failed to register vote', flags: MessageFlags.Ephemeral });
 	}
 
 	// Add vote
@@ -98,7 +98,7 @@ export async function registerVote(interaction) {
 	if (vote.anonymity) {
 		if (vote.voters.includes(userID)) {
 			// Prevent change if anonymous
-			return interaction.reply({ content: 'Anonymous votes can not be changed', ephemeral: true });
+			return interaction.reply({ content: 'Anonymous votes can not be changed', flags: MessageFlags.Ephemeral });
 		}
 		vote.voters.push(userID);
 		vote.options[voteID] += 1;

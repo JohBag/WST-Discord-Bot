@@ -1,6 +1,7 @@
 import log from '../modules/log.js';
 import getUsername from '../modules/get-username.js';
 import { registerVote } from '../modules/votes.js';
+import { MessageFlags } from 'discord.js';
 
 export default {
 	name: 'interactionCreate',
@@ -27,7 +28,7 @@ export default {
 		}
 
 		try {
-			await interaction.deferReply({ ephemeral: true });
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 			await command.execute(interaction);
 			await interaction.deleteReply();
 		} catch (error) {
