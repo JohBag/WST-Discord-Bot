@@ -89,7 +89,7 @@ export function getResult(vote) {
 
 export async function registerVote(interaction) {
 	try {
-		let votes = await load('votes');
+		let votes = load('votes');
 
 		// Check if vote exists
 		const id = interaction.message.id;

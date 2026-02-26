@@ -24,7 +24,7 @@ export default {
 	async execute(interaction) {
 		const message = await createVote(interaction);
 		if (message.success) {
-			message.send(interaction.channel);
+			await message.send(interaction.channel);
 		} else {
 			throw new Error(message.text);
 		}
