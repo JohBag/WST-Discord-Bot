@@ -66,9 +66,7 @@ export default class Message {
 		}
 
 		if (this.onSend) {
-			console.log('Calling onSend callback...');
 			await this.onSend(sentMessage, this);
-			console.log('onSend callback completed');
 		}
 
 		return sentMessage;

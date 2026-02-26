@@ -9,55 +9,39 @@ import Message from './message.js';
 
 export async function createVote(interaction, title, optionString, anonymity = false) {
 	const message = new Message()
-	try {
-		if (title === undefined || optionString === undefined || anonymity === undefined) {
-			// Get arguments/default values
-			title = interaction.options.getString('title');
-			optionString = interaction.options.getString('options');
-			anonymity = interaction.options.getBoolean('anonymity') || false;
-		}
 
-		const vote = {
-			title: title,
-			options: splitOptions(optionString, anonymity),
-			voters: [],
-			anonymity: anonymity,
-		};
-
-		const buttons = createVoteButtons(vote);
-		const tally = getResult(vote);
-
-		message.addEmbed(tally).addComponents([buttons]);
-
-		message.onSend = async (sentMessage, messageObj) => {
-			console.log('onSend called with sentMessage:', sentMessage?.id, 'vote:', vote);
-			try {
-				if (!sentMessage) {
-					throw new Error('sentMessage is undefined');
-				}
-				const id = sentMessage.id;
-				console.log('Loading votes...');
-				let votes = load('votes');
-				console.log('Current votes:', votes);
-				votes[id] = vote;
-				console.log('Updated votes:', votes);
-				save('votes', votes);
-				console.log('Votes saved to file');
-				log(`Vote '${vote.title}' saved with ID ${id}`);
-			} catch (error) {
-				console.error('Error in onSend callback:', error);
-				log(`Failed to save vote: ${error}`);
-			}
-		};
-
-		return message;
-	} catch (error) {
-		log(error);
-
-		message.addText("I'm sorry, I had trouble creating the vote.");
-		message.success = false;
-		return message;
+	if (title === undefined || optionString === undefined || anonymity === undefined) {
+		// Get arguments/default values
+		title = interaction.options.getString('title');
+		optionString = interaction.options.getString('options');
+		anonymity = interaction.options.getBoolean('anonymity') || false;
 	}
+
+	const vote = {
+		title: title,
+		options: splitOptions(optionString, anonymity),
+		voters: [],
+		anonymity: anonymity,
+	};
+
+	const buttons = createVoteButtons(vote);
+	const tally = getResult(vote);
+
+	message.addEmbed(tally).addComponents([buttons]);
+
+	message.onSend = async (sentMessage, messageObj) => {
+		try {
+			const id = sentMessage.id;
+			let votes = load('votes');
+			votes[id] = vote;
+			save('votes', votes);
+			log(`Vote '${vote.title}' saved with ID ${id}`);
+		} catch (error) {
+			log(`Failed to save vote: ${error}`);
+		}
+	};
+
+	return message;
 };
 
 export function getResult(vote) {

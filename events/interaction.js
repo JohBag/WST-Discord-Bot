@@ -16,6 +16,9 @@ export default {
 			return;
 		}
 
+		const username = await getUsername(interaction);
+		log(`${username} used /${commandName}`);
+
 		// Get command
 		const command = interaction.client.commands.get(commandName);
 		if (!command) {
@@ -23,26 +26,6 @@ export default {
 			return;
 		}
 
-		try {
-			// Defer immediately before doing ANY other async work
-			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-			// Now safe to do other async operations
-			const username = await getUsername(interaction);
-			log(`${username} used /${commandName}`);
-
-			await command.execute(interaction);
-		} catch (error) {
-			log(`Error: ${error}`);
-			if (!interaction.deferred) {
-				await interaction.reply({ content: "I'm sorry, I encountered an error while processing your interaction.", flags: MessageFlags.Ephemeral });
-			} else {
-				try {
-					await interaction.editReply({ content: "I'm sorry, I encountered an error while processing your interaction." });
-				} catch (editError) {
-					log(`Could not edit reply - ${editError.message}`);
-				}
-			}
-		}
+		await command.execute(interaction);
 	},
 };

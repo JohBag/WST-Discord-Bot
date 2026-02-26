@@ -23,10 +23,6 @@ export default {
 				.setDescription('Hide voter names. Only score is shown (default: false)')),
 	async execute(interaction) {
 		const message = await createVote(interaction);
-		if (message.success) {
-			await message.send(interaction.channel);
-		} else {
-			throw new Error(message.text);
-		}
+		await message.send(interaction.channel);
 	},
 };
