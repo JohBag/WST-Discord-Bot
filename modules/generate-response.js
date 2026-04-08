@@ -42,7 +42,7 @@ export default async function tryGenerateResponse(interaction) {
 					let successResponse = await generateResponse(config.prompt + '\nThe Warcraft Logs report was generated successfully! Give the user a positive response.', conversation, false);
 					let successMessage = new Message();
 					successMessage.addText(successResponse.text);
-					successMessage.send(interaction.channel);
+					await successMessage.send(interaction.channel);
 
 					channel = message.channel;
 				}
@@ -71,7 +71,7 @@ export default async function tryGenerateResponse(interaction) {
 		}
 		message.addText(response.text);
 	}
-	message.send(channel);
+	await message.send(channel);
 }
 
 function getChannelSettings(channelID) {
