@@ -1,3 +1,5 @@
+import log from './log.js';
+
 const messageCharLimit = 2000;
 
 export default class Message {
@@ -73,9 +75,9 @@ export default class Message {
 		for (const chunk of chunks) {
 			try {
 				sentMessage = await this.channel.send(chunk);
-				console.log('Message sent, ID:', sentMessage.id);
+				log('Message sent, ID: ' + sentMessage.id);
 			} catch (error) {
-				console.error('Failed to send message:', error);
+				log('Failed to send message: ' + error);
 				throw error;
 			}
 		}
@@ -88,7 +90,7 @@ export default class Message {
 	}
 }
 
-function splitResponse(response) {
+export function splitResponse(response) {
 	const chunks = [];
 
 	if (response.length <= messageCharLimit) {

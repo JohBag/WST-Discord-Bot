@@ -5,6 +5,15 @@
     "description": "",
     "main": "bot.js",
     "author": "deacon",
+    "engines": {
+        "node": ">=22.0.0"
+    },
+    "scripts": {
+        "start": "node --env-file=.env bot.js",
+        "deploy-commands": "node --env-file=.env deploy-commands.js",
+        "delete-commands": "node --env-file=.env delete-commands.js",
+        "test": "node --test tests/*.test.js"
+    },
     "dependencies": {
         "@discordjs/opus": "^0.10.0",
         "@discordjs/voice": "^0.19.0",

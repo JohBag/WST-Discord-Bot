@@ -1,4 +1,5 @@
 import { config } from './data.js';
+import log from './log.js';
 import getConversation from './conversations.js';
 import getResponseAllowed from './response-allowed.js';
 import { generateResponse, generateImage } from './gemini.js';
@@ -27,8 +28,8 @@ export default async function tryGenerateResponse(interaction) {
 	if (response.functionCalls && response.functionCalls.length > 0) {
 		const functionCall = response.functionCalls[0]; // Assuming one function call
 		const args = functionCall.args ?? {};
-		console.log("Calling function: ", functionCall.name);
-		console.log("Args: ", args);
+		log("Calling function: " + functionCall.name);
+		log("Args: " + JSON.stringify(args));
 
 		switch (functionCall.name) {
 			case 'generate_picture':
@@ -51,7 +52,7 @@ export default async function tryGenerateResponse(interaction) {
 				message = await createVote(interaction, args.title, args.options, args.anonymity);
 				break;
 			default:
-				console.log(`Unknown function: ${functionCall.name}`);
+				log(`Unknown function: ${functionCall.name}`);
 				break;
 		}
 	} else {

@@ -105,8 +105,6 @@ export async function registerVote(interaction) {
 			vote.options[voteID] += 1;
 		} else {
 			// Remove previous vote
-			console.log(vote.options)
-			console.log("VoteID: " + voteID);
 			let option = vote.options[voteID];
 			if (userID in option) {
 				delete option[userID];

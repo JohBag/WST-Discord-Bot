@@ -1,4 +1,5 @@
 import { secrets } from "./data.js";
+import log from './log.js';
 import fs from "fs";
 import {
 	GoogleGenAI,
@@ -20,7 +21,7 @@ const transcribeModel = models.transcribe;
 const functionDeclarations = [{ functionDeclarations: [] }];
 
 export async function generateResponse(systemPrompt, conversation, allowFunctions = true) {
-	console.log("Generating response");
+	log("Generating response");
 
 	const parameters = {
 		model: textModel,
@@ -40,7 +41,7 @@ export async function generateResponse(systemPrompt, conversation, allowFunction
 }
 
 export async function generateImage(prompt) {
-	console.log("Generating image");
+	log("Generating image");
 
 	const message = new Message();
 	const response = await ai.models.generateContent({
@@ -62,7 +63,7 @@ export async function generateImage(prompt) {
 }
 
 export async function transcribeAudio(filename) {
-	console.log("Transcribing audio");
+	log("Transcribing audio");
 
 	const myfile = await ai.files.upload({
 		file: filename,
@@ -80,7 +81,7 @@ export async function transcribeAudio(filename) {
 }
 
 export async function generateSpeech(text) {
-	console.log("Generating speech");
+	log("Generating speech");
 
 	const response = await ai.models.generateContent({
 		model: speechModel,

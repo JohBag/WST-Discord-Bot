@@ -12,6 +12,6 @@ export function load(fileName) {
 }
 
 export function save(fileName, data) {
-	data = JSON.stringify(data);
+	data = JSON.stringify(data, null, '\t');
 	fs.writeFileSync(`config/${fileName}.json`, data);
 }
