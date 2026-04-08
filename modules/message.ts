@@ -1,53 +1,63 @@
 import log from './log.js';
+import type { TextBasedChannel, SendableChannels, EmbedBuilder, ActionRowBuilder, Message as DiscordMessage } from 'discord.js';
+
+interface FileAttachment {
+	attachment: string;
+	name: string;
+}
+
+interface MessageChunk {
+	content: string;
+	files?: FileAttachment[];
+	embeds?: EmbedBuilder[];
+	components?: ActionRowBuilder[];
+}
 
 const messageCharLimit = 2000;
 
 export default class Message {
-	constructor() {
-		this.text = '';
-		this.files = [];
-		this.embeds = [];
-		this.components = [];
-		this.onSend = null;
-		this.channel = null;
-		this.success = true;
-	}
+	text: string = '';
+	files: FileAttachment[] = [];
+	embeds: EmbedBuilder[] = [];
+	components: ActionRowBuilder[] = [];
+	onSend: ((sentMessage: DiscordMessage, message: Message) => Promise<void>) | null = null;
+	channel: SendableChannels | null = null;
+	success: boolean = true;
 
-	setText(text) {
+	setText(text: string): this {
 		this.text = text;
 		return this;
 	}
 
-	addText(text) {
+	addText(text: string): this {
 		this.text += text;
 		return this;
 	}
 
-	addFile(file) {
+	addFile(file: string): this {
 		this.files.push({
 			attachment: file,
-			name: file.split('/').pop(),
+			name: file.split('/').pop()!,
 		});
 		return this;
 	}
 
-	addEmbed(embed) {
+	addEmbed(embed: EmbedBuilder): this {
 		this.embeds.push(embed);
 		return this;
 	}
 
-	addComponents(components) {
+	addComponents(components: ActionRowBuilder[]): this {
 		this.components = components;
 		return this;
 	}
 
-	async send(channel) {
+	async send(channel?: SendableChannels): Promise<DiscordMessage> {
 		if (channel) {
 			this.channel = channel;
 		}
 
-		let chunks = splitResponse(this.text);
-		chunks = chunks.map(chunk => ({
+		let chunks: MessageChunk[] = splitResponse(this.text).map(chunk => ({
 			content: chunk,
 		}));
 
@@ -71,13 +81,13 @@ export default class Message {
 		lastChunk.embeds = this.embeds;
 		lastChunk.components = this.components;
 
-		let sentMessage;
+		let sentMessage!: DiscordMessage;
 		for (const chunk of chunks) {
 			try {
-				sentMessage = await this.channel.send(chunk);
+				sentMessage = await this.channel!.send(chunk as any);
 				log('Message sent, ID: ' + sentMessage.id);
 			} catch (error) {
-				log('Failed to send message: ' + error);
+				log.error('Failed to send message: ' + error);
 				throw error;
 			}
 		}
@@ -90,8 +100,8 @@ export default class Message {
 	}
 }
 
-export function splitResponse(response) {
-	const chunks = [];
+export function splitResponse(response: string): string[] {
+	const chunks: string[] = [];
 
 	if (response.length <= messageCharLimit) {
 		chunks.push(response);
@@ -107,7 +117,7 @@ export function splitResponse(response) {
 	return chunks;
 }
 
-function findSplitIndex(response) {
+function findSplitIndex(response: string): number {
 	const lastNewLine = response.lastIndexOf('\n', messageCharLimit);
 	const lastCodeBlock = response.lastIndexOf('```', messageCharLimit);
 

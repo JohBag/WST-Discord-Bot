@@ -1,11 +1,13 @@
 import { MessageFlags } from 'discord.js';
+import type { Interaction } from 'discord.js';
 import log from '../modules/log.js';
 import getUsername from '../modules/get-username.js';
 import { registerVote } from '../modules/votes.js';
+import type { BotCommand, BotEvent } from '../types.js';
 
 export default {
 	name: 'interactionCreate',
-	async execute(interaction) {
+	async execute(interaction: Interaction) {
 		if (interaction.isButton()) {
 			await registerVote(interaction);
 			return;
@@ -19,9 +21,10 @@ export default {
 		const username = await getUsername(interaction);
 		log(`${username} used /${commandName}`);
 
-		const command = interaction.client.commands.get(commandName);
+		const commands = (interaction.client as any).commands;
+		const command = commands.get(commandName) as BotCommand | undefined;
 		if (!command) {
-			log(`No command matching ${commandName} was found.`);
+			log.warn(`No command matching ${commandName} was found.`);
 			return;
 		}
 
@@ -31,12 +34,12 @@ export default {
 			await command.execute(interaction);
 			await interaction.deleteReply();
 		} catch (error) {
-			log(`Error executing /${commandName}: ${error}`);
+			log.error(`Error executing /${commandName}: ${error}`);
 			try {
 				await interaction.editReply({ content: `Something went wrong with /${commandName}.` });
 			} catch (replyError) {
-				log(`Failed to send error reply: ${replyError}`);
+				log.error(`Failed to send error reply: ${replyError}`);
 			}
 		}
 	},
-};
+} satisfies BotEvent;

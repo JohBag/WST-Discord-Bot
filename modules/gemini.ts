@@ -7,29 +7,29 @@ import {
 	createUserContent,
 	createPartFromUri,
 } from "@google/genai";
+import type { GenerateContentResponse } from "@google/genai";
 import wav from 'wav';
 import { config } from './data.js';
 import Message from './message.js';
 
 export const ai = new GoogleGenAI({ apiKey: secrets.keys.gemini });
 
-let models = config.models;
-const textModel = models.text;
-const speechModel = models.speech;
-const imageModel = models.image;
-const transcribeModel = models.transcribe;
-const functionDeclarations = [{ functionDeclarations: [] }];
+const textModel = config.models.text;
+const speechModel = config.models.tts;
+const imageModel = config.models.image;
+const transcribeModel = config.models.transcribe;
+const functionDeclarations: any[] = [{ functionDeclarations: [] as any[] }];
 
-export async function generateResponse(systemPrompt, conversation, allowFunctions = true) {
+export async function generateResponse(systemPrompt: string, conversation: any, allowFunctions: boolean = true): Promise<GenerateContentResponse> {
 	log("Generating response");
 
-	const parameters = {
+	const parameters: any = {
 		model: textModel,
 		contents: conversation,
 		config: {
 			systemInstruction: systemPrompt,
 		}
-	}
+	};
 
 	if (allowFunctions) {
 		parameters.config.tools = functionDeclarations;
@@ -40,7 +40,7 @@ export async function generateResponse(systemPrompt, conversation, allowFunction
 	return response;
 }
 
-export async function generateImage(prompt) {
+export async function generateImage(prompt: string): Promise<Message> {
 	log("Generating image");
 
 	const message = new Message();
@@ -48,11 +48,11 @@ export async function generateImage(prompt) {
 		model: imageModel,
 		contents: prompt,
 	});
-	for (const part of response.candidates[0].content.parts) {
+	for (const part of response.candidates![0].content!.parts!) {
 		if (part.text) {
 			message.addText(part.text);
 		} else if (part.inlineData) {
-			const imageData = part.inlineData.data;
+			const imageData = part.inlineData.data!;
 			const buffer = Buffer.from(imageData, "base64");
 			fs.writeFileSync(config.media.imageFile, buffer);
 			message.addFile(config.media.imageFile);
@@ -62,7 +62,7 @@ export async function generateImage(prompt) {
 	return message;
 }
 
-export async function transcribeAudio(filename) {
+export async function transcribeAudio(filename: string): Promise<string | undefined> {
 	log("Transcribing audio");
 
 	const myfile = await ai.files.upload({
@@ -73,14 +73,14 @@ export async function transcribeAudio(filename) {
 	const response = await ai.models.generateContent({
 		model: transcribeModel,
 		contents: createUserContent([
-			createPartFromUri(myfile.uri, myfile.mimeType),
+			createPartFromUri(myfile.uri!, myfile.mimeType!),
 			"Transcribe this audio clip",
 		]),
 	});
 	return response.text;
 }
 
-export async function generateSpeech(text) {
+export async function generateSpeech(text: string): Promise<void> {
 	log("Generating speech");
 
 	const response = await ai.models.generateContent({
@@ -97,12 +97,12 @@ export async function generateSpeech(text) {
 	});
 
 	const data = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-	const audioBuffer = Buffer.from(data, 'base64');
+	const audioBuffer = Buffer.from(data!, 'base64');
 
 	await saveWaveFile(audioBuffer);
 }
 
-async function saveWaveFile(pcmData) {
+async function saveWaveFile(pcmData: Buffer): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const writer = new wav.FileWriter(config.media.speechFile, {
 			channels: 1,

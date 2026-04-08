@@ -1,5 +1,6 @@
-import { SlashCommandBuilder, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { createVote } from '../modules/votes.js';
+import type { BotCommand } from '../types.js';
 
 const maxOptions = 5; // Discord limit
 
@@ -21,8 +22,8 @@ export default {
 			option
 				.setName('anonymity')
 				.setDescription('Hide voter names. Only score is shown (default: false)')),
-	async execute(interaction) {
+	async execute(interaction: ChatInputCommandInteraction) {
 		const message = await createVote(interaction);
-		await message.send(interaction.channel);
+		await message.send(interaction.channel! as any);
 	},
-};
+} satisfies BotCommand;

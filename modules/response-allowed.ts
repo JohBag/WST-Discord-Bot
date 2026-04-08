@@ -1,8 +1,9 @@
 import log from './log.js';
 import { config, secrets } from './data.js';
 import { ChatInputCommandInteraction } from 'discord.js';
+import type { Message, MessageMentions } from 'discord.js';
 
-export default function getResponseAllowed(interaction, reactChance) {
+export default function getResponseAllowed(interaction: Message | ChatInputCommandInteraction, reactChance: number): boolean {
 	if (interaction instanceof ChatInputCommandInteraction) {
 		return true;
 	}
@@ -28,19 +29,19 @@ export default function getResponseAllowed(interaction, reactChance) {
 	return false;
 }
 
-function isInBlacklistedChannel(channelId) {
+function isInBlacklistedChannel(channelId: string): boolean {
 	return channelId in config.blacklist;
 }
 
-function hasBotMention(mentions) {
-	return mentions.users.size > 0 && mentions.users.has(secrets.discord.appId);
+function hasBotMention(mentions: MessageMentions): boolean {
+	return mentions.users.size > 0 && mentions.users.has(secrets.discord.appId!);
 }
 
-function hasBotNickname(content) {
+function hasBotNickname(content: string): boolean {
 	return config.nicknames.some(name => content.toLowerCase().includes(name));
 }
 
-function isRandomResponse(reactChance) {
+function isRandomResponse(reactChance: number): boolean {
 	if (reactChance === 0) {
 		return false;
 	}

@@ -3,16 +3,17 @@
     "name": "wst",
     "version": "1.0.0",
     "description": "",
-    "main": "bot.js",
+    "main": "dist/bot.js",
     "author": "deacon",
     "engines": {
         "node": ">=22.0.0"
     },
     "scripts": {
-        "start": "node --env-file=.env bot.js",
-        "deploy-commands": "node --env-file=.env deploy-commands.js",
-        "delete-commands": "node --env-file=.env delete-commands.js",
-        "test": "node --test tests/*.test.js"
+        "build": "tsc",
+        "start": "node --env-file=.env dist/bot.js",
+        "deploy-commands": "node --env-file=.env dist/deploy-commands.js",
+        "delete-commands": "node --env-file=.env dist/delete-commands.js",
+        "test": "tsc && node --test dist/tests/*.test.js"
     },
     "dependencies": {
         "@discordjs/opus": "^0.10.0",
@@ -26,5 +27,10 @@
         "sodium-native": "^4.3.3",
         "wav": "^1.0.2",
         "ws": "^8.18.3"
+    },
+    "devDependencies": {
+        "@types/node": "^25.5.2",
+        "@types/ws": "^8.18.1",
+        "typescript": "^6.0.2"
     }
 }

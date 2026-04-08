@@ -1,23 +1,25 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, MessageFlags } from 'discord.js';
+import type { Message as DiscordMessage, ChatInputCommandInteraction, ButtonInteraction } from 'discord.js';
 import { load, save } from '../modules/json.js';
 import log from '../modules/log.js';
 import getUsername from '../modules/get-username.js';
+import Message from './message.js';
+import type { Vote } from '../types.js';
 
 const maxOptions = 5; // Discord limit
 
-import Message from './message.js';
+export async function createVote(interaction: DiscordMessage | ChatInputCommandInteraction, title?: string, optionString?: string, anonymity: boolean = false): Promise<Message> {
+	const message = new Message();
 
-export async function createVote(interaction, title, optionString, anonymity = false) {
-	const message = new Message()
-
-	if (title === undefined || optionString === undefined || anonymity === undefined) {
-		// Get arguments/default values
-		title = interaction.options.getString('title');
-		optionString = interaction.options.getString('options');
-		anonymity = interaction.options.getBoolean('anonymity') || false;
+	if (title === undefined || optionString === undefined) {
+		// Get arguments/default values from slash command
+		const cmdInteraction = interaction as ChatInputCommandInteraction;
+		title = cmdInteraction.options.getString('title')!;
+		optionString = cmdInteraction.options.getString('options')!;
+		anonymity = cmdInteraction.options.getBoolean('anonymity') || false;
 	}
 
-	const vote = {
+	const vote: Vote = {
 		title: title,
 		options: splitOptions(optionString, anonymity),
 		voters: [],
@@ -29,34 +31,35 @@ export async function createVote(interaction, title, optionString, anonymity = f
 
 	message.addEmbed(tally).addComponents([buttons]);
 
-	message.onSend = async (sentMessage, messageObj) => {
+	message.onSend = async (sentMessage) => {
 		try {
 			const id = sentMessage.id;
-			let votes = load('votes');
+			const votes = load<Record<string, Vote>>('votes');
 			votes[id] = vote;
 			save('votes', votes);
 			log(`Vote '${vote.title}' saved with ID ${id}`);
 		} catch (error) {
-			log(`Failed to save vote: ${error}`);
+			log.error(`Failed to save vote: ${error}`);
 		}
 	};
 
 	return message;
-};
+}
 
-export function getResult(vote) {
-	let options = Object.keys(vote.options);
+export function getResult(vote: Vote): EmbedBuilder {
+	const options = Object.keys(vote.options);
 
-	let fields = [];
-	for (let i of options) {
+	const fields: { name: string; value: string; inline: boolean }[] = [];
+	for (const i of options) {
 		let result = '-';
 
-		let data = vote.options[i];
+		const data = vote.options[i];
 		if (vote.anonymity) {
-			result = data;
+			result = String(data);
 		} else {
-			for (let ii in data) {
-				result += `${data[ii]}\n`;
+			const voters = data as Record<string, string>;
+			for (const ii in voters) {
+				result += `${voters[ii]}\n`;
 			}
 		}
 
@@ -71,25 +74,26 @@ export function getResult(vote) {
 	const embeddedMessage = new EmbedBuilder()
 		.setColor(0x0099FF)
 		.setTitle(vote.title)
-		.addFields(fields)
+		.addFields(fields);
 
 	if (vote.description) {
-		embeddedMessage.setDescription(vote.description)
+		embeddedMessage.setDescription(vote.description);
 	}
 
 	return embeddedMessage;
 }
 
-export async function registerVote(interaction) {
+export async function registerVote(interaction: ButtonInteraction): Promise<void> {
 	try {
-		let votes = load('votes');
+		const votes = load<Record<string, Vote>>('votes');
 
 		// Check if vote exists
 		const id = interaction.message.id;
-		let vote = votes[id];
+		const vote = votes[id];
 		if (!vote) {
 			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-			return await interaction.editReply({ content: 'Failed to register vote' });
+			await interaction.editReply({ content: 'Failed to register vote' });
+			return;
 		}
 
 		// Add vote
@@ -99,56 +103,56 @@ export async function registerVote(interaction) {
 			if (vote.voters.includes(userID)) {
 				// Prevent change if anonymous
 				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-				return await interaction.editReply({ content: 'Anonymous votes can not be changed' });
+				await interaction.editReply({ content: 'Anonymous votes can not be changed' });
+				return;
 			}
 			vote.voters.push(userID);
-			vote.options[voteID] += 1;
+			(vote.options[voteID] as number) += 1;
 		} else {
 			// Remove previous vote
-			let option = vote.options[voteID];
+			const option = vote.options[voteID] as Record<string, string>;
 			if (userID in option) {
 				delete option[userID];
 			}
 			else {
 				// Allow multiple votes
-				const name = await getUsername(interaction); // Get nickname or discord name
-				vote.options[voteID][userID] = name;
+				const name = await getUsername(interaction);
+				option[userID] = name;
 			}
 		}
 
 		save('votes', votes);
 		log(`[${vote.title}]: Vote registered for '${voteID}'`);
 
-		let tally = getResult(vote);
+		const tally = getResult(vote);
 		await interaction.update({ embeds: [tally] });
 	} catch (error) {
-		log(`Error in registerVote: ${error}`);
+		log.error(`Error in registerVote: ${error}`);
 		if (!interaction.replied && !interaction.deferred) {
 			await interaction.reply({ content: 'An error occurred while registering your vote.', flags: MessageFlags.Ephemeral });
 		}
 	}
 }
 
-function getEmoji(inputString) {
+function getEmoji(inputString: string): string | null {
 	const regex = /<:(.*?):\d+>/g;
 	const matches = inputString.match(regex);
 	return matches ? matches[0] : null;
 }
 
-function splitOptions(optionString, anonymity) {
+function splitOptions(optionString: string, anonymity: boolean): Record<string, number | Record<string, string>> {
 	return optionString
 		.split(',')
 		.map(i => i.trim())
 		.slice(0, maxOptions)
-		.reduce((options, i) => {
+		.reduce((options: Record<string, number | Record<string, string>>, i) => {
 			options[i] = anonymity ? 0 : {};
 			return options;
 		}, {});
 }
 
-function createVoteButtons(vote) {
-	// Create buttons
-	let buttons = new ActionRowBuilder()
+function createVoteButtons(vote: Vote): ActionRowBuilder<ButtonBuilder> {
+	const buttons = new ActionRowBuilder<ButtonBuilder>();
 	for (let option in vote.options) {
 		const button = new ButtonBuilder()
 			.setCustomId(option)

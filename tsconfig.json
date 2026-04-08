@@ -1,0 +1,29 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"outDir": "dist",
+		"rootDir": ".",
+		"strict": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"declaration": false,
+		"sourceMap": false
+	},
+	"include": [
+		"bot.ts",
+		"deploy-commands.ts",
+		"delete-commands.ts",
+		"get-dependency-report.ts",
+		"modules/**/*.ts",
+		"commands/**/*.ts",
+		"events/**/*.ts",
+		"index/**/*.ts",
+		"tests/**/*.ts",
+		"types.ts"
+	],
+	"exclude": ["node_modules", "dist"]
+}

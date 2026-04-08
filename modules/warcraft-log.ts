@@ -1,29 +1,51 @@
 import { EmbedBuilder } from 'discord.js';
+import type { Message, SendableChannels } from 'discord.js';
 import { secrets } from '../modules/data.js';
 import log from '../modules/log.js';
-import Message from '../modules/message.js';
+import BotMessage from '../modules/message.js';
 import { config } from '../modules/data.js';
 
-const difficultyNames = {
+interface Fight {
+	id: number;
+	name: string;
+	difficulty: number;
+	kill: boolean;
+	fightPercentage: number;
+}
+
+interface Report {
+	zone: { name: string };
+	code: string;
+	startTime: number;
+	fights: Fight[];
+}
+
+interface PlayerDetails {
+	dps: { name: string }[];
+	healers: { name: string }[];
+	tanks: { name: string }[];
+}
+
+const difficultyNames: Record<string, string> = {
 	'3': 'Normal',
 	'4': 'Heroic',
 	'5': 'Mythic'
-}
+};
 
-const roles = {
+const roles: Record<string, string> = {
 	'dps': 'Damage',
 	'healers': 'Healing',
 	'tanks': 'Tanking'
-}
+};
 
-let logChannel = null;
-let cachedToken = null;
-let tokenExpiry = 0;
+let logChannel: SendableChannels | null = null;
+let cachedToken: string | null = null;
+let tokenExpiry: number = 0;
 
-export default async function createWarcraftLog(interaction, id) {
-	let embed = await getLogEmbed(id);
+export default async function createWarcraftLog(interaction: Message, id?: string): Promise<BotMessage> {
+	const embed = await getLogEmbed(id);
 
-	const message = new Message();
+	const message = new BotMessage();
 	message.channel = await getLogChannel(interaction);
 	if (embed) {
 		message.addEmbed(embed);
@@ -33,19 +55,19 @@ export default async function createWarcraftLog(interaction, id) {
 	}
 
 	return message;
-};
+}
 
-async function getLogChannel(interaction) {
+async function getLogChannel(interaction: Message): Promise<SendableChannels | null> {
 	if (!logChannel) {
 		if (config.logChannelId) {
-			logChannel = interaction.guild.channels.cache.get(config.logChannelId);
+			logChannel = interaction.guild!.channels.cache.get(config.logChannelId) as SendableChannels;
 		}
 	}
 	return logChannel;
 }
 
-async function getLogEmbed(id) {
-	let report = await getReport(id);
+async function getLogEmbed(id?: string): Promise<EmbedBuilder | null> {
+	const report = await getReport(id);
 	if (!report) {
 		log('No report found with ID: ' + id);
 		return null;
@@ -54,7 +76,7 @@ async function getLogEmbed(id) {
 	return await embedReport(report);
 }
 
-async function getAccessToken() {
+async function getAccessToken(): Promise<string> {
 	if (cachedToken && Date.now() < tokenExpiry) {
 		return cachedToken;
 	}
@@ -62,20 +84,20 @@ async function getAccessToken() {
 	const response = await fetch('https://www.warcraftlogs.com/oauth/token', {
 		method: 'POST',
 		headers: {
-			'Authorization': 'Basic ' + btoa(secrets.keys.warcraftLogs)
+			'Authorization': 'Basic ' + btoa(secrets.keys.warcraftLogs!)
 		},
 		body: new URLSearchParams({
 			'grant_type': 'client_credentials'
 		})
 	});
 
-	const data = await response.json();
+	const data = await response.json() as { access_token: string; expires_in: number };
 	cachedToken = data.access_token;
 	tokenExpiry = Date.now() + (data.expires_in * 1000) - 60000;
 	return cachedToken;
 }
 
-async function sendQuery(query, variables = {}) {
+async function sendQuery(query: string, variables: Record<string, any> = {}): Promise<any> {
 	const accessToken = await getAccessToken();
 
 	const response = await fetch('https://www.warcraftlogs.com/api/v2/client', {
@@ -91,10 +113,10 @@ async function sendQuery(query, variables = {}) {
 	return data;
 }
 
-function getBestPulls(fights) {
-	let logs = {};
+function getBestPulls(fights: Fight[]): Record<string, Record<string, number>> {
+	const logs: Record<string, Record<string, number>> = {};
 
-	for (let fight of fights) {
+	for (const fight of fights) {
 		if (!logs[fight.difficulty]) {
 			logs[fight.difficulty] = {};
 		}
@@ -111,9 +133,9 @@ function getBestPulls(fights) {
 	return logs;
 }
 
-function getBossSection(report) {
+function getBossSection(report: Report): Record<string, string> {
 	const logs = getBestPulls(report.fights);
-	const section = Object.entries(logs).reduce((acc, [difficulty, progress]) => {
+	const section = Object.entries(logs).reduce((acc: Record<string, string>, [difficulty, progress]) => {
 		acc[difficulty] = Object.entries(progress)
 			.map(([name, perc]) => perc > 0 ? `${name} (${perc}%)` : name)
 			.join('\n');
@@ -122,7 +144,7 @@ function getBossSection(report) {
 	return section;
 }
 
-async function getParticipants(report) {
+async function getParticipants(report: Report): Promise<PlayerDetails> {
 	const fights = report.fights.map(fight => fight.id);
 	const query = `query($code: String!) {
         reportData {
@@ -135,7 +157,7 @@ async function getParticipants(report) {
 	return data.data.reportData.report.playerDetails.data.playerDetails;
 }
 
-async function embedReport(report) {
+async function embedReport(report: Report): Promise<EmbedBuilder> {
 	const embeddedMessage = new EmbedBuilder()
 		.setColor(0x0099FF)
 		.setTitle(report.zone.name)
@@ -143,25 +165,25 @@ async function embedReport(report) {
 		.setDescription(formatTime(report.startTime));
 
 	const bosses = getBossSection(report);
-	for (let difficulty in bosses) {
+	for (const difficulty in bosses) {
 		embeddedMessage.addFields({ name: difficultyNames[difficulty], value: bosses[difficulty] });
 	}
 
 	const participants = await getParticipants(report);
-	for (let role in roles) {
-		const names = participants[role].map(player => player.name).sort().join('\n');
+	for (const role in roles) {
+		const names = (participants[role as keyof PlayerDetails] as { name: string }[]).map(player => player.name).sort().join('\n');
 		embeddedMessage.addFields({ name: roles[role], value: names, inline: true });
 	}
 
 	return embeddedMessage;
 }
 
-async function getReport(id) {
+async function getReport(id?: string): Promise<Report | null> {
 	if (!id) {
-		log('No ID provided. Fetching most recent log.')
+		log('No ID provided. Fetching most recent log.');
 		// Get ID of most recent guild log
 		const data = await sendQuery(`{ reportData { reports(guildID: ${config.warcraftLogsGuildId}, limit: 1) { data { code } } } }`);
-		id = data.data.reportData.reports.data[0].code
+		id = data.data.reportData.reports.data[0].code;
 	}
 
 	log('Fetching report with ID: ' + id);
@@ -189,7 +211,6 @@ async function getReport(id) {
 	return report;
 }
 
-function formatTime(date) {
-	date = new Date(date);
-	return new Intl.DateTimeFormat('en-GB', { dateStyle: 'full' }).format(date);
+function formatTime(date: number): string {
+	return new Intl.DateTimeFormat('en-GB', { dateStyle: 'full' }).format(new Date(date));
 }
