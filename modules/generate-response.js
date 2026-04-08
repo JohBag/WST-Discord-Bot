@@ -26,12 +26,13 @@ export default async function tryGenerateResponse(interaction) {
 	// Check for function calls in the response
 	if (response.functionCalls && response.functionCalls.length > 0) {
 		const functionCall = response.functionCalls[0]; // Assuming one function call
-		const args = functionCall.args;
+		const args = functionCall.args ?? {};
 		console.log("Calling function: ", functionCall.name);
 		console.log("Args: ", args);
 
 		switch (functionCall.name) {
 			case 'generate_picture':
+				if (!args.prompt) throw new Error('generate_picture requires a prompt');
 				message = await generateImage(args.prompt);
 				break;
 			case 'create_warcraft_log':
@@ -46,6 +47,7 @@ export default async function tryGenerateResponse(interaction) {
 				}
 				break;
 			case 'create_vote':
+				if (!args.title || !args.options) throw new Error('create_vote requires title and options');
 				message = await createVote(interaction, args.title, args.options, args.anonymity);
 				break;
 			default:

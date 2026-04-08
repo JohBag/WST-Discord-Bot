@@ -17,6 +17,8 @@ const roles = {
 }
 
 let logChannel = null;
+let cachedToken = null;
+let tokenExpiry = 0;
 
 export default async function createWarcraftLog(interaction, id) {
 	let embed = await getLogEmbed(id);
@@ -53,6 +55,10 @@ async function getLogEmbed(id) {
 }
 
 async function getAccessToken() {
+	if (cachedToken && Date.now() < tokenExpiry) {
+		return cachedToken;
+	}
+
 	const response = await fetch('https://www.warcraftlogs.com/oauth/token', {
 		method: 'POST',
 		headers: {
@@ -64,7 +70,9 @@ async function getAccessToken() {
 	});
 
 	const data = await response.json();
-	return data.access_token
+	cachedToken = data.access_token;
+	tokenExpiry = Date.now() + (data.expires_in * 1000) - 60000;
+	return cachedToken;
 }
 
 async function sendQuery(query, variables = {}) {
@@ -152,7 +160,7 @@ async function getReport(id) {
 	if (!id) {
 		log('No ID provided. Fetching most recent log.')
 		// Get ID of most recent guild log
-		const data = await sendQuery('{ reportData { reports(guildID: 66538, limit: 1) { data { code } } } }');
+		const data = await sendQuery(`{ reportData { reports(guildID: ${config.warcraftLogsGuildId}, limit: 1) { data { code } } } }`);
 		id = data.data.reportData.reports.data[0].code
 	}
 
