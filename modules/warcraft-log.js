@@ -67,7 +67,7 @@ async function getAccessToken() {
 	return data.access_token
 }
 
-async function sendQuery(query) {
+async function sendQuery(query, variables = {}) {
 	const accessToken = await getAccessToken();
 
 	const response = await fetch('https://www.warcraftlogs.com/api/v2/client', {
@@ -76,7 +76,7 @@ async function sendQuery(query) {
 			'Content-Type': 'application/json',
 			'Authorization': 'Bearer ' + accessToken
 		},
-		body: JSON.stringify({ query })
+		body: JSON.stringify({ query, variables })
 	});
 
 	const data = await response.json();
@@ -116,14 +116,14 @@ function getBossSection(report) {
 
 async function getParticipants(report) {
 	const fights = report.fights.map(fight => fight.id);
-	const query = `query {
+	const query = `query($code: String!) {
         reportData {
-            report(code: "${report.code}") {
+            report(code: $code) {
                 playerDetails(fightIDs: [${fights}])
             }
         }
     }`;
-	const data = await sendQuery(query);
+	const data = await sendQuery(query, { code: report.code });
 	return data.data.reportData.report.playerDetails.data.playerDetails;
 }
 
@@ -157,25 +157,25 @@ async function getReport(id) {
 	}
 
 	log('Fetching report with ID: ' + id);
-	const query = `query{ 
-        reportData { 
-            report(code: "${id}") { 
+	const query = `query($code: String!) {
+        reportData {
+            report(code: $code) {
                 zone {
-                    name 
+                    name
                 }
-                code 
-                startTime 
-                fights(killType: Encounters) { 
+                code
+                startTime
+                fights(killType: Encounters) {
                     id
-                    name 
-                    difficulty 
-                    kill 
-                    fightPercentage 
+                    name
+                    difficulty
+                    kill
+                    fightPercentage
                 }
-            } 
-        } 
+            }
+        }
     }`;
-	const data = await sendQuery(query);
+	const data = await sendQuery(query, { code: id });
 	const report = data.data.reportData.report;
 
 	return report;

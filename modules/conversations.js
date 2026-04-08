@@ -1,5 +1,6 @@
 import getUsername from './get-username.js';
 import { config } from './data.js';
+import log from './log.js';
 
 export default async function getConversation(interaction, messageLimit) {
 	let messages = await getMessages(interaction, messageLimit);
@@ -61,5 +62,5 @@ function filterByCutoff(messages) {
 }
 
 function filterEmpty(messages) {
-	return messages.filter((message) => message !== '');
+	return messages.filter((message) => message.content.trim() !== '');
 }

@@ -114,5 +114,5 @@ function findSplitIndex(response) {
 		lastCodeBlock > -1 ? lastCodeBlock : messageCharLimit
 	);
 
-	return splitIndex;
+	return splitIndex || messageCharLimit;
 }
