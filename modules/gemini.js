@@ -10,7 +10,7 @@ import wav from 'wav';
 import { config } from './data.js';
 import Message from './message.js';
 
-const ai = new GoogleGenAI({ apiKey: secrets.keys.gemini });
+export const ai = new GoogleGenAI({ apiKey: secrets.keys.gemini });
 
 let models = config.models;
 const textModel = models.text;
@@ -168,13 +168,4 @@ const createVoteFunction = {
 		required: ['title', 'options'],
 	},
 };
-const listenFunction = {
-	name: 'listen',
-	description: "Joins the user's voice channel. Only do this if explicitly asked by the user.",
-	parameters: {
-		type: Type.OBJECT,
-		properties: {},
-		required: [],
-	},
-};
-functionDeclarations[0].functionDeclarations.push(generatePictureFunction, createWarcraftLogFunction, createVoteFunction, listenFunction);
+functionDeclarations[0].functionDeclarations.push(generatePictureFunction, createWarcraftLogFunction, createVoteFunction);
