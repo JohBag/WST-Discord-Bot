@@ -2,7 +2,7 @@ import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { createVote } from '../modules/votes.js';
 import type { BotCommand } from '../types.js';
 
-const maxOptions = 5; // Discord limit
+const maxOptions = 25; // Discord limit: 5 rows x 5 buttons
 
 export default {
 	data: new SlashCommandBuilder()

@@ -6,7 +6,7 @@ import getUsername from '../modules/get-username.js';
 import Message from './message.js';
 import type { Vote } from '../types.js';
 
-const maxOptions = 5; // Discord limit
+const maxOptions = 25; // Discord limit: 5 rows x 5 buttons
 
 export async function createVote(interaction: DiscordMessage | ChatInputCommandInteraction, title?: string, optionString?: string, anonymity: boolean = false): Promise<Message> {
 	const message = new Message();
@@ -19,17 +19,22 @@ export async function createVote(interaction: DiscordMessage | ChatInputCommandI
 		anonymity = cmdInteraction.options.getBoolean('anonymity') || false;
 	}
 
+	const creatorId = 'user' in interaction
+		? (interaction as ChatInputCommandInteraction).user.id
+		: (interaction as DiscordMessage).author.id;
+
 	const vote: Vote = {
 		title: title,
 		options: splitOptions(optionString, anonymity),
 		voters: [],
 		anonymity: anonymity,
+		creatorId: creatorId,
 	};
 
 	const buttons = createVoteButtons(vote);
 	const tally = getResult(vote);
 
-	message.addEmbed(tally).addComponents([buttons]);
+	message.addEmbed(tally).addComponents(buttons);
 
 	message.onSend = async (sentMessage) => {
 		try {
@@ -134,6 +139,44 @@ export async function registerVote(interaction: ButtonInteraction): Promise<void
 	}
 }
 
+export async function editVote(
+	interaction: ChatInputCommandInteraction,
+	messageId: string,
+	newOptionsString: string,
+): Promise<{ embed: EmbedBuilder; components: ActionRowBuilder<ButtonBuilder>[] } | string> {
+	const votes = load<Record<string, Vote>>('votes');
+	const vote = votes[messageId];
+
+	if (!vote) return 'Vote not found.';
+
+	if (vote.creatorId && vote.creatorId !== interaction.user.id) {
+		return 'Only the vote creator can edit this vote.';
+	}
+
+	const currentCount = Object.keys(vote.options).length;
+	const newOptions = splitOptions(newOptionsString, vote.anonymity);
+	const newKeys = Object.keys(newOptions).filter(key => !(key in vote.options));
+
+	if (newKeys.length === 0) {
+		return 'All provided options already exist.';
+	}
+
+	if (currentCount + newKeys.length > maxOptions) {
+		return `Too many options. Current: ${currentCount}, adding: ${newKeys.length}, max: ${maxOptions}.`;
+	}
+
+	for (const key of newKeys) {
+		vote.options[key] = newOptions[key];
+	}
+
+	save('votes', votes);
+	log(`[${vote.title}]: Added options: ${newKeys.join(', ')}`);
+
+	const embed = getResult(vote);
+	const components = createVoteButtons(vote);
+	return { embed, components };
+}
+
 function getEmoji(inputString: string): string | null {
 	const regex = /<:(.*?):\d+>/g;
 	const matches = inputString.match(regex);
@@ -151,22 +194,31 @@ function splitOptions(optionString: string, anonymity: boolean): Record<string, 
 		}, {});
 }
 
-function createVoteButtons(vote: Vote): ActionRowBuilder<ButtonBuilder> {
-	const buttons = new ActionRowBuilder<ButtonBuilder>();
-	for (let option in vote.options) {
-		const button = new ButtonBuilder()
-			.setCustomId(option)
-			.setStyle(ButtonStyle.Primary);
+function createVoteButtons(vote: Vote): ActionRowBuilder<ButtonBuilder>[] {
+	const optionKeys = Object.keys(vote.options);
+	const rows: ActionRowBuilder<ButtonBuilder>[] = [];
 
-		const emoji = getEmoji(option);
-		if (emoji) {
-			button.setEmoji(emoji);
-			option = option.replace(emoji, '').trim() || ' ';
+	for (let i = 0; i < optionKeys.length; i += 5) {
+		const row = new ActionRowBuilder<ButtonBuilder>();
+		const chunk = optionKeys.slice(i, i + 5);
+
+		for (let option of chunk) {
+			const button = new ButtonBuilder()
+				.setCustomId(option)
+				.setStyle(ButtonStyle.Primary);
+
+			const emoji = getEmoji(option);
+			if (emoji) {
+				button.setEmoji(emoji);
+				option = option.replace(emoji, '').trim() || ' ';
+			}
+
+			button.setLabel(option);
+			row.addComponents(button);
 		}
 
-		button.setLabel(option);
-
-		buttons.addComponents(button);
+		rows.push(row);
 	}
-	return buttons;
+
+	return rows;
 }

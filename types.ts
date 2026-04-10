@@ -70,6 +70,7 @@ export interface Vote {
 	options: Record<string, number | Record<string, string>>;
 	voters: string[];
 	anonymity: boolean;
+	creatorId?: string;
 }
 
 export interface BotClient {
