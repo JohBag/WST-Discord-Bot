@@ -1,7 +1,8 @@
 node_modules
+dist
 media
 config.json
-secrets.json
+.env
 votes.json
 prompt.txt
 log.txt

@@ -31,8 +31,9 @@ A custom AI-powered Discord bot developed for the World of Warcraft guild 'Warse
 The bot requires the following files in the `config/` directory:
 
 * `config.json` (Create from `config-example.json`)
-* `secrets.json` (Create from `secrets-example.json`)
 * `prompt.txt` (Contains your AI system prompt)
+
+Create a `.env` file in the project root with your API keys (see `.env.example`).
 
 ## Setup
 

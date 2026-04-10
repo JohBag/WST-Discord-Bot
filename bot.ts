@@ -1,8 +1,9 @@
 import { Client, Collection, GatewayIntentBits } from 'discord.js';
 import { secrets } from './modules/data.js';
-import * as events from './index/events.js'
-import * as commands from './index/commands.js'
+import * as events from './index/events.js';
+import * as commands from './index/commands.js';
 import log from './modules/log.js';
+import type { BotCommand, BotEvent } from './types.js';
 
 const client = new Client({
 	intents: [
@@ -15,17 +16,17 @@ const client = new Client({
 	]
 });
 
-function safeHandler(handler) {
-	return async (...args) => {
+function safeHandler(handler: (...args: any[]) => Promise<void>) {
+	return async (...args: any[]) => {
 		try {
 			await handler(...args);
 		} catch (error) {
-			log(`Error in safe handler: ${error}`);
+			log.error(`Error in safe handler: ${error}`);
 		}
 	};
 }
 
-for (const event of Object.values(events)) {
+for (const event of Object.values(events) as BotEvent[]) {
 	const handler = safeHandler(event.execute);
 
 	if (event.once) {
@@ -38,20 +39,20 @@ for (const event of Object.values(events)) {
 }
 
 // Load commands
-client.commands = new Collection();
-for (const command of Object.values(commands)) {
-	client.commands.set(command.data.name, command);
+(client as any).commands = new Collection<string, BotCommand>();
+for (const command of Object.values(commands) as BotCommand[]) {
+	(client as any).commands.set(command.data.name, command);
 	log(`Loaded command: ${command.data.name}`);
 }
 
 process.on('unhandledRejection', (reason, promise) => {
-	log(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
+	log.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
 });
 
 process.on('uncaughtException', (error) => {
-	log(`Uncaught Exception: ${error}`);
+	log.error(`Uncaught Exception: ${error}`);
 });
 
 client.login(secrets.discord.botToken).catch(error => {
-	log(`Failed to login: ${error}`);
+	log.error(`Failed to login: ${error}`);
 });
