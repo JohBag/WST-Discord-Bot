@@ -1,18 +1,44 @@
 import fs from 'fs';
-import { load } from './json.js';
+import { loadOptional, loadRequired } from './json.js';
+import merge from './merge.js';
 import log from './log.js';
 import type { Config, Secrets } from '../types.js';
 
-const config = load<Config>('config');
+export const CONFIG_BASE = 'config.base';
+export const CONFIG_LOCAL = 'config';
+export const PROMPT_BASE = 'config/prompt.base.txt';
+export const PROMPT_LOCAL = 'config/prompt.txt';
+
+const config = loadConfig();
 config.prompt = loadPrompt();
 
-function loadPrompt(): string {
-	try {
-		return fs.readFileSync('config/prompt.txt', 'utf8');
-	} catch {
-		log.warn('No config/prompt.txt found, using an empty system prompt');
-		return '';
+/**
+ * config.base.json is committed and shared by every instance. config.json is
+ * per-instance and git-ignored - it only needs the keys that differ, and is
+ * deep-merged on top of the base.
+ */
+function loadConfig(): Config {
+	const base = loadRequired<Config>(CONFIG_BASE);
+	const local = loadOptional<Partial<Config>>(CONFIG_LOCAL);
+
+	if (local) {
+		log(`Applying config overrides: ${Object.keys(local).join(', ') || '(none)'}`);
 	}
+
+	return merge(base, local ?? {});
+}
+
+/** prompt.txt is a git-ignored override. Without it the committed prompt.base.txt is used. */
+function loadPrompt(): string {
+	for (const file of [PROMPT_LOCAL, PROMPT_BASE]) {
+		if (fs.existsSync(file)) {
+			log(`Using prompt from ${file}`);
+			return fs.readFileSync(file, 'utf8');
+		}
+	}
+
+	log.warn(`No ${PROMPT_BASE} found, using an empty system prompt`);
+	return '';
 }
 
 const secrets: Secrets = {

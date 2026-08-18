@@ -28,12 +28,41 @@ A custom AI-powered Discord bot developed for the World of Warcraft guild 'Warse
 
 ### Configuration
 
-The bot requires the following files in the `config/` directory:
+Config is layered, so every instance shares one tracked file and only overrides what
+differs. The bot deep-merges them at startup:
 
-* `config.json` (Create from `config-example.json`)
-* `prompt.txt` (Contains your AI system prompt)
+| File | Tracked | Purpose |
+| --- | --- | --- |
+| `config/config.base.json` | yes | Shared settings. Edit this and deploy with a `git pull`. |
+| `config/config.json` | no | Per-instance overrides. Only the keys that differ on this machine. |
+| `config/prompt.base.txt` | yes | The system prompt. Edit this and deploy with a `git pull`. |
+| `config/prompt.txt` | no | Optional local prompt. Replaces the tracked one entirely when present. |
 
-Create a `.env` file in the project root with your API keys (see `.env.example`).
+Nested keys merge one at a time, so a test instance needs only a few lines:
+
+```json
+{
+	"name": "Warseeker Test Bot",
+	"channelSettings": {
+		"default": { "reactChance": 1 }
+	}
+}
+```
+
+That keeps `messageLimit`, every other channel, and the rest of the base config intact.
+Arrays such as `nicknames` are replaced rather than combined.
+
+Secrets never live in either file. Create a `.env` in the project root (see `.env.example`).
+
+Check what an instance will actually run with before restarting it:
+
+```bash
+npm run check-config
+```
+
+It prints the merged result, marks which values came from the local override, and exits
+non-zero on a missing key, a wrong type, an out-of-range `reactChance`, a misspelled key,
+or a missing secret.
 
 ## Setup
 
@@ -42,26 +71,25 @@ You must register the slash commands with Discord before the bot can use them.
 
 **First Run:**
 ```bash
-node deploy-commands.js
+npm run deploy-commands
 ```
 
 **Updating Commands:**
 If you modify the commands later, you must delete the old ones before re-deploying to avoid duplicates or cache issues:
 ```bash
-node delete-commands.js
-node deploy-commands.js
+npm run delete-commands
+npm run deploy-commands
 ```
 
 ## Testing Prompts
 
-Before editing `config/prompt.txt` and restarting the bot, you can try a prompt against saved
-conversations. Nothing is posted to Discord - the only network call is the same Gemini text
+Before committing a prompt change, you can try it against saved conversations. Nothing is posted to Discord - the only network call is the same Gemini text
 request the bot makes, built from the same conversation formatting.
 
 ```bash
-npm run test-prompt                                     # config/prompt.txt vs every saved conversation
+npm run test-prompt                                     # current prompt vs every saved conversation
 npm run test-prompt -- --runs 3                         # three replies each, to see the variance
-npm run test-prompt -- -p config/prompt.txt -p config/prompt-example.txt   # compare two prompts
+npm run test-prompt -- -p config/prompt.base.txt -p /tmp/candidate.txt     # compare two prompts
 npm run test-prompt -- -c tools/conversations/raid-invite.txt --dry-run    # inspect the request, no API call
 npm run test-prompt -- --help
 ```
@@ -84,20 +112,36 @@ The optional `# expect:` line opts the file into regex checks that flag known ba
 act in-game). They are heuristics for spotting a trend across runs, not a verdict, so read the
 replies too.
 
-Lines are attributed to the bot when the speaker name matches `name` in `config.json`. If the
-bot's guild nickname differs from that value, pass `--bot <nickname>` - and note that the live bot
-has the same problem, since `modules/conversations.ts` uses `config.name` to decide which history
-messages are its own.
+Lines are attributed to the bot when the speaker name matches the merged `name`. If an instance's
+guild nickname differs from that value, pass `--bot <nickname>` - and fix the config, because
+`modules/conversations.ts` uses `config.name` to decide which history messages are the bot's own.
 
 ## Running the Bot
 
 **For Testing (Development):**
 ```bash
-node bot.js
+npm start
 ```
 
 **For Production (Recommended):**
 Use PM2 to keep the bot running in the background and automatically restart if it crashes.
 ```bash
-pm2 start bot.js --name "discord-bot"
+pm2 start dist/bot.js --name "discord-bot" --node-args="--env-file=.env"
+pm2 save
 ```
+
+## Deploying
+
+On the server:
+
+```bash
+./deploy.sh
+```
+
+That pulls, installs, builds, runs the tests, verifies the config, and only then restarts
+pm2. If any step fails it stops before touching the running process, so the current bot
+stays up. Use `./deploy.sh --no-pull` to deploy what is already checked out, and set
+`APP_NAME` if the pm2 process is not called `discord-bot`.
+
+Because the shared config and the prompt are tracked, changing either is a normal commit
+plus a `git pull` - only genuinely machine-specific values need editing on the server.

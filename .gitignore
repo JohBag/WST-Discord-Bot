@@ -7,6 +7,7 @@ votes.json
 prompt.txt
 log.txt
 log-prompt-test.txt
+log-check-config.txt
 
 debug_output.pcm
 verify.wav

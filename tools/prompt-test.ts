@@ -25,7 +25,8 @@ const bold = colour('1');
 const dim = colour('2');
 const red = colour('31');
 
-const DEFAULT_PROMPT = 'config/prompt.txt';
+// Same resolution the bot uses: the git-ignored local prompt wins, else the committed one
+const DEFAULT_PROMPT = fs.existsSync('config/prompt.txt') ? 'config/prompt.txt' : 'config/prompt.base.txt';
 const DEFAULT_CONVERSATIONS = 'tools/conversations';
 
 const { values } = parseArgs({
@@ -58,8 +59,8 @@ if (transcripts.length === 0) {
 	fail('No conversations found. Pass --conversation <file> or add transcripts to ' + DEFAULT_CONVERSATIONS);
 }
 
-if (!fs.existsSync('config/config.json')) {
-	fail('config/config.json is missing. Copy config/config-example.json to config/config.json first.');
+if (!fs.existsSync('config/config.base.json')) {
+	fail('config/config.base.json is missing. It is tracked in git - run a git pull.');
 }
 
 // Imported late so LOG_FILE above takes effect
