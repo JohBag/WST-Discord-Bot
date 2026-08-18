@@ -6,8 +6,11 @@ export enum LogLevel {
 	ERROR = 'ERROR',
 }
 
+// Tools can redirect their output so they don't clobber a running bot's log
+const logFile = process.env.LOG_FILE || 'log.txt';
+
 // Clear log file
-fs.writeFileSync('log.txt', '');
+fs.writeFileSync(logFile, '');
 
 function formatMessage(text: string, level: LogLevel): string {
 	const timestamp = new Date().toISOString();
@@ -17,7 +20,7 @@ function formatMessage(text: string, level: LogLevel): string {
 function log(text: string, level: LogLevel = LogLevel.INFO): void {
 	const message = formatMessage(text, level);
 	console.log(message);
-	fs.appendFileSync('log.txt', `${message}\n`);
+	fs.appendFileSync(logFile, `${message}\n`);
 }
 
 log.warn = (text: string): void => log(text, LogLevel.WARN);

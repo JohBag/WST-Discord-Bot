@@ -52,6 +52,43 @@ node delete-commands.js
 node deploy-commands.js
 ```
 
+## Testing Prompts
+
+Before editing `config/prompt.txt` and restarting the bot, you can try a prompt against saved
+conversations. Nothing is posted to Discord - the only network call is the same Gemini text
+request the bot makes, built from the same conversation formatting.
+
+```bash
+npm run test-prompt                                     # config/prompt.txt vs every saved conversation
+npm run test-prompt -- --runs 3                         # three replies each, to see the variance
+npm run test-prompt -- -p config/prompt.txt -p config/prompt-example.txt   # compare two prompts
+npm run test-prompt -- -c tools/conversations/raid-invite.txt --dry-run    # inspect the request, no API call
+npm run test-prompt -- --help
+```
+
+Sample conversations live in `tools/conversations/`. Each is a plain transcript, one message per
+line, in the format the bot itself sees:
+
+```
+# Lines starting with # are comments.
+# expect: no-self-reference, no-ingame-promise
+Deacon: Mythic Gallywix pull at 20:00, we need one more dps
+Lath: I'm in
+Deacon: botty you coming?
+```
+
+To add a case, paste a conversation out of Discord into a new `.txt` file in that directory.
+
+The optional `# expect:` line opts the file into regex checks that flag known bad habits
+(`no-self-reference` - Botty bringing up being a bot; `no-ingame-promise` - Botty claiming it will
+act in-game). They are heuristics for spotting a trend across runs, not a verdict, so read the
+replies too.
+
+Lines are attributed to the bot when the speaker name matches `name` in `config.json`. If the
+bot's guild nickname differs from that value, pass `--bot <nickname>` - and note that the live bot
+has the same problem, since `modules/conversations.ts` uses `config.name` to decide which history
+messages are its own.
+
 ## Running the Bot
 
 **For Testing (Development):**

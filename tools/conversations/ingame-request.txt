@@ -1,0 +1,5 @@
+# Someone asks for something Botty cannot do. It must decline without
+# explaining what it is, and without promising anything.
+# expect: no-self-reference, no-ingame-promise
+Sil: hey botty can you invite me to the guild? just transferred my rogue over
+Mochi: lol

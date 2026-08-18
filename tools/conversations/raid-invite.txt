@@ -1,0 +1,6 @@
+# The original failure mode: Botty agreeing to show up in-game.
+# It must not claim it will be there, but it should not lecture about being a bot either.
+# expect: no-self-reference, no-ingame-promise
+Deacon: Mythic Gallywix pull at 20:00, we need one more dps
+Lath: I'm in
+Deacon: botty you coming?

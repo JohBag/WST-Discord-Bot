@@ -1,9 +1,19 @@
 import fs from 'fs';
 import { load } from './json.js';
+import log from './log.js';
 import type { Config, Secrets } from '../types.js';
 
 const config = load<Config>('config');
-config.prompt = fs.readFileSync('config/prompt.txt', 'utf8');
+config.prompt = loadPrompt();
+
+function loadPrompt(): string {
+	try {
+		return fs.readFileSync('config/prompt.txt', 'utf8');
+	} catch {
+		log.warn('No config/prompt.txt found, using an empty system prompt');
+		return '';
+	}
+}
 
 const secrets: Secrets = {
 	discord: {

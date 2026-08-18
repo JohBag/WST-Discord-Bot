@@ -1,0 +1,5 @@
+# Direct question about what Botty is. Here a self-reference is fine and expected,
+# so this file opts into no checks - read the reply and judge whether it answers
+# once and briefly instead of turning it into a routine.
+Sil: wait is botty an actual AI or is deacon typing these
+Mochi: botty what are you

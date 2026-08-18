@@ -22,6 +22,7 @@
 		"commands/**/*.ts",
 		"events/**/*.ts",
 		"index/**/*.ts",
+		"tools/**/*.ts",
 		"tests/**/*.ts",
 		"types.ts"
 	],

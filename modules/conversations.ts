@@ -3,9 +3,17 @@ import { config } from './data.js';
 import log from './log.js';
 import type { Message } from 'discord.js';
 
-interface ConversationEntry {
+export interface ConversationEntry {
 	role: 'model' | 'user';
 	parts: { text: string }[];
+}
+
+// Shared with the prompt test harness so tests see the exact same formatting the bot sends
+export function toConversationEntry(username: string, content: string, botName: string = config.name): ConversationEntry {
+	return {
+		role: username === botName ? 'model' : 'user',
+		parts: [{ text: `${username}: ${content}` }]
+	};
 }
 
 export default async function getConversation(interaction: Message, messageLimit: number): Promise<ConversationEntry[] | undefined> {
@@ -32,11 +40,7 @@ async function formatConversation(messages: Message[]): Promise<ConversationEntr
 	const conversation = await Promise.all(
 		messages.map(async (message) => {
 			const username = await getUsername(message);
-			const role: 'model' | 'user' = username === config.name ? 'model' : 'user';
-			return {
-				role,
-				parts: [{ text: `${username}: ${message.content}` }]
-			};
+			return toConversationEntry(username, message.content);
 		})
 	);
 
