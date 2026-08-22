@@ -9,11 +9,12 @@
         "node": ">=22.0.0"
     },
     "scripts": {
-        "build": "tsc",
+        "clean": "node -e \"import('node:fs').then(fs=>fs.rmSync('dist',{recursive:true,force:true}))\"",
+        "build": "npm run clean && tsc",
         "start": "node --env-file=.env dist/bot.js",
         "deploy-commands": "node --env-file=.env dist/deploy-commands.js",
         "delete-commands": "node --env-file=.env dist/delete-commands.js",
-        "test": "tsc && node --test dist/tests/*.test.js"
+        "test": "npm run build && node --test dist/tests/*.test.js"
     },
     "dependencies": {
         "@google/genai": "^1.30.0",
