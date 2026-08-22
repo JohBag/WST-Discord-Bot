@@ -1,10 +1,8 @@
 node_modules
 dist
 media
-config.json
 .env
 votes.json
-prompt.txt
 log.txt
 
 debug_output.pcm
