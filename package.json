@@ -14,7 +14,10 @@
         "start": "node --env-file=.env dist/bot.js",
         "deploy-commands": "node --env-file=.env dist/deploy-commands.js",
         "delete-commands": "node --env-file=.env dist/delete-commands.js",
-        "test": "npm run build && node --test dist/tests/*.test.js"
+        "test": "npm run build && node --test dist/tests/*.test.js",
+        "vm": "node scripts/vm.mjs",
+        "deploy": "node scripts/vm.mjs deploy",
+        "logs": "node scripts/vm.mjs logs"
     },
     "dependencies": {
         "@google/genai": "^1.30.0",

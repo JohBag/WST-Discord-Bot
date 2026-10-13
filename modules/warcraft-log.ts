@@ -91,13 +91,17 @@ async function getAccessToken(): Promise<string> {
 		})
 	});
 
+	if (!response.ok) {
+		throw new Error(`Warcraft Logs token request failed (${response.status}): ${await response.text()}`);
+	}
+
 	const data = await response.json() as { access_token: string; expires_in: number };
 	cachedToken = data.access_token;
 	tokenExpiry = Date.now() + (data.expires_in * 1000) - 60000;
 	return cachedToken;
 }
 
-async function sendQuery(query: string, variables: Record<string, any> = {}): Promise<any> {
+async function sendQuery(query: string, variables: Record<string, any> = {}, retry = true): Promise<any> {
 	const accessToken = await getAccessToken();
 
 	const response = await fetch('https://www.warcraftlogs.com/api/v2/client', {
@@ -109,7 +113,25 @@ async function sendQuery(query: string, variables: Record<string, any> = {}): Pr
 		body: JSON.stringify({ query, variables })
 	});
 
-	const data = await response.json();
+	// The cached token can be revoked before it expires; fetch a new one and try again
+	if (response.status === 401 && retry) {
+		log('Warcraft Logs rejected the access token, requesting a new one');
+		cachedToken = null;
+		return sendQuery(query, variables, false);
+	}
+
+	const body = await response.text();
+	if (!response.ok) {
+		throw new Error(`Warcraft Logs query failed (${response.status}): ${body}`);
+	}
+
+	const data = JSON.parse(body);
+	if (data.errors) {
+		log('Warcraft Logs query returned errors: ' + JSON.stringify(data.errors));
+	}
+	if (!data.data) {
+		throw new Error('Warcraft Logs query returned no data: ' + body);
+	}
 	return data;
 }
 

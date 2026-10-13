@@ -64,3 +64,14 @@ Use PM2 to keep the bot running in the background and automatically restart if i
 ```bash
 pm2 start bot.js --name "discord-bot"
 ```
+## Deploying to the VM
+
+`scripts/vm.mjs` runs maintenance commands on the bot's VM over SSH. It expects an SSH host alias `wst-vm` in `~/.ssh/config` that logs in as the user running the bot.
+
+```bash
+npm run deploy          # Pull main, install, build and restart the bot
+npm run logs            # Show the last 50 lines of log.txt (npm run logs -- 200 for more)
+npm run vm -- follow    # Stream log.txt live
+npm run vm -- status    # Deployed commit and pm2 status
+npm run vm -- restart   # Restart the bot without deploying
+```

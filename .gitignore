@@ -2,6 +2,7 @@ node_modules
 dist
 media
 .env
+secrets.json
 votes.json
 log.txt
 
