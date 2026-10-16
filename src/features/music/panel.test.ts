@@ -2,14 +2,15 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildPanel } from './panel.js';
 import { buildPlaylists } from './library.js';
+import type { Selection } from './panel.js';
 import type { MusicStatus, PlayMode } from './player.js';
 
 function songs(count: number) {
 	return Array.from({ length: count }, (_, i) => `Song ${String(i).padStart(3, '0')}.mp3`);
 }
 
-function render(status: MusicStatus | null, { loose = 3, folders = {} as Record<string, string[]>, mode = 'continue' as PlayMode } = {}) {
-	const panel = buildPanel(status, buildPlaylists(songs(loose), folders), mode);
+function render(status: MusicStatus | null, { loose = 3, folders = {} as Record<string, string[]>, mode = 'continue' as PlayMode, selection = undefined as Selection | undefined } = {}) {
+	const panel = buildPanel(status, buildPlaylists(songs(loose), folders), mode, selection);
 	const [buttons, ...menus] = panel.components.map(row => row.toJSON().components) as any[];
 	return { embed: panel.embeds[0].toJSON(), buttons, menus: menus.map(row => row[0]) };
 }
@@ -81,5 +82,27 @@ describe('buildPanel', () => {
 		assert.deepEqual(playlistMenu.options.filter((o: any) => o.default).map((o: any) => o.label), ['Ambience']);
 		assert.deepEqual(songMenu.options.map((o: any) => o.label), ['Rain', 'Wind']);
 		assert.equal(songMenu.custom_id, 'music-panel:song:0:Ambience');
+	});
+
+	it('should ask for Play when another song is selected while one is playing', () => {
+		const { embed, buttons, menus } = render(playing, { selection: { playlistId: '*', trackId: 'Song 002.mp3' } });
+		assert.equal(buttons[0].label, 'Play');
+		assert.match(embed.description!, /Now playing: \*\*Song 001\*\*/);
+		assert.match(embed.description!, /Selected: \*\*Song 002\*\*\. Press ▶️ Play/);
+		assert.deepEqual(menus[0].options.filter((o: any) => o.default).map((o: any) => o.label), ['Song 002']);
+	});
+
+	it('should show a selected playlist and its songs without starting it', () => {
+		const { embed, buttons, menus } = render(null, { folders: { Ambience: ['Wind.mp3'] }, selection: { playlistId: 'Ambience' } });
+		assert.equal(buttons[0].label, 'Play');
+		assert.match(embed.description!, /Selected: \*\*Ambience\*\*/);
+		assert.deepEqual(menus[0].options.filter((o: any) => o.default).map((o: any) => o.label), ['Ambience']);
+		assert.deepEqual(menus[1].options.map((o: any) => o.label), ['Wind']);
+	});
+
+	it('should treat selecting what is already playing as no change', () => {
+		const { embed, buttons } = render(playing, { selection: { playlistId: '*', trackId: 'Song 001.mp3' } });
+		assert.equal(buttons[0].label, 'Pause');
+		assert.doesNotMatch(embed.description!, /Selected/);
 	});
 });

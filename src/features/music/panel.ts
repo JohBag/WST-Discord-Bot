@@ -31,9 +31,16 @@ const modeButtons: Record<PlayMode, { emoji: string; label: string }> = {
 
 type PanelInteraction = ChatInputCommandInteraction | ButtonInteraction | StringSelectMenuInteraction;
 
+// A playlist or song picked on a panel, which starts when its owner presses Play
+export interface Selection {
+	playlistId: string;
+	trackId?: string;
+}
+
 interface Panel {
 	interaction: PanelInteraction;
 	expiresAt: number;
+	selection?: Selection;
 }
 
 // Open panels per guild, keyed by user, so they can be refreshed when the music changes
@@ -48,24 +55,48 @@ function row(...components: MessageActionRowComponentBuilder[]): ActionRowBuilde
 	return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(...components);
 }
 
-export function buildPanel(status: MusicStatus | null, playlists: Playlist[], mode: PlayMode): PanelContent {
-	// The song menus show the playlist that is playing, or every song when nothing is
-	const playlist = playlists.find(p => p.id === (status?.playlistId ?? allSongsId)) ?? playlists[0];
+// Whether pressing Play would start something other than what is playing
+export function isPending(status: MusicStatus | null, selection?: Selection): boolean {
+	if (!selection) {
+		return false;
+	}
+	return !status?.current
+		|| selection.playlistId !== status.playlistId
+		|| (selection.trackId !== undefined && selection.trackId !== optionValue(trackId(status.current)));
+}
+
+function optionValue(text: string): string {
+	return text.slice(0, maxOptionLength);
+}
+
+export function buildPanel(status: MusicStatus | null, playlists: Playlist[], mode: PlayMode, selection?: Selection): PanelContent {
+	// The menus show the selection, else the playlist that is playing, else every song
+	const playlist = playlists.find(p => p.id === (selection?.playlistId ?? status?.playlistId ?? allSongsId)) ?? playlists[0];
+	const playingPlaylist = playlists.find(p => p.id === status?.playlistId);
 	const tracks = playlist?.tracks ?? [];
+	const selectedTrack = selection?.trackId ? tracks.find(t => optionValue(trackId(t)) === selection.trackId) : undefined;
+	const pending = isPending(status, selection);
 	const embed = new EmbedBuilder().setColor(0xE67E22).setTitle('Music');
 
+	const lines: string[] = [];
 	if (!status?.current) {
-		embed.setDescription('Nothing is playing. Press ▶️ to shuffle everything, or pick a playlist or song below.');
+		lines.push(pending ? 'Nothing is playing.' : 'Nothing is playing. Press ▶️ to shuffle everything, or pick a playlist or song below.');
 	} else {
-		const lines = [
+		lines.push(
 			`${status.paused ? '⏸ Paused' : '🎶 Now playing'}: **${status.current.name}**`,
-			`In <#${status.channelId}>${playlists.length > 1 && playlist ? `, playing ${playlist.name}` : ''}`,
-		];
+			`In <#${status.channelId}>${playlists.length > 1 && playingPlaylist ? `, playing ${playingPlaylist.name}` : ''}`,
+		);
 		if (status.next) {
 			lines.push(`Up next: ${status.next.name}`);
 		}
-		embed.setDescription(lines.join('\n'));
 	}
+	if (pending) {
+		const picked = selectedTrack
+			? `**${selectedTrack.name}**${playlists.length > 1 ? ` from ${playlist.name}` : ''}`
+			: `**${playlist.name}**`;
+		lines.push('', `Selected: ${picked}. Press ▶️ Play to start it, or 🔄 to go back.`);
+	}
+	embed.setDescription(lines.join('\n'));
 
 	const showPlaylists = playlists.length > 1;
 	const songMenus = maxRows - 1 - (showPlaylists ? 1 : 0);
@@ -76,12 +107,13 @@ export function buildPanel(status: MusicStatus | null, playlists: Playlist[], mo
 	embed.setFooter({ text: showPlaylists && playlist ? `${playlist.name}: ${songCount}` : songCount });
 
 	const playing = status?.current != null;
+	const pausable = playing && !pending;
 	const buttons = row(
 		new ButtonBuilder()
 			.setCustomId(panelPrefix + 'toggle')
 			.setStyle(ButtonStyle.Primary)
-			.setEmoji(playing && !status!.paused ? '⏸️' : '▶️')
-			.setLabel(!playing ? 'Play' : status!.paused ? 'Resume' : 'Pause')
+			.setEmoji(pausable && !status!.paused ? '⏸️' : '▶️')
+			.setLabel(!pausable ? 'Play' : status!.paused ? 'Resume' : 'Pause')
 			.setDisabled(tracks.length === 0),
 		new ButtonBuilder().setCustomId(panelPrefix + 'skip').setStyle(ButtonStyle.Secondary).setEmoji('⏭️').setLabel('Skip').setDisabled(!playing),
 		new ButtonBuilder().setCustomId(panelPrefix + 'stop').setStyle(ButtonStyle.Danger).setEmoji('⏹️').setLabel('Stop').setDisabled(!playing),
@@ -98,7 +130,7 @@ export function buildPanel(status: MusicStatus | null, playlists: Playlist[], mo
 				label: p.name.slice(0, maxOptionLength),
 				description: `${p.tracks.length} songs`,
 				value: p.id,
-				default: playing && p.id === playlist?.id,
+				default: (playing || selection !== undefined) && p.id === playlist?.id,
 			})))));
 	}
 
@@ -113,29 +145,37 @@ export function buildPanel(status: MusicStatus | null, playlists: Playlist[], mo
 			.setPlaceholder(placeholder)
 			.addOptions(chunk.map(track => ({
 				label: track.name.slice(0, maxOptionLength),
-				value: trackId(track).slice(0, maxOptionLength),
-				default: track.file === status?.current?.file,
+				value: optionValue(trackId(track)),
+				default: track.file === (selectedTrack ?? (playlist.id === status?.playlistId ? status.current : undefined))?.file,
 			})))));
 	}
 
 	return { embeds: [embed], components: rows };
 }
 
-function render(guildId: string): PanelContent {
-	return buildPanel(getStatus(guildId), listPlaylists(), getMode(guildId));
+function render(guildId: string, selection?: Selection): PanelContent {
+	return buildPanel(getStatus(guildId), listPlaylists(), getMode(guildId), selection);
 }
 
-function remember(interaction: PanelInteraction): void {
+// Keeps the panel's latest interaction, whose token is what allows editing it, and its selection
+function remember(interaction: PanelInteraction, fresh = false): Panel {
 	const guildId = interaction.guildId!;
 	if (!panels.has(guildId)) {
 		panels.set(guildId, new Map());
 	}
-	panels.get(guildId)!.set(interaction.user.id, { interaction, expiresAt: Date.now() + panelLifetimeMs });
+	const open = panels.get(guildId)!;
+	const panel: Panel = {
+		interaction,
+		expiresAt: Date.now() + panelLifetimeMs,
+		selection: fresh ? undefined : open.get(interaction.user.id)?.selection,
+	};
+	open.set(interaction.user.id, panel);
+	return panel;
 }
 
 // Shows a private panel to the user who ran /music
 export async function openPanel(interaction: ChatInputCommandInteraction): Promise<PanelContent> {
-	remember(interaction);
+	remember(interaction, true);
 	return render(interaction.guildId!);
 }
 
@@ -145,13 +185,12 @@ musicEvents.on('change', (guildId: string) => {
 	if (!open) {
 		return;
 	}
-	const content = render(guildId);
 	for (const [userId, panel] of open) {
 		if (Date.now() > panel.expiresAt) {
 			open.delete(userId);
 			continue;
 		}
-		panel.interaction.editReply(content).catch(error => {
+		panel.interaction.editReply(render(guildId, panel.selection)).catch(error => {
 			log.warn(`Could not update a music panel: ${error}`);
 			open.delete(userId);
 		});
@@ -175,12 +214,10 @@ async function getVoiceChannel(guild: Guild, userId: string): Promise<VoiceBased
 	return member.voice.channel;
 }
 
-async function playSong(guild: Guild, userId: string, menuId: string, value: string): Promise<void> {
-	// song:<menu>:<playlist>, where the playlist is a folder name that may contain colons
-	const playlistId = menuId.split(':').slice(2).join(':');
-	const playlist = listPlaylists().find(p => p.id === playlistId);
-	const track = playlist?.tracks.find(t => trackId(t).slice(0, maxOptionLength) === value);
-	if (!playlist || !track) {
+async function playSelection(guild: Guild, userId: string, selection: Selection): Promise<void> {
+	const playlist = listPlaylists().find(p => p.id === selection.playlistId);
+	const track = selection.trackId ? playlist?.tracks.find(t => optionValue(trackId(t)) === selection.trackId) : undefined;
+	if (!playlist || (selection.trackId && !track)) {
 		throw new UserError('That song is no longer available.');
 	}
 	await play(await getVoiceChannel(guild, userId), playlist.id, track);
@@ -188,22 +225,29 @@ async function playSong(guild: Guild, userId: string, menuId: string, value: str
 
 export async function handlePanelInteraction(interaction: ButtonInteraction | StringSelectMenuInteraction): Promise<void> {
 	await interaction.deferUpdate();
-	remember(interaction);
+	const panel = remember(interaction);
 
 	const guild = interaction.guild!;
 	const action = interaction.customId.slice(panelPrefix.length);
 
 	try {
+		// Picking only selects; Play starts it
 		if (interaction.isStringSelectMenu() && action === 'playlist') {
-			await play(await getVoiceChannel(guild, interaction.user.id), interaction.values[0]);
+			panel.selection = { playlistId: interaction.values[0] };
 		} else if (interaction.isStringSelectMenu()) {
-			await playSong(guild, interaction.user.id, action, interaction.values[0]);
+			// song:<menu>:<playlist>, where the playlist is a folder name that may contain colons
+			panel.selection = { playlistId: action.split(':').slice(2).join(':'), trackId: interaction.values[0] };
 		} else if (action === 'toggle') {
-			if (getStatus(guild.id)) {
+			if (isPending(getStatus(guild.id), panel.selection)) {
+				await playSelection(guild, interaction.user.id, panel.selection!);
+				panel.selection = undefined;
+			} else if (getStatus(guild.id)) {
 				togglePause(guild.id);
 			} else {
 				await play(await getVoiceChannel(guild, interaction.user.id));
 			}
+		} else if (action === 'refresh') {
+			panel.selection = undefined;
 		} else if (action === 'skip') {
 			skip(guild.id);
 		} else if (action === 'stop') {
@@ -219,6 +263,6 @@ export async function handlePanelInteraction(interaction: ButtonInteraction | St
 		await interaction.followUp({ content: message, flags: MessageFlags.Ephemeral });
 	}
 
-	// Covers actions that do not change the music (refresh, errors) and resets the menu selection
-	await interaction.editReply(render(guild.id));
+	// Covers actions that do not change the music (selecting, refresh, errors)
+	await interaction.editReply(render(guild.id, panel.selection));
 }
