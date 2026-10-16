@@ -17,16 +17,23 @@ import type { VoiceBasedChannel } from 'discord.js';
 import log from '../../core/log.js';
 import { config } from '../../core/config.js';
 import UserError from '../../core/user-error.js';
-import { listTracks, shuffle } from './library.js';
+import { allSongsId, findPlaylist, shuffle } from './library.js';
 import type { Track } from './library.js';
+
+// What happens when a song ends: carry on with the playlist, play the song again, or stop
+export type PlayMode = 'continue' | 'repeat' | 'once';
+export const playModes: PlayMode[] = ['continue', 'repeat', 'once'];
 
 interface Session {
 	guildId: string;
 	channelId: string;
 	connection: VoiceConnection;
 	player: AudioPlayer;
+	playlistId: string;
 	queue: Track[];
 	current: Track | null;
+	// Set by skip, so the next song plays even when repeating
+	skipping: boolean;
 	ffmpeg: ChildProcess | null;
 	startedAt: number;
 	// Tracks that ended almost immediately in a row, to stop instead of spinning on broken files
@@ -34,6 +41,8 @@ interface Session {
 }
 
 const sessions = new Map<string, Session>();
+// Kept per guild between sessions, so it can be set before playing
+const modes = new Map<string, PlayMode>();
 const maxQuickFailures = 3;
 
 // Bundled through npm so the VM needs no system package; falls back to one on the PATH.
@@ -49,6 +58,7 @@ function hasFfmpeg(): boolean {
 
 export interface MusicStatus {
 	channelId: string;
+	playlistId: string;
 	current: Track | null;
 	next: Track | null;
 	paused: boolean;
@@ -62,12 +72,26 @@ export function getStatus(guildId: string): MusicStatus | null {
 	if (!session) {
 		return null;
 	}
+	const mode = getMode(guildId);
 	return {
 		channelId: session.channelId,
+		playlistId: session.playlistId,
 		current: session.current,
-		next: session.queue[0] ?? null,
+		next: mode === 'repeat' ? session.current : mode === 'once' ? null : session.queue[0] ?? null,
 		paused: session.player.state.status === AudioPlayerStatus.Paused,
 	};
+}
+
+export function getMode(guildId: string): PlayMode {
+	return modes.get(guildId) ?? 'continue';
+}
+
+// Switches to the next mode and returns it
+export function cycleMode(guildId: string): PlayMode {
+	const mode = playModes[(playModes.indexOf(getMode(guildId)) + 1) % playModes.length];
+	modes.set(guildId, mode);
+	musicEvents.emit('change', guildId);
+	return mode;
 }
 
 // Returns whether the music is paused afterwards
@@ -80,10 +104,10 @@ export function togglePause(guildId: string): boolean {
 	return paused;
 }
 
-// Joins the channel (or moves there) and starts playing. With a track, it plays first and the
-// rest of the library follows in random order; without one, everything is shuffled.
-export async function play(channel: VoiceBasedChannel, track?: Track): Promise<Track> {
-	const tracks = listTracks();
+// Joins the channel (or moves there) and starts playing the playlist. With a track, it plays first and
+// the rest of the playlist follows in random order; without one, the whole playlist is shuffled.
+export async function play(channel: VoiceBasedChannel, playlistId: string = allSongsId, track?: Track): Promise<Track> {
+	const tracks = findPlaylist(playlistId)?.tracks ?? [];
 	if (tracks.length === 0) {
 		throw new UserError('There is no music to play yet.');
 	}
@@ -97,6 +121,7 @@ export async function play(channel: VoiceBasedChannel, track?: Track): Promise<T
 		session = await connect(channel, session);
 	}
 
+	session.playlistId = playlistId;
 	session.queue = shuffle(track ? tracks.filter(t => t.file !== track.file) : tracks);
 	if (track) {
 		session.queue.unshift(track);
@@ -112,6 +137,7 @@ export function skip(guildId: string): Track {
 	const skipped = session.current!;
 	// Stopping the current track makes the player go idle, which starts the next one
 	session.quickFailures = 0;
+	session.skipping = true;
 	session.player.stop(true);
 	return skipped;
 }
@@ -163,8 +189,10 @@ async function connect(channel: VoiceBasedChannel, existing?: Session): Promise<
 		channelId: channel.id,
 		connection,
 		player,
+		playlistId: allSongsId,
 		queue: [],
 		current: null,
+		skipping: false,
 		ffmpeg: null,
 		startedAt: 0,
 		quickFailures: 0,
@@ -181,7 +209,17 @@ async function connect(channel: VoiceBasedChannel, existing?: Session): Promise<
 			end(session);
 			return;
 		}
-		playNext(session);
+
+		const skipped = session.skipping;
+		session.skipping = false;
+		const mode = getMode(session.guildId);
+		if (mode === 'repeat' && session.current && !skipped) {
+			playTrack(session, session.current);
+		} else if (mode === 'once' && !skipped) {
+			end(session);
+		} else {
+			playNext(session);
+		}
 	});
 	player.on('error', error => log.error(`Music player error on ${session.current?.name}: ${error.message}`));
 
@@ -206,14 +244,17 @@ async function connect(channel: VoiceBasedChannel, existing?: Session): Promise<
 function playNext(session: Session): void {
 	if (session.queue.length === 0) {
 		// Re-read the folder so songs added since the last round are included
-		session.queue = shuffle(listTracks());
+		session.queue = shuffle(findPlaylist(session.playlistId)?.tracks ?? []);
 	}
 	const track = session.queue.shift();
 	if (!track) {
 		end(session);
 		return;
 	}
+	playTrack(session, track);
+}
 
+function playTrack(session: Session, track: Track): void {
 	session.ffmpeg?.kill();
 	const ffmpeg = spawn(ffmpegPath, [
 		'-loglevel', 'error',

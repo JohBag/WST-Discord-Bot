@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'path';
-import { shuffle, toTracks } from './library.js';
+import { buildPlaylists, shuffle, toTracks, trackId } from './library.js';
 
 describe('toTracks', () => {
 	it('should keep audio files only, named without their extension, sorted by name', () => {
@@ -10,6 +10,28 @@ describe('toTracks', () => {
 			{ name: 'A Song', file: path.join('music', 'A Song.MP3') },
 			{ name: 'b', file: path.join('music', 'b.ogg') },
 		]);
+	});
+});
+
+describe('buildPlaylists', () => {
+	it('should put every song in All songs and give each folder its own playlist', () => {
+		const playlists = buildPlaylists(['Theme.mp3'], { Spooky: ['Ghosts.mp3', 'cover.png'], Ambience: ['Wind.ogg'], Empty: ['notes.txt'] });
+		assert.deepEqual(playlists.map(p => [p.id, p.name, p.tracks.map(t => t.name)]), [
+			['*', 'All songs', ['Ghosts', 'Theme', 'Wind']],
+			['Ambience', 'Ambience', ['Wind']],
+			['Spooky', 'Spooky', ['Ghosts']],
+		]);
+	});
+
+	it('should return no playlists without songs', () => {
+		assert.deepEqual(buildPlaylists(['notes.txt'], { Empty: [] }), []);
+	});
+});
+
+describe('trackId', () => {
+	it('should be the path inside the music folder, with forward slashes', () => {
+		const tracks = buildPlaylists(['Theme.mp3'], { Spooky: ['Ghosts.mp3'] })[0].tracks;
+		assert.deepEqual(tracks.map(trackId), ['Spooky/Ghosts.mp3', 'Theme.mp3']);
 	});
 });
 

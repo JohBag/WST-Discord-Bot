@@ -1,21 +1,21 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildPanel } from './panel.js';
-import { toTracks } from './library.js';
-import type { MusicStatus } from './player.js';
+import { buildPlaylists } from './library.js';
+import type { MusicStatus, PlayMode } from './player.js';
 
 function songs(count: number) {
-	return toTracks(Array.from({ length: count }, (_, i) => `Song ${String(i).padStart(3, '0')}.mp3`));
+	return Array.from({ length: count }, (_, i) => `Song ${String(i).padStart(3, '0')}.mp3`);
 }
 
-function render(status: MusicStatus | null, trackCount = 3) {
-	const panel = buildPanel(status, songs(trackCount));
+function render(status: MusicStatus | null, { loose = 3, folders = {} as Record<string, string[]>, mode = 'continue' as PlayMode } = {}) {
+	const panel = buildPanel(status, buildPlaylists(songs(loose), folders), mode);
 	const [buttons, ...menus] = panel.components.map(row => row.toJSON().components) as any[];
 	return { embed: panel.embeds[0].toJSON(), buttons, menus: menus.map(row => row[0]) };
 }
 
-const tracks = songs(3);
-const playing: MusicStatus = { channelId: '1', current: tracks[1], next: tracks[2], paused: false };
+const tracks = buildPlaylists(songs(3), {})[0].tracks;
+const playing: MusicStatus = { channelId: '1', playlistId: '*', current: tracks[1], next: tracks[2], paused: false };
 
 describe('buildPanel', () => {
 	it('should offer Play and disable Skip and Stop when nothing is playing', () => {
@@ -41,22 +41,45 @@ describe('buildPanel', () => {
 		assert.equal(buttons[0].label, 'Resume');
 	});
 
+	it('should show the play mode on its button', () => {
+		assert.equal(render(null).buttons[3].label, 'Play all');
+		assert.equal(render(null, { mode: 'repeat' }).buttons[3].label, 'Repeat song');
+		assert.equal(render(null, { mode: 'once' }).buttons[3].label, 'Play once');
+	});
+
 	it('should split songs over menus of 25', () => {
-		const { menus, embed } = render(null, 30);
+		const { menus, embed } = render(null, { loose: 30 });
 		assert.deepEqual(menus.map((menu: any) => menu.options.length), [25, 5]);
 		assert.equal(menus[1].placeholder, 'Pick a song (26-30)');
 		assert.equal(embed.footer!.text, '30 songs');
 	});
 
 	it('should show at most 100 songs, in four menus', () => {
-		const { menus, embed } = render(null, 120);
+		const { menus, embed } = render(null, { loose: 120 });
 		assert.equal(menus.length, 4);
 		assert.equal(embed.footer!.text, 'Showing the first 100 of 120 songs');
 	});
 
 	it('should disable Play and show no menus without songs', () => {
-		const { buttons, menus } = render(null, 0);
+		const { buttons, menus } = render(null, { loose: 0 });
 		assert.equal(buttons[0].disabled, true);
 		assert.equal(menus.length, 0);
+	});
+
+	it('should add a playlist menu when there are folders, leaving room for three song menus', () => {
+		const { menus, embed } = render(null, { loose: 100, folders: { Ambience: ['Wind.mp3', 'Rain.ogg'] } });
+		assert.deepEqual(menus[0].options.map((o: any) => o.label), ['All songs', 'Ambience']);
+		assert.equal(menus.length, 4);
+		assert.equal(embed.footer!.text, 'All songs: Showing the first 75 of 102 songs');
+	});
+
+	it('should list the songs of the playlist that is playing', () => {
+		const playlists = buildPlaylists(songs(3), { Ambience: ['Wind.mp3', 'Rain.ogg'] });
+		const rain = playlists[1].tracks[0];
+		const panel = buildPanel({ channelId: '1', playlistId: 'Ambience', current: rain, next: null, paused: false }, playlists, 'continue');
+		const [, playlistMenu, songMenu] = panel.components.map(row => row.toJSON().components[0]) as any[];
+		assert.deepEqual(playlistMenu.options.filter((o: any) => o.default).map((o: any) => o.label), ['Ambience']);
+		assert.deepEqual(songMenu.options.map((o: any) => o.label), ['Rain', 'Wind']);
+		assert.equal(songMenu.custom_id, 'music-panel:song:0:Ambience');
 	});
 });
