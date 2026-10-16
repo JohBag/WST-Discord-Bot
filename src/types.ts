@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, Collection } from 'discord.js';
-import type { AutocompleteInteraction, SlashCommandOptionsOnlyBuilder, SlashCommandSubcommandsOnlyBuilder } from 'discord.js';
+import type { InteractionEditReplyOptions, SlashCommandOptionsOnlyBuilder } from 'discord.js';
 
 export interface Config {
 	name: string;
@@ -55,10 +55,9 @@ export interface Secrets {
 }
 
 export interface BotCommand {
-	data: SlashCommandOptionsOnlyBuilder | SlashCommandSubcommandsOnlyBuilder;
-	// Returning a string keeps it as the (private) reply; otherwise the reply is removed
-	execute(interaction: ChatInputCommandInteraction): Promise<void | string>;
-	autocomplete?(interaction: AutocompleteInteraction): Promise<void>;
+	data: SlashCommandOptionsOnlyBuilder;
+	// Returning text or message content keeps it as the (private) reply; otherwise the reply is removed
+	execute(interaction: ChatInputCommandInteraction): Promise<void | string | InteractionEditReplyOptions>;
 }
 
 export interface BotEvent {

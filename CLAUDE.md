@@ -28,7 +28,7 @@ All source is in `src/` and compiles to `dist/` with the same structure (`src/bo
 - `ai/`: AI provider code (currently `gemini.ts`).
 - `features/`: one folder per feature. `chat/` decides when to reply and builds the conversation, `votes/` handles button votes, `warcraft-logs/` talks to the Warcraft Logs GraphQL API (`raids.ts` finds raid nights across guild and uploader reports and merges duplicates, `auto-post.ts` polls for new raids and edits its posts while they are live-logged, remembering them in the git-ignored `config/warcraft-logs-posts.json`), `music/` plays files from the git-ignored `music/` folder in voice channels by piping them through ffmpeg as Ogg Opus. ffmpeg comes from the `ffmpeg-static` npm package, since the VM's Debian 11 can no longer install packages reliably.
 
-Commands can return a string to keep it as their private reply, throw `UserError` to show a message, and implement `autocomplete` for options marked with `setAutocomplete(true)`.
+Commands can return text or message content (embeds, components) to keep as their private reply, or throw `UserError` to show a message. Buttons and menus with IDs starting with `music-panel:` go to the music panel; all other buttons are treated as votes.
 - `config/config.json`: the production config (guild/channel IDs, model names, per-channel settings), typed by `Config` in `src/types.ts`. A git-ignored `config/config.local.json` is deep-merged over it when present, for running a local test bot. Never put test values in `config.json`.
 
 ## Production

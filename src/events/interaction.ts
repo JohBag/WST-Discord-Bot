@@ -3,24 +3,21 @@ import type { Interaction } from 'discord.js';
 import log from '../core/log.js';
 import getUsername from '../core/get-username.js';
 import { registerVote } from '../features/votes/votes.js';
+import { handlePanelInteraction, panelPrefix } from '../features/music/panel.js';
 import UserError from '../core/user-error.js';
 import type { BotEvent } from '../types.js';
 
 export default {
 	name: 'interactionCreate',
 	async execute(interaction: Interaction) {
-		if (interaction.isButton()) {
-			await registerVote(interaction);
+		if ((interaction.isButton() || interaction.isStringSelectMenu()) && interaction.customId.startsWith(panelPrefix)) {
+			await handlePanelInteraction(interaction);
 			return;
 		}
 
-		if (interaction.isAutocomplete()) {
-			const command = interaction.client.commands.get(interaction.commandName);
-			try {
-				await command?.autocomplete?.(interaction);
-			} catch (error) {
-				log.error(`Error autocompleting /${interaction.commandName}: ${error}`);
-			}
+		// Vote buttons use the option text as their ID, so they get everything else
+		if (interaction.isButton()) {
+			await registerVote(interaction);
 			return;
 		}
 
@@ -43,7 +40,7 @@ export default {
 		try {
 			const reply = await command.execute(interaction);
 			if (reply) {
-				await interaction.editReply({ content: reply });
+				await interaction.editReply(typeof reply === 'string' ? { content: reply } : reply);
 			} else {
 				await interaction.deleteReply();
 			}

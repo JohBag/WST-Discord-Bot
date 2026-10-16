@@ -11,6 +11,7 @@ import {
 	joinVoiceChannel,
 } from '@discordjs/voice';
 import type { AudioPlayer, VoiceConnection } from '@discordjs/voice';
+import { EventEmitter } from 'events';
 import { createRequire } from 'module';
 import type { VoiceBasedChannel } from 'discord.js';
 import log from '../../core/log.js';
@@ -46,8 +47,37 @@ function hasFfmpeg(): boolean {
 	return ffmpegAvailable;
 }
 
-export function nowPlaying(guildId: string): Track | null {
-	return sessions.get(guildId)?.current ?? null;
+export interface MusicStatus {
+	channelId: string;
+	current: Track | null;
+	next: Track | null;
+	paused: boolean;
+}
+
+// Emits 'change' with the guild ID whenever what is playing, or whether it is paused, changes
+export const musicEvents = new EventEmitter();
+
+export function getStatus(guildId: string): MusicStatus | null {
+	const session = sessions.get(guildId);
+	if (!session) {
+		return null;
+	}
+	return {
+		channelId: session.channelId,
+		current: session.current,
+		next: session.queue[0] ?? null,
+		paused: session.player.state.status === AudioPlayerStatus.Paused,
+	};
+}
+
+// Returns whether the music is paused afterwards
+export function togglePause(guildId: string): boolean {
+	const session = getSession(guildId);
+	const paused = session.player.state.status === AudioPlayerStatus.Paused
+		? !session.player.unpause()
+		: session.player.pause();
+	musicEvents.emit('change', guildId);
+	return paused;
 }
 
 // Joins the channel (or moves there) and starts playing. With a track, it plays first and the
@@ -203,6 +233,7 @@ function playNext(session: Session): void {
 	session.startedAt = Date.now();
 	session.player.play(createAudioResource(ffmpeg.stdout, { inputType: StreamType.OggOpus }));
 	log(`Now playing: ${track.name}`);
+	musicEvents.emit('change', session.guildId);
 }
 
 function end(session: Session): void {
@@ -213,4 +244,5 @@ function end(session: Session): void {
 		session.connection.destroy();
 	}
 	log('Stopped the music and left voice');
+	musicEvents.emit('change', session.guildId);
 }

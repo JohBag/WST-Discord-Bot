@@ -25,17 +25,6 @@ export function listTracks(): Track[] {
 	return toTracks(fs.readdirSync(musicFolder));
 }
 
-export function searchTracks(tracks: Track[], query: string): Track[] {
-	const needle = query.trim().toLowerCase();
-	return tracks.filter(track => track.name.toLowerCase().includes(needle));
-}
-
-// Exact name first, so "Elite" does not lose to "Elite Remix" when both exist
-export function findTrack(tracks: Track[], query: string): Track | undefined {
-	const needle = query.trim().toLowerCase();
-	return tracks.find(track => track.name.toLowerCase() === needle) ?? searchTracks(tracks, query)[0];
-}
-
 export function shuffle<T>(items: T[], random: () => number = Math.random): T[] {
 	const result = [...items];
 	for (let i = result.length - 1; i > 0; i--) {
