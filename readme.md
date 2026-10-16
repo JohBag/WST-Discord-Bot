@@ -33,6 +33,8 @@ The `config/` directory ships with a working configuration for our guild. Edit t
 * `config.json` (Guild and channel IDs, model names, and per-channel behaviour)
 * `prompt.txt` (The AI system prompt)
 
+To run a separate test bot locally, put the settings that differ in `config/config.local.json`. It is git-ignored and merged over `config.json` when present.
+
 Create a `.env` file in the project root with your API keys (see `.env.example`).
 
 ## Setup

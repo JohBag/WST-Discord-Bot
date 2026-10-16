@@ -1,8 +1,13 @@
 import fs from 'fs';
 import { load } from './json.js';
+import merge from './merge.js';
 import type { Config, Secrets } from '../types.js';
 
-const config = load<Config>('config');
+// config.local.json is git-ignored and holds settings for a local test bot
+let config = load<Config>('config');
+if (fs.existsSync('config/config.local.json')) {
+	config = merge(config, load('config.local'));
+}
 config.prompt = fs.readFileSync('config/prompt.txt', 'utf8');
 
 const secrets: Secrets = {

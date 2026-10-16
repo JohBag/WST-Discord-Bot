@@ -25,7 +25,7 @@ npm run deploy-commands / delete-commands   # Register or remove slash commands 
 - `commands/`: slash commands (`data` builder plus `execute`), typed by `BotCommand` in `types.ts`.
 - `events/`: Discord event handlers, typed by `BotEvent`.
 - `modules/`: shared logic. `data.ts` loads config and secrets, `log.ts` writes to the console and `log.txt`, `gemini.ts` and `generate-response.ts` handle AI, `warcraft-log.ts` talks to the Warcraft Logs GraphQL API.
-- `config/config.json`: guild/channel IDs, model names and per-channel settings, typed by `Config` in `types.ts`.
+- `config/config.json`: the production config (guild/channel IDs, model names, per-channel settings), typed by `Config` in `types.ts`. A git-ignored `config/config.local.json` is deep-merged over it when present, for running a local test bot. Never put test values in `config.json`.
 
 ## Production
 

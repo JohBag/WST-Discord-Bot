@@ -3,6 +3,7 @@ dist
 media
 .env
 secrets.json
+config.local.json
 votes.json
 log.txt
 
