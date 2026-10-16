@@ -9,7 +9,6 @@ import type { ReplyReason } from './situation.js';
 import { ReplyQueue } from './reply-queue.js';
 import { generateReply } from '../../ai/chat.js';
 import { generateImage } from '../../ai/gemini.js';
-import createWarcraftLog from '../warcraft-logs/warcraft-logs.js';
 import { createVote } from '../votes/votes.js';
 import Message from '../../core/message.js';
 import type { Message as DiscordMessage, ChatInputCommandInteraction, SendableChannels } from 'discord.js';
@@ -34,13 +33,12 @@ export default async function respond(trigger: Trigger): Promise<void> {
 // Writes one reply and returns when the history it is based on was read
 async function reply(trigger: Trigger, reason: ReplyReason): Promise<number> {
 	await sleep(gatherMs);
-	const settings = getChannelSettings(trigger.channelId!);
 
-	let channel = trigger.channel as SendableChannels;
+	const channel = trigger.channel as SendableChannels;
 	const stopTyping = showTyping(channel);
 	try {
 		const historyReadAt = Date.now();
-		const conversation = await getConversation(trigger as DiscordMessage, settings.messageLimit);
+		const conversation = await getConversation(trigger as DiscordMessage);
 		if (!conversation) {
 			return historyReadAt;
 		}
@@ -66,24 +64,6 @@ async function reply(trigger: Trigger, reason: ReplyReason): Promise<number> {
 				case 'generate_picture':
 					if (!args.prompt) throw new Error('generate_picture requires a prompt');
 					message = await generateImage(args.prompt);
-					break;
-				case 'create_warcraft_log':
-					message = await createWarcraftLog(trigger as DiscordMessage, args.id);
-					if (message.success) {
-						const logChannel = message.channel ?? channel;
-						// Without the actual details, the model invents placeholders like "[Insert Log Link]"
-						const report = message.embeds[0]?.data;
-						const where = logChannel.id === channel.id ? 'right after your reply' : `in <#${logChannel.id}>`;
-						const instruction = `\nYou just fetched the Warcraft Logs report "${report?.title}" from ${report?.description}, `
-							+ `link: ${report?.url}. A summary of it will be posted ${where}. Give the user a short, positive response about it. `
-							+ 'Only use the details given here; do not invent links or results.';
-						const successResponse = await generateReply({ model, systemPrompt: systemPrompt + instruction, conversation, tools: false });
-						if (successResponse.text) {
-							await new Message().addText(successResponse.text).send(channel);
-						}
-
-						channel = logChannel;
-					}
 					break;
 				case 'create_vote':
 					if (!args.title || !args.options) throw new Error('create_vote requires title and options');

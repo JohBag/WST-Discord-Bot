@@ -10,8 +10,8 @@ export interface HistoryMessage {
 	content: string;
 }
 
-export default async function getConversation(interaction: Message, messageLimit: number): Promise<ChatMessage[] | undefined> {
-	const messages = filterHistory(await getMessages(interaction, messageLimit), Date.now());
+export default async function getConversation(interaction: Message): Promise<ChatMessage[] | undefined> {
+	const messages = filterHistory(await getMessages(interaction, config.chat.history.maxMessages), Date.now());
 
 	if (messages.length === 0) {
 		log('No messages remaining.');
@@ -41,11 +41,25 @@ async function formatConversation(messages: Message[]): Promise<ChatMessage[]> {
 	return conversation;
 }
 
-// Takes messages newest first and keeps the recent, non-empty ones after the last cutoff marker
+// Takes messages newest first and keeps the current conversation: the non-empty messages after the
+// last cutoff marker, back to the first long pause, but at least a few if there are recent ones
 export function filterHistory<T extends HistoryMessage>(messages: T[], now: number): T[] {
 	messages = filterByDate(messages, now);
 	messages = filterByCutoff(messages);
-	return filterEmpty(messages);
+	messages = filterEmpty(messages);
+	return filterByPause(messages);
+}
+
+// A busy thread is followed back to where it started, while a quiet channel still gives some context
+function filterByPause<T extends HistoryMessage>(messages: T[]): T[] {
+	const { minMessages, gapMinutes } = config.chat.history;
+	const gap = gapMinutes * 60 * 1000;
+	for (let i = Math.max(minMessages, 1); i < messages.length; i++) {
+		if (messages[i - 1].createdTimestamp - messages[i].createdTimestamp > gap) {
+			return messages.slice(0, i);
+		}
+	}
+	return messages;
 }
 
 function filterByDate<T extends HistoryMessage>(messages: T[], now: number): T[] {

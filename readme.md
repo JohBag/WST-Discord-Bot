@@ -4,7 +4,7 @@ A custom AI-powered Discord bot developed for the World of Warcraft guild 'Warse
 
 ## Features
 
-* **AI chat:** Talk to the bot by mentioning it or using its nickname. It can also generate pictures, post Warcraft Logs reports and start votes when asked.
+* **AI chat:** Talk to the bot by mentioning it or using its nickname. It can also generate pictures, start votes and look things up on the web when asked.
 * **Warcraft Logs:** New raids are posted automatically and updated while they are being live-logged. `/log` posts a summary of any report: bosses killed, best pulls and who took part. Raids uploaded as personal logs by the uploaders listed in `config.json` count too.
 * **Votes:** `/vote` starts a vote with buttons, optionally anonymous, and `/vote-edit` adds options to one.
 * **Music:** `/music` opens a private control panel for playing songs from the `music/` folder in your voice channel: play/pause, skip, stop and a song picker. Without a chosen song, everything is shuffled on repeat.

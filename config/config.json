@@ -10,11 +10,15 @@
 	"chat": {
 		"cutoff": "###",
 		"ageLimitDays": 7,
-		"webSearch": true
+		"webSearch": true,
+		"history": {
+			"minMessages": 10,
+			"maxMessages": 50,
+			"gapMinutes": 60
+		}
 	},
 	"channelSettings": {
 		"default": {
-			"messageLimit": 16,
 			"reactChance": 0.005
 		},
 		"1083851912878768218": {

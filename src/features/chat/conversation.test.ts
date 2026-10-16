@@ -22,4 +22,19 @@ describe('filterHistory', () => {
 		const messages = [message('text'), message('  '), message('more')];
 		assert.deepEqual(filterHistory(messages, now).map(m => m.content), ['text', 'more']);
 	});
+
+	it('should follow a busy conversation back to the last long pause', () => {
+		const minute = 60 * 1000;
+		const { gapMinutes, minMessages } = config.chat.history;
+		const busy = Array.from({ length: minMessages + 5 }, (_, i) => ({ content: `busy ${i}`, createdTimestamp: now - i * minute }));
+		const beforePause = { content: 'before the pause', createdTimestamp: busy.at(-1)!.createdTimestamp - (gapMinutes + 1) * minute };
+		assert.deepEqual(filterHistory([...busy, beforePause], now).map(m => m.content), busy.map(m => m.content));
+	});
+
+	it('should keep a few messages from a quiet channel', () => {
+		const hour = 60 * 60 * 1000;
+		const { minMessages } = config.chat.history;
+		const quiet = Array.from({ length: minMessages + 5 }, (_, i) => ({ content: `quiet ${i}`, createdTimestamp: now - i * 3 * hour }));
+		assert.equal(filterHistory(quiet, now).length, minMessages);
+	});
 });

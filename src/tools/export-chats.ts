@@ -78,7 +78,8 @@ const timestamp = (message: APIMessage) => Date.parse(message.timestamp);
 
 async function findConversations(channel: APIChannel): Promise<EvalConversation[]> {
 	const messages = await getMessages(channel.id, Number(values.scan));
-	const { messageLimit, reactChance } = getChannelSettings(channel.id);
+	const { reactChance } = getChannelSettings(channel.id);
+	const { maxMessages } = config.chat.history;
 	const conversations: EvalConversation[] = [];
 	// Where the last saved conversation starts. Replies inside it are skipped, since a busy thread
 	// would otherwise give many conversations that are almost the same.
@@ -91,7 +92,7 @@ async function findConversations(channel: APIChannel): Promise<EvalConversation[
 		}
 
 		// What the bot saw: the messages before its reply, filtered like it filters them
-		const before = messages.slice(Math.max(0, i - messageLimit), i)
+		const before = messages.slice(Math.max(0, i - maxMessages), i)
 			.map(message => ({ message, createdTimestamp: timestamp(message), content: message.content }))
 			.reverse();
 		const history = filterHistory(before, timestamp(reply)).reverse();
@@ -115,7 +116,7 @@ async function findConversations(channel: APIChannel): Promise<EvalConversation[
 			original: reply.content,
 			reason: direct ? 'direct' : 'random',
 		});
-		savedFrom = i - messageLimit;
+		savedFrom = i - history.length;
 	}
 	return conversations;
 }

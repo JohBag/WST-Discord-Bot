@@ -1,4 +1,4 @@
-// What the model can ask the bot to do, as JSON Schema that both Gemini and Claude accept
+// What the model can ask the bot to do. Raid logs are not here: they are posted automatically., as JSON Schema that both Gemini and Claude accept
 
 export interface ToolDefinition {
 	name: string;
@@ -23,19 +23,6 @@ export const tools: ToolDefinition[] = [
 				},
 			},
 			required: ['prompt'],
-		},
-	},
-	{
-		name: 'create_warcraft_log',
-		description: 'Posts a summary of a Warcraft Logs report. Leave out the id to use the guild\'s most recent report.',
-		parameters: {
-			type: 'object',
-			properties: {
-				id: {
-					type: 'string',
-					description: 'The Warcraft Logs report ID, as seen in the report URL.',
-				},
-			},
 		},
 	},
 	{
