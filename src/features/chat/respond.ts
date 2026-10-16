@@ -1,4 +1,3 @@
-import { setTimeout as sleep } from 'timers/promises';
 import { config } from '../../core/config.js';
 import log from '../../core/log.js';
 import getConversation from './conversation.js';
@@ -15,8 +14,6 @@ import type { Message as DiscordMessage, ChatInputCommandInteraction, SendableCh
 
 type Trigger = DiscordMessage | ChatInputCommandInteraction;
 
-// Lets a burst of pings ("botty", "BOTTY", "you there?") arrive before the history is read
-const gatherMs = 1000;
 // Discord shows "is typing" for about 10 seconds per request
 const typingRefreshMs = 8000;
 
@@ -25,22 +22,24 @@ const queue = new ReplyQueue<Trigger>(reply);
 export default async function respond(trigger: Trigger): Promise<void> {
 	const settings = getChannelSettings(trigger.channelId!);
 	const reason = shouldRespond(trigger, settings.reactChance);
-	if (reason) {
-		await queue.add(trigger.channelId!, trigger, reason);
+	if (!reason) {
+		return;
 	}
+	// Someone asked, so a reply is coming either way; dropping in uninvited shows typing once it starts
+	if (reason === 'direct') {
+		(trigger.channel as SendableChannels).sendTyping().catch(() => {});
+	}
+	await queue.add(trigger.channelId!, trigger, reason);
 }
 
-// Writes one reply and returns when the history it is based on was read
+// Writes one reply and returns when the newest message it saw was sent
 async function reply(trigger: Trigger, reason: ReplyReason): Promise<number> {
-	await sleep(gatherMs);
-
 	const channel = trigger.channel as SendableChannels;
 	const stopTyping = showTyping(channel);
 	try {
-		const historyReadAt = Date.now();
-		const conversation = await getConversation(trigger as DiscordMessage);
-		if (!conversation) {
-			return historyReadAt;
+		const { messages: conversation, seenUntil } = await getConversation(trigger as DiscordMessage);
+		if (conversation.length === 0) {
+			return seenUntil;
 		}
 
 		const model = config.models.text;
@@ -80,7 +79,7 @@ async function reply(trigger: Trigger, reason: ReplyReason): Promise<number> {
 			message.addText(response.text);
 		}
 		await message.send(channel);
-		return historyReadAt;
+		return seenUntil;
 	} finally {
 		stopTyping();
 	}

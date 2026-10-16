@@ -10,15 +10,22 @@ export interface HistoryMessage {
 	content: string;
 }
 
-export default async function getConversation(interaction: Message): Promise<ChatMessage[] | undefined> {
-	const messages = filterHistory(await getMessages(interaction, config.chat.history.maxMessages), Date.now());
+export interface Conversation {
+	messages: ChatMessage[];
+	// When the newest message read was sent, so later ones can be told apart from those already seen
+	seenUntil: number;
+}
+
+export default async function getConversation(interaction: Message): Promise<Conversation> {
+	const fetched = await getMessages(interaction, config.chat.history.maxMessages);
+	const seenUntil = fetched[0]?.createdTimestamp ?? interaction.createdTimestamp;
+	const messages = filterHistory(fetched, Date.now());
 
 	if (messages.length === 0) {
 		log('No messages remaining.');
-		return;
 	}
 
-	return await formatConversation(messages);
+	return { messages: await formatConversation(messages), seenUntil };
 }
 
 async function getMessages(interaction: Message, messageLimit: number): Promise<Message[]> {
