@@ -22,8 +22,15 @@ export interface Config {
 	};
 	newUsersRoleId: string;
 	guildId: string;
-	logChannelId: string;
-	warcraftLogsGuildId: number;
+	warcraftLogs: {
+		guildId: number;
+		// Channel that /log and automatic posts go to
+		channelId: string;
+		// Warcraft Logs user IDs whose personal raid logs also count as guild raids
+		uploaderIds: number[];
+		autoPost: boolean;
+		pollMinutes: number;
+	};
 	prompt: string;
 }
 

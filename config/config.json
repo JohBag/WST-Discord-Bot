@@ -29,6 +29,13 @@
 	},
 	"newUsersRoleId": "764130122961256498",
 	"guildId": "452956966093062145",
-	"logChannelId": "759862220279775274",
-	"warcraftLogsGuildId": 66538
+	"warcraftLogs": {
+		"guildId": 66538,
+		"channelId": "759862220279775274",
+		"uploaderIds": [
+			1751707
+		],
+		"autoPost": true,
+		"pollMinutes": 5
+	}
 }

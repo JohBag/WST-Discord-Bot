@@ -26,7 +26,7 @@ All source is in `src/` and compiles to `dist/` with the same structure (`src/bo
 - `commands/`, `events/`: slash commands (`data` builder plus `execute`, typed by `BotCommand`) and Discord event handlers (`BotEvent`). Each folder's `index.ts` lists what gets loaded, so a new command or event must be exported there.
 - `core/`: shared plumbing. `config.ts` loads config and secrets, `log.ts` writes to the console and `log.txt`, `storage.ts` reads and writes JSON files in `config/`, `message.ts` builds and sends messages, `user-error.ts` marks errors whose message should be shown to the user.
 - `ai/`: AI provider code (currently `gemini.ts`).
-- `features/`: one folder per feature. `chat/` decides when to reply and builds the conversation, `votes/` handles button votes, `warcraft-logs/` talks to the Warcraft Logs GraphQL API.
+- `features/`: one folder per feature. `chat/` decides when to reply and builds the conversation, `votes/` handles button votes, `warcraft-logs/` talks to the Warcraft Logs GraphQL API (`raids.ts` finds raid nights across guild and uploader reports and merges duplicates, `auto-post.ts` polls for new raids and edits its posts while they are live-logged, remembering them in the git-ignored `config/warcraft-logs-posts.json`).
 - `config/config.json`: the production config (guild/channel IDs, model names, per-channel settings), typed by `Config` in `src/types.ts`. A git-ignored `config/config.local.json` is deep-merged over it when present, for running a local test bot. Never put test values in `config.json`.
 
 ## Production

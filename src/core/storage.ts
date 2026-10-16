@@ -11,6 +11,10 @@ export function load<T = Record<string, unknown>>(fileName: string): T {
 	}
 }
 
+export function exists(fileName: string): boolean {
+	return fs.existsSync(`config/${fileName}.json`);
+}
+
 export function save(fileName: string, data: unknown): void {
 	const json = JSON.stringify(data, null, '\t');
 	fs.writeFileSync(`config/${fileName}.json`, json);

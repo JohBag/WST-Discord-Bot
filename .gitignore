@@ -5,6 +5,7 @@ media
 secrets.json
 config.local.json
 votes.json
+warcraft-logs-posts.json
 log.txt
 
 debug_output.pcm
