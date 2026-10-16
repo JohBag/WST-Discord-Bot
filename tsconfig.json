@@ -17,7 +17,6 @@
 		"bot.ts",
 		"deploy-commands.ts",
 		"delete-commands.ts",
-		"get-dependency-report.ts",
 		"modules/**/*.ts",
 		"commands/**/*.ts",
 		"events/**/*.ts",
