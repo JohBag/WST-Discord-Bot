@@ -42,7 +42,11 @@ export function renderPage(comparison: Comparison, botName: string): string {
 	<p class="intro">Pick the reply you like best in each conversation. The replies are shuffled and unlabelled; reveal shows who wrote what and the totals.</p>
 	<section id="scores" hidden></section>
 	<div id="conversations"></div>
-	<p class="actions"><button id="clear" type="button" class="quiet">Clear my picks</button></p>
+	<p class="actions">
+		<button id="copy" type="button" class="quiet">Copy picks</button>
+		<button id="clear" type="button" class="quiet">Clear my picks</button>
+	</p>
+	<textarea id="copied" readonly hidden></textarea>
 </main>
 <script id="data" type="application/json">${data}</script>
 <script>${script}</script>
@@ -96,7 +100,9 @@ h2 { font-size: 14px; color: var(--muted); font-weight: 600; margin: 0 0 8px; }
 table { border-collapse: collapse; width: 100%; font-size: 14px; }
 th, td { text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 th:first-child, td:first-child { text-align: left; white-space: normal; }
-.actions { text-align: center; margin: 24px 0 48px; }
+.actions { text-align: center; margin: 24px 0 16px; }
+#copied { display: block; width: 100%; height: 200px; margin: 0 0 48px; font: 13px ui-monospace, Consolas, monospace; background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 6px; }
+#copied[hidden] { display: none; }
 `;
 
 const script = `
@@ -219,6 +225,23 @@ function render() {
 }
 
 document.getElementById('reveal').addEventListener('click', () => { revealed = !revealed; render(); });
+// Picks as text, to paste wherever they are needed. Also shown in a box in case the clipboard is blocked.
+document.getElementById('copy').addEventListener('click', async event => {
+	const lines = data.conversations.map(c => {
+		const choice = picks[c.id];
+		return c.id + ': ' + (choice === undefined ? 'no pick' : choice === 'none' ? 'none of them' : variantName(c.candidates[choice].variant));
+	});
+	const text = ['Picks from the comparison of ' + data.createdAt, ...lines].join(String.fromCharCode(10));
+	const box = document.getElementById('copied');
+	box.value = text;
+	box.hidden = false;
+	try {
+		await navigator.clipboard.writeText(text);
+		event.target.textContent = 'Copied';
+	} catch {
+		box.select();
+	}
+});
 document.getElementById('clear').addEventListener('click', () => { picks = {}; save(); render(); });
 render();
 `;

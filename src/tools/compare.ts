@@ -2,6 +2,7 @@
 // that shows the replies side by side without saying which is which.
 //
 // npm run compare [-- --variants eval/variants.json]
+// npm run compare -- --render eval/results/<file>.html   Rebuilds a page with the current layout, keeping its replies
 import fs from 'fs';
 import path from 'path';
 import { parseArgs } from 'util';
@@ -18,6 +19,7 @@ const concurrency = 4;
 const { values } = parseArgs({
 	options: {
 		variants: { type: 'string', default: variantsFile },
+		render: { type: 'string' },
 	},
 });
 
@@ -70,6 +72,15 @@ function shuffle<T>(items: T[]): T[] {
 		[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
 	}
 	return shuffled;
+}
+
+if (values.render) {
+	// Same data and creation time, so picks saved in the browser still apply
+	const html = fs.readFileSync(values.render, 'utf8');
+	const data = JSON.parse(html.match(/<script id="data" type="application\/json">([\s\S]*?)<\/script>/)![1]);
+	fs.writeFileSync(values.render, renderPage(data, data.botName));
+	console.log(`Rebuilt ${path.resolve(values.render)}`);
+	process.exit(0);
 }
 
 const setup = loadVariants(values.variants);
