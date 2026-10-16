@@ -47,4 +47,6 @@ npm run vm -- music     # Copy the local music/ folder to the VM
 
 `log.txt` is cleared every time the bot starts, so read it before restarting or deploying when investigating a problem. pm2 keeps its own copy of stdout in `~/.pm2/logs/`.
 
-Deploys pull from `origin/main`, so changes must be pushed first. Ask before pushing.
+Deploys pull from `origin/main`, so changes must be pushed first. Ask before pushing, and wait for CI to pass on the pushed commit (`gh run list -L 1`) before deploying.
+
+Production runs npm 10 (Node 22), which rejects lock files written by npm 11 when optional peer dependencies are involved. After changing dependencies, regenerate the lock file with `npx npm@10 install --package-lock-only`.
