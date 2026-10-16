@@ -45,12 +45,19 @@ export default async function respond(interaction: DiscordMessage | ChatInputCom
 			case 'create_warcraft_log':
 				message = await createWarcraftLog(interaction as DiscordMessage, args.id);
 				if (message.success) {
-					const successResponse = await generateResponse(config.prompt + '\nThe Warcraft Logs report was generated successfully! Give the user a positive response.', conversation, false);
+					const logChannel = message.channel ?? channel;
+					// Without the actual details, the model invents placeholders like "[Insert Log Link]"
+					const report = message.embeds[0]?.data;
+					const where = logChannel.id === channel.id ? 'right after your reply' : `in <#${logChannel.id}>`;
+					const instruction = `\nYou just fetched the Warcraft Logs report "${report?.title}" from ${report?.description}, `
+						+ `link: ${report?.url}. A summary of it will be posted ${where}. Give the user a short, positive response about it. `
+						+ 'Only use the details given here; do not invent links or results.';
+					const successResponse = await generateResponse(config.prompt + instruction, conversation, false);
 					if (successResponse.text) {
 						await new Message().addText(successResponse.text).send(channel);
 					}
 
-					channel = message.channel ?? channel;
+					channel = logChannel;
 				}
 				break;
 			case 'create_vote':
