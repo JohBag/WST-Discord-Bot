@@ -6,19 +6,11 @@ export interface Config {
 	nicknames: string[];
 	models: {
 		text: string;
-		transcribe: string;
-		tts: string;
 		image: string;
-		voice: string;
 	};
 	chat: {
 		cutoff: string;
 		ageLimitDays: number;
-	};
-	voiceChat: {
-		voiceName: string;
-		maxReconnectAttempts: number;
-		defaultChannelId: string;
 	};
 	channelSettings: {
 		default: ChannelSettings;
@@ -26,7 +18,6 @@ export interface Config {
 	};
 	blacklist: Record<string, string>;
 	media: {
-		speechFile: string;
 		imageFile: string;
 	};
 	newUsersRoleId: string;
@@ -39,7 +30,6 @@ export interface Config {
 export interface ChannelSettings {
 	messageLimit: number;
 	reactChance: number;
-	textToSpeech: boolean;
 }
 
 export interface Secrets {
@@ -73,6 +63,8 @@ export interface Vote {
 	creatorId?: string;
 }
 
-export interface BotClient {
-	commands: Collection<string, BotCommand>;
+declare module 'discord.js' {
+	interface Client {
+		commands: Collection<string, BotCommand>;
+	}
 }

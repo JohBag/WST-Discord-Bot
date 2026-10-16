@@ -4,14 +4,14 @@ A custom AI-powered Discord bot developed for the World of Warcraft guild 'Warse
 
 ## Features
 
-* **AI Integration:** Chat with the bot using natural language.
-* **Voice Capability:** The bot can join voice channels to listen and speak.
-* **Slash Commands:** Easy-to-use command interface.
+* **AI chat:** Talk to the bot by mentioning it or using its nickname. It can also generate pictures, post Warcraft Logs reports and start votes when asked.
+* **Warcraft Logs:** `/log` posts a summary of a report: bosses killed, best pulls and who took part.
+* **Votes:** `/vote` starts a vote with buttons, optionally anonymous, and `/vote-edit` adds options to one.
+* **New members:** Gives people who join the server a starting role.
 
 ## Prerequisites
 
 * **Node.js:** Version 22.0.0 or higher.
-* **FFmpeg:** Required for voice functionality.
 
 ## Installation
 
@@ -39,33 +39,25 @@ Create a `.env` file in the project root with your API keys (see `.env.example`)
 
 ## Setup
 
-### Deploy Commands
-You must register the slash commands with Discord before the bot can use them.
+Build the bot and register its slash commands with Discord. Re-run `deploy-commands` whenever commands are added or changed; it replaces the full set, so `delete-commands` is only needed to remove them all.
 
-**First Run:**
 ```bash
-node deploy-commands.js
-```
-
-**Updating Commands:**
-If you modify the commands later, you must delete the old ones before re-deploying to avoid duplicates or cache issues:
-```bash
-node delete-commands.js
-node deploy-commands.js
+npm run build
+npm run deploy-commands
 ```
 
 ## Running the Bot
 
-**For Testing (Development):**
 ```bash
-node bot.js
+npm run build && npm start
 ```
 
-**For Production (Recommended):**
-Use PM2 to keep the bot running in the background and automatically restart if it crashes.
+In production the bot runs under [PM2](https://pm2.keymetrics.io/), which restarts it if it crashes:
+
 ```bash
-pm2 start bot.js --name "discord-bot"
+pm2 start dist/bot.js --name botty --node-args="--env-file=.env"
 ```
+
 ## Deploying to the VM
 
 `scripts/vm.mjs` runs maintenance commands on the bot's VM over SSH. It expects an SSH host alias `wst-vm` in `~/.ssh/config` that logs in as the user running the bot.

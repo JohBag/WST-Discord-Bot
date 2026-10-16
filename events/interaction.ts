@@ -4,7 +4,7 @@ import log from '../modules/log.js';
 import getUsername from '../modules/get-username.js';
 import { registerVote } from '../modules/votes.js';
 import UserError from '../modules/user-error.js';
-import type { BotCommand, BotEvent } from '../types.js';
+import type { BotEvent } from '../types.js';
 
 export default {
 	name: 'interactionCreate',
@@ -22,8 +22,7 @@ export default {
 		const username = await getUsername(interaction);
 		log(`${username} used /${commandName}`);
 
-		const commands = (interaction.client as any).commands;
-		const command = commands.get(commandName) as BotCommand | undefined;
+		const command = interaction.client.commands.get(commandName);
 		if (!command) {
 			log.warn(`No command matching ${commandName} was found.`);
 			return;

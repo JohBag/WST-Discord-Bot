@@ -41,9 +41,9 @@ for (const event of Object.values(events) as BotEvent[]) {
 }
 
 // Load commands
-(client as any).commands = new Collection<string, BotCommand>();
+client.commands = new Collection<string, BotCommand>();
 for (const command of Object.values(commands) as BotCommand[]) {
-	(client as any).commands.set(command.data.name, command);
+	client.commands.set(command.data.name, command);
 	log(`Loaded command: ${command.data.name}`);
 }
 

@@ -1,23 +1,15 @@
 import { secrets } from "./data.js";
 import log from './log.js';
 import fs from "fs";
-import {
-	GoogleGenAI,
-	Type,
-	createUserContent,
-	createPartFromUri,
-} from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import type { GenerateContentResponse } from "@google/genai";
-import wav from 'wav';
 import { config } from './data.js';
 import Message from './message.js';
 
-export const ai = new GoogleGenAI({ apiKey: secrets.keys.gemini });
+const ai = new GoogleGenAI({ apiKey: secrets.keys.gemini });
 
 const textModel = config.models.text;
-const speechModel = config.models.tts;
 const imageModel = config.models.image;
-const transcribeModel = config.models.transcribe;
 const functionDeclarations: any[] = [{ functionDeclarations: [] as any[] }];
 
 export async function generateResponse(systemPrompt: string, conversation: any, allowFunctions: boolean = true): Promise<GenerateContentResponse> {
@@ -60,62 +52,6 @@ export async function generateImage(prompt: string): Promise<Message> {
 	}
 
 	return message;
-}
-
-export async function transcribeAudio(filename: string): Promise<string | undefined> {
-	log("Transcribing audio");
-
-	const myfile = await ai.files.upload({
-		file: filename,
-		config: { mimeType: "audio/mp3" },
-	});
-
-	const response = await ai.models.generateContent({
-		model: transcribeModel,
-		contents: createUserContent([
-			createPartFromUri(myfile.uri!, myfile.mimeType!),
-			"Transcribe this audio clip",
-		]),
-	});
-	return response.text;
-}
-
-export async function generateSpeech(text: string): Promise<void> {
-	log("Generating speech");
-
-	const response = await ai.models.generateContent({
-		model: speechModel,
-		contents: [{ parts: [{ text: text }] }],
-		config: {
-			responseModalities: ['AUDIO'],
-			speechConfig: {
-				voiceConfig: {
-					prebuiltVoiceConfig: { voiceName: config.voiceChat.voiceName },
-				},
-			}
-		}
-	});
-
-	const data = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-	const audioBuffer = Buffer.from(data!, 'base64');
-
-	await saveWaveFile(audioBuffer);
-}
-
-async function saveWaveFile(pcmData: Buffer): Promise<void> {
-	return new Promise((resolve, reject) => {
-		const writer = new wav.FileWriter(config.media.speechFile, {
-			channels: 1,
-			sampleRate: 24000,
-			bitDepth: 16,
-		});
-
-		writer.on('finish', resolve);
-		writer.on('error', reject);
-
-		writer.write(pcmData);
-		writer.end();
-	});
 }
 
 // ----- Function declarations ----- //
