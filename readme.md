@@ -13,8 +13,6 @@ A custom AI-powered Discord bot developed for the World of Warcraft guild 'Warse
 ## Prerequisites
 
 * **Node.js:** Version 22.0.0 or higher.
-* **FFmpeg:** Required for music. It must be on the PATH and include libopus, as the Debian package does.
-
 ## Installation
 
 1.  **Clone the repository:**

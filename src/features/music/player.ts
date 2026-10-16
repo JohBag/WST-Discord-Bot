@@ -11,6 +11,7 @@ import {
 	joinVoiceChannel,
 } from '@discordjs/voice';
 import type { AudioPlayer, VoiceConnection } from '@discordjs/voice';
+import { createRequire } from 'module';
 import type { VoiceBasedChannel } from 'discord.js';
 import log from '../../core/log.js';
 import { config } from '../../core/config.js';
@@ -34,10 +35,14 @@ interface Session {
 const sessions = new Map<string, Session>();
 const maxQuickFailures = 3;
 
+// Bundled through npm so the VM needs no system package; falls back to one on the PATH.
+// ffmpeg-static is CommonJS with types that claim an ES default export, so it is required directly.
+const ffmpegStatic: string | null = createRequire(import.meta.url)('ffmpeg-static');
+const ffmpegPath = ffmpegStatic ?? 'ffmpeg';
 let ffmpegAvailable: boolean | null = null;
 
 function hasFfmpeg(): boolean {
-	ffmpegAvailable ??= spawnSync('ffmpeg', ['-version']).status === 0;
+	ffmpegAvailable ??= spawnSync(ffmpegPath, ['-version']).status === 0;
 	return ffmpegAvailable;
 }
 
@@ -180,7 +185,7 @@ function playNext(session: Session): void {
 	}
 
 	session.ffmpeg?.kill();
-	const ffmpeg = spawn('ffmpeg', [
+	const ffmpeg = spawn(ffmpegPath, [
 		'-loglevel', 'error',
 		'-i', track.file,
 		'-vn',
