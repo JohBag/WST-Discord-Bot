@@ -45,7 +45,7 @@ function trackValue(track: Track): string {
 }
 
 export function buildPanel(status: MusicStatus | null, tracks: Track[]): PanelContent {
-	const embed = new EmbedBuilder().setColor(0xE67E22).setTitle('🎃 Music');
+	const embed = new EmbedBuilder().setColor(0xE67E22).setTitle('Music');
 
 	if (!status?.current) {
 		embed.setDescription('Nothing is playing. Press ▶️ to shuffle everything, or pick a song below.');
