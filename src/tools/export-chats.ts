@@ -1,7 +1,7 @@
 // Saves recent conversations the bot replied to, for npm run compare.
 // Needs the production bot's token to read the guild, so it runs on the VM: npm run vm -- chats
 //
-// node --env-file=.env dist/tools/export-chats.js [--count 20] [--scan 500] [--channel <id> ...]
+// node --env-file=.env dist/tools/export-chats.js [--count 20] [--scan 3000] [--channel <id> ...]
 import fs from 'fs';
 import { parseArgs } from 'util';
 import { ChannelType, REST, Routes } from 'discord.js';
@@ -17,7 +17,7 @@ const { values } = parseArgs({
 		// How many conversations to save, most recent first
 		count: { type: 'string', default: '20' },
 		// How many messages to read per channel
-		scan: { type: 'string', default: '500' },
+		scan: { type: 'string', default: '3000' },
 		channel: { type: 'string', multiple: true },
 	},
 });
@@ -79,10 +79,13 @@ async function findConversations(channel: APIChannel): Promise<EvalConversation[
 	const messages = await getMessages(channel.id, Number(values.scan));
 	const { messageLimit } = getChannelSettings(channel.id);
 	const conversations: EvalConversation[] = [];
+	// Where the last saved conversation starts. Replies inside it are skipped, since a busy thread
+	// would otherwise give many conversations that are almost the same.
+	let savedFrom = messages.length;
 
-	for (let i = 0; i < messages.length; i++) {
+	for (let i = messages.length - 1; i >= 0; i--) {
 		const reply = messages[i];
-		if (!isChatReply(reply)) {
+		if (i >= savedFrom || !isChatReply(reply)) {
 			continue;
 		}
 
@@ -106,6 +109,7 @@ async function findConversations(channel: APIChannel): Promise<EvalConversation[
 			}))),
 			original: reply.content,
 		});
+		savedFrom = i - messageLimit;
 	}
 	return conversations;
 }
