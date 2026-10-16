@@ -9,7 +9,7 @@ export interface Candidate {
 	text: string;
 	toolCalls: ToolCall[];
 	ms: number;
-	usage?: { inputTokens: number; outputTokens: number };
+	usage?: { inputTokens: number; outputTokens: number; searches?: number };
 	error?: string;
 }
 
@@ -134,7 +134,7 @@ function describeCall(call) {
 
 function renderConversation(conversation) {
 	const card = el('section', 'card');
-	const meta = [conversation.channel && '#' + conversation.channel, conversation.date && new Date(conversation.date).toLocaleString()].filter(Boolean);
+	const meta = [conversation.channel && '#' + conversation.channel, conversation.date && new Date(conversation.date).toLocaleString(), conversation.reason === 'random' ? 'joined in uninvited' : 'asked directly'].filter(Boolean);
 	card.append(el('p', 'meta', meta.join(' · ') || conversation.id));
 
 	const chat = el('ol', 'chat');
@@ -160,7 +160,7 @@ function renderConversation(conversation) {
 			const who = el('div', 'who');
 			who.append(el('b', '', variantName(candidate.variant)));
 			if (candidate.variant !== -1) {
-				who.append(document.createTextNode(' · ' + (candidate.ms / 1000).toFixed(1) + ' s' + (candidate.usage ? ' · ' + candidate.usage.outputTokens + ' tokens out' : '')));
+				who.append(document.createTextNode(' · ' + (candidate.ms / 1000).toFixed(1) + ' s' + (candidate.usage ? ' · ' + candidate.usage.outputTokens + ' tokens out' : '') + (candidate.usage && candidate.usage.searches ? ' · searched ' + candidate.usage.searches + '×' : '')));
 			}
 			button.append(who);
 		}

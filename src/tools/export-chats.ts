@@ -9,6 +9,7 @@ import type { APIChannel, APIGuildMember, APIMessage, APIUser } from 'discord.js
 import { config, secrets } from '../core/config.js';
 import { filterHistory } from '../features/chat/conversation.js';
 import getChannelSettings from '../features/chat/channel-settings.js';
+import { isMentionedByName } from '../features/chat/should-respond.js';
 import { conversationsDir } from './eval.js';
 import type { EvalConversation } from './eval.js';
 
@@ -77,7 +78,7 @@ const timestamp = (message: APIMessage) => Date.parse(message.timestamp);
 
 async function findConversations(channel: APIChannel): Promise<EvalConversation[]> {
 	const messages = await getMessages(channel.id, Number(values.scan));
-	const { messageLimit } = getChannelSettings(channel.id);
+	const { messageLimit, reactChance } = getChannelSettings(channel.id);
 	const conversations: EvalConversation[] = [];
 	// Where the last saved conversation starts. Replies inside it are skipped, since a busy thread
 	// would otherwise give many conversations that are almost the same.
@@ -98,6 +99,10 @@ async function findConversations(channel: APIChannel): Promise<EvalConversation[
 			continue;
 		}
 
+		// Decided like the bot decides, from the message it replied to
+		const last = history.at(-1)!.message;
+		const direct = reactChance === 1 || last.mentions.some(user => user.id === bot.id) || isMentionedByName(last.content);
+
 		conversations.push({
 			id: `${channel.name}-${reply.id}`,
 			channel: channel.name ?? undefined,
@@ -108,6 +113,7 @@ async function findConversations(channel: APIChannel): Promise<EvalConversation[
 				fromBot: message.author.id === bot.id,
 			}))),
 			original: reply.content,
+			reason: direct ? 'direct' : 'random',
 		});
 		savedFrom = i - messageLimit;
 	}

@@ -6,6 +6,8 @@ import { tools } from './tools.js';
 
 // Replies are kept short by the prompt; this only stops a runaway answer
 const maxTokens = 1024;
+// Searches allowed per reply, which keeps the cost and the wait down
+const maxSearches = 2;
 
 let client: Anthropic | undefined;
 
@@ -52,24 +54,33 @@ export async function generateClaudeReply(request: ReplyRequest): Promise<ChatRe
 		throw new Error('There is no message to reply to');
 	}
 
+	const allowedTools: Anthropic.Messages.ToolUnion[] = [];
+	if (request.tools) {
+		allowedTools.push(...tools.map(tool => ({ name: tool.name, description: tool.description, input_schema: tool.parameters })));
+	}
+	if (request.webSearch) {
+		allowedTools.push({ type: 'web_search_20250305', name: 'web_search', max_uses: maxSearches });
+	}
+
 	const response = await getClient().messages.create({
 		model: request.model,
 		max_tokens: maxTokens,
 		system: request.systemPrompt,
 		messages,
-		tools: request.tools
-			? tools.map(tool => ({ name: tool.name, description: tool.description, input_schema: tool.parameters }))
-			: undefined,
+		tools: allowedTools.length > 0 ? allowedTools : undefined,
 	});
 
+	// Claude may say something before searching ("Let me check"); the reply is what follows the last search
+	const afterSearch = response.content.map(block => block.type).lastIndexOf('web_search_tool_result') + 1;
 	return {
-		text: response.content.map(block => block.type === 'text' ? block.text : '').join('').trim(),
+		text: response.content.slice(afterSearch).map(block => block.type === 'text' ? block.text : '').join('').trim(),
 		toolCalls: response.content.flatMap(block => block.type === 'tool_use'
 			? [{ name: block.name, args: block.input as Record<string, any> }]
 			: []),
 		usage: {
 			inputTokens: response.usage.input_tokens,
 			outputTokens: response.usage.output_tokens,
+			searches: response.usage.server_tool_use?.web_search_requests ?? 0,
 		},
 	};
 }

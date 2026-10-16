@@ -44,6 +44,10 @@ export interface ChannelSettings {
 	reactChance: number;
 	// Overrides models.text in this channel, to try a model on one channel first
 	model?: string;
+	// Prompt file to use instead of config/prompt.txt
+	prompt?: string;
+	// Lets the model look things up on the web, which costs a little per search
+	webSearch?: boolean;
 }
 
 export interface Secrets {

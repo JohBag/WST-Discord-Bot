@@ -19,6 +19,8 @@ export interface ChatReply {
 	usage: {
 		inputTokens: number;
 		outputTokens: number;
+		// Web searches made while writing the reply
+		searches: number;
 	};
 }
 
@@ -29,6 +31,8 @@ export interface ReplyRequest {
 	conversation: ChatMessage[];
 	// Whether the model may call the bot's tools (pictures, logs, votes)
 	tools: boolean;
+	// Whether the model may search the web, which the provider does on its side
+	webSearch?: boolean;
 }
 
 // Other people's messages are prefixed with their name so the model knows who said what. The bot's

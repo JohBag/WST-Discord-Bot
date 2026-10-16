@@ -8,6 +8,7 @@ import path from 'path';
 import { parseArgs } from 'util';
 import { config } from '../core/config.js';
 import { generateReply } from '../ai/chat.js';
+import { buildSystemPrompt } from '../features/chat/situation.js';
 import { conversationsDir, resultsDir, variantsFile } from './eval.js';
 import type { EvalConversation, Variant, VariantsFile } from './eval.js';
 import { renderPage } from './compare-page.js';
@@ -49,7 +50,7 @@ function loadConversations(): EvalConversation[] {
 }
 
 function variantName(variant: Variant): string {
-	return variant.name ?? `${variant.model} · ${path.basename(variant.prompt, path.extname(variant.prompt))}`;
+	return variant.name ?? `${variant.model} · ${path.basename(variant.prompt, path.extname(variant.prompt))}${variant.webSearch ? ' · web search' : ''}`;
 }
 
 async function runAll<T>(jobs: (() => Promise<T>)[], limit: number): Promise<T[]> {
@@ -98,9 +99,10 @@ const jobs = conversations.flatMap(conversation => setup.variants.flatMap((varia
 		try {
 			const reply = await generateReply({
 				model: variant.model,
-				systemPrompt: prompts.get(variant.prompt)!,
+				systemPrompt: buildSystemPrompt(prompts.get(variant.prompt)!, conversation.reason ?? 'direct', variant.webSearch ?? false),
 				conversation: conversation.messages,
 				tools: true,
+				webSearch: variant.webSearch,
 			});
 			return { variant: variantIndex, text: reply.text, toolCalls: reply.toolCalls, ms: Date.now() - started, usage: reply.usage };
 		} catch (error) {

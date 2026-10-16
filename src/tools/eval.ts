@@ -1,6 +1,7 @@
 // Shared by the tools that compare models and prompts on saved conversations.
 // Everything lives in the git-ignored eval/ folder, since the conversations are real guild messages.
 import type { ChatMessage } from '../ai/conversation.js';
+import type { ReplyReason } from '../features/chat/situation.js';
 
 export const evalDir = 'eval';
 export const conversationsDir = `${evalDir}/conversations`;
@@ -15,6 +16,8 @@ export interface EvalConversation {
 	messages: ChatMessage[];
 	// What the bot actually replied at the time, compared blind with the candidates
 	original?: string;
+	// Whether someone asked for the bot or it joined in on its own; direct when left out
+	reason?: ReplyReason;
 }
 
 export interface Variant {
@@ -22,6 +25,7 @@ export interface Variant {
 	name?: string;
 	model: string;
 	prompt: string;
+	webSearch?: boolean;
 }
 
 export interface VariantsFile {

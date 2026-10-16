@@ -2,31 +2,34 @@ import log from '../../core/log.js';
 import { config, secrets } from '../../core/config.js';
 import { ChatInputCommandInteraction } from 'discord.js';
 import type { Message, MessageMentions } from 'discord.js';
+import type { ReplyReason } from './situation.js';
 
-export default function shouldRespond(interaction: Message | ChatInputCommandInteraction, reactChance: number): boolean {
+// Whether to reply and why, or null to stay quiet
+export default function shouldRespond(interaction: Message | ChatInputCommandInteraction, reactChance: number): ReplyReason | null {
 	if (interaction instanceof ChatInputCommandInteraction) {
-		return true;
+		return 'direct';
 	}
 
 	if (interaction.author.bot) {
-		return false;
+		return null;
 	}
 
 	if (isInBlacklistedChannel(interaction.channelId)) {
-		return false;
+		return null;
 	}
 
-	if (hasBotMention(interaction.mentions) || hasBotNickname(interaction.content)) {
+	// In channels where the bot answers everything, every message is meant for it
+	if (hasBotMention(interaction.mentions) || isMentionedByName(interaction.content) || reactChance === 1) {
 		log('Responding to mention');
-		return true;
+		return 'direct';
 	}
 
 	if (isRandomResponse(reactChance)) {
 		log(`Random reply (${reactChance * 100}% chance)`);
-		return true;
+		return 'random';
 	}
 
-	return false;
+	return null;
 }
 
 function isInBlacklistedChannel(channelId: string): boolean {
@@ -37,7 +40,7 @@ function hasBotMention(mentions: MessageMentions): boolean {
 	return mentions.users.size > 0 && mentions.users.has(secrets.discord.appId!);
 }
 
-function hasBotNickname(content: string): boolean {
+export function isMentionedByName(content: string): boolean {
 	return config.nicknames.some(name => content.toLowerCase().includes(name));
 }
 
