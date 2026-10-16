@@ -3,7 +3,7 @@ import { config } from '../../core/config.js';
 import log from '../../core/log.js';
 import getConversation from './conversation.js';
 import shouldRespond from './should-respond.js';
-import getChannelSettings, { getPrompt } from './channel-settings.js';
+import getChannelSettings from './channel-settings.js';
 import { buildSystemPrompt } from './situation.js';
 import type { ReplyReason } from './situation.js';
 import { ReplyQueue } from './reply-queue.js';
@@ -45,9 +45,9 @@ async function reply(trigger: Trigger, reason: ReplyReason): Promise<number> {
 			return historyReadAt;
 		}
 
-		const model = settings.model ?? config.models.text;
-		const webSearch = settings.webSearch ?? false;
-		const systemPrompt = buildSystemPrompt(getPrompt(settings), reason, webSearch);
+		const model = config.models.text;
+		const webSearch = config.chat.webSearch;
+		const systemPrompt = buildSystemPrompt(config.prompt, reason, webSearch);
 		const response = await generateReply({ model, systemPrompt, conversation, tools: true, webSearch });
 		if (response.usage.searches > 0) {
 			log(`Searched the web ${response.usage.searches} time(s)`);

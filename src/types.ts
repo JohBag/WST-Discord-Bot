@@ -5,13 +5,15 @@ export interface Config {
 	name: string;
 	nicknames: string[];
 	models: {
-		// A gemini-* or claude-* model; channels can override it
+		// A claude-* or gemini-* model
 		text: string;
 		image: string;
 	};
 	chat: {
 		cutoff: string;
 		ageLimitDays: number;
+		// Lets the model look up current information on the web, at a small cost per search
+		webSearch: boolean;
 	};
 	channelSettings: {
 		default: ChannelSettings;
@@ -42,12 +44,6 @@ export interface Config {
 export interface ChannelSettings {
 	messageLimit: number;
 	reactChance: number;
-	// Overrides models.text in this channel, to try a model on one channel first
-	model?: string;
-	// Prompt file to use instead of config/prompt.txt
-	prompt?: string;
-	// Lets the model look things up on the web, which costs a little per search
-	webSearch?: boolean;
 }
 
 export interface Secrets {

@@ -4,12 +4,13 @@
 		"botty"
 	],
 	"models": {
-		"text": "gemini-3.1-pro-preview",
+		"text": "claude-sonnet-5-5",
 		"image": "gemini-3.1-flash-image-preview"
 	},
 	"chat": {
 		"cutoff": "###",
-		"ageLimitDays": 7
+		"ageLimitDays": 7,
+		"webSearch": true
 	},
 	"channelSettings": {
 		"default": {

@@ -30,12 +30,12 @@ A custom AI-powered Discord bot developed for the World of Warcraft guild 'Warse
 
 The `config/` directory ships with a working configuration for our guild. Edit these files to point the bot at your own server:
 
-* `config.json` (Guild and channel IDs, model names, and per-channel behaviour). The chat model can be a Gemini (`gemini-*`) or Claude (`claude-*`) model, and a channel can use its own by setting `model` in its `channelSettings`, along with its own `prompt` file and `webSearch` (lets the model look up current information, at a small cost per search).
+* `config.json` (Guild and channel IDs, model names, and per-channel behaviour). The chat model can be a Claude (`claude-*`) or Gemini (`gemini-*`) model. `chat.webSearch` lets it look up current information on the web, at a small cost per search.
 * `prompt.txt` (The AI system prompt)
 
 To run a separate test bot locally, put the settings that differ in `config/config.local.json`. It is git-ignored and merged over `config.json` when present.
 
-Create a `.env` file in the project root with your API keys (see `.env.example`). `ANTHROPIC_API_KEY` is only needed when a Claude model is configured.
+Create a `.env` file in the project root with your API keys (see `.env.example`). The Anthropic key is used for chat with a Claude model and the Gemini key for pictures (and chat with a Gemini model).
 
 ## Setup
 
