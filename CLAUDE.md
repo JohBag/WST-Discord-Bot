@@ -7,6 +7,7 @@ Discord bot for the WoW guild Warseeker Tribe: Gemini-powered chat and voice, sl
 - Never commit secrets. API keys live only in `.env` (see `.env.example`), loaded with `node --env-file=.env`.
 - Do not read `.env`, `config/secrets.json` or any other credential file, locally or on the VM. Check that a variable is set without printing its value.
 - `config/config.json` and `config/prompt.txt` are committed on purpose and must stay free of secrets.
+- `eval/` is git-ignored because it holds real guild conversations exported for model comparisons. Never commit or publish anything from it.
 - Keep machine-specific details (IP addresses, usernames) out of committed files. The VM is reached through the SSH alias `wst-vm`, defined only in the local `~/.ssh/config`.
 
 ## Commands
@@ -16,6 +17,7 @@ npm run build     # Wipe dist/ and compile
 npm test          # Build, then run every *.test.ts (compiled into dist/)
 npm start         # Run the bot locally (needs .env)
 npm run deploy-commands / delete-commands   # Register or remove slash commands with Discord
+npm run compare   # Reply to the conversations in eval/conversations/ with each variant in eval/variants.json, write a blind comparison page to eval/results/
 ```
 
 ## Layout
@@ -25,7 +27,8 @@ All source is in `src/` and compiles to `dist/` with the same structure (`src/bo
 - `bot.ts`: creates the client, wires events through `safeHandler` and loads commands. `core/clear-log.js` must stay its first import.
 - `commands/`, `events/`: slash commands (`data` builder plus `execute`, typed by `BotCommand`) and Discord event handlers (`BotEvent`). Each folder's `index.ts` lists what gets loaded, so a new command or event must be exported there.
 - `core/`: shared plumbing. `config.ts` loads config and secrets, `log.ts` writes to the console and `log.txt`, `storage.ts` reads and writes JSON files in `config/`, `message.ts` builds and sends messages, `user-error.ts` marks errors whose message should be shown to the user.
-- `ai/`: AI provider code (currently `gemini.ts`).
+- `ai/`: AI providers behind one interface. `chat.ts` picks Claude or Gemini from the model name (`claude-*` or `gemini-*`), `conversation.ts` has the shared types and message formatting, `tools.ts` the tools the model can call as JSON Schema. Images always use Gemini.
+- `tools/`: developer scripts, not loaded by the bot. `compare.ts` and `export-chats.ts` are the model and prompt comparison.
 - `features/`: one folder per feature. `chat/` decides when to reply and builds the conversation, `votes/` handles button votes, `warcraft-logs/` talks to the Warcraft Logs GraphQL API (`raids.ts` finds raid nights across guild and uploader reports and merges duplicates, `auto-post.ts` polls for new raids and edits its posts while they are live-logged, remembering them in the git-ignored `config/warcraft-logs-posts.json`), `music/` plays files from the git-ignored `music/` folder in voice channels by piping them through ffmpeg as Ogg Opus. ffmpeg comes from the `ffmpeg-static` npm package, since the VM's Debian 11 can no longer install packages reliably.
 
 Commands can return text or message content (embeds, components) to keep as their private reply, or throw `UserError` to show a message. Buttons and menus with IDs starting with `music-panel:` go to the music panel; all other buttons are treated as votes.
@@ -43,6 +46,7 @@ npm run vm -- status    # Deployed commit and pm2 status
 npm run vm -- restart   # Restart without deploying
 npm run vm -- commands  # Register slash commands for the production bot (after adding or changing a command)
 npm run vm -- music     # Copy the local music/ folder to the VM
+npm run vm -- chats     # Export recent conversations Botty replied to into eval/conversations/ (needs the production token, so it runs there)
 ```
 
 `log.txt` is cleared every time the bot starts, so read it before restarting or deploying when investigating a problem. pm2 keeps its own copy of stdout in `~/.pm2/logs/`.

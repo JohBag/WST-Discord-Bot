@@ -2,12 +2,13 @@ import { config } from '../../core/config.js';
 import log from '../../core/log.js';
 import getConversation from './conversation.js';
 import shouldRespond from './should-respond.js';
-import { generateResponse, generateImage } from '../../ai/gemini.js';
+import getChannelSettings from './channel-settings.js';
+import { generateReply } from '../../ai/chat.js';
+import { generateImage } from '../../ai/gemini.js';
 import createWarcraftLog from '../warcraft-logs/warcraft-logs.js';
 import { createVote } from '../votes/votes.js';
 import Message from '../../core/message.js';
 import type { Message as DiscordMessage, ChatInputCommandInteraction, SendableChannels } from 'discord.js';
-import type { ChannelSettings } from '../../types.js';
 
 export default async function respond(interaction: DiscordMessage | ChatInputCommandInteraction): Promise<void> {
 	const channelSettings = getChannelSettings(interaction.channel!.id);
@@ -21,19 +22,16 @@ export default async function respond(interaction: DiscordMessage | ChatInputCom
 		return;
 	}
 
-	// Generate response
-	const response = await generateResponse(config.prompt, conversation);
-	if (!response) {
-		throw new Error('No response');
-	}
+	const model = channelSettings.model ?? config.models.text;
+	const response = await generateReply({ model, systemPrompt: config.prompt, conversation, tools: true });
 
 	let message = new Message();
 	let channel = interaction.channel as SendableChannels;
 
 	// Check for function calls in the response
-	if (response.functionCalls && response.functionCalls.length > 0) {
-		const functionCall = response.functionCalls[0]; // Assuming one function call
-		const args: Record<string, any> = functionCall.args ?? {};
+	if (response.toolCalls.length > 0) {
+		const functionCall = response.toolCalls[0]; // Assuming one function call
+		const args = functionCall.args;
 		log("Calling function: " + functionCall.name);
 		log("Args: " + JSON.stringify(args));
 
@@ -52,7 +50,7 @@ export default async function respond(interaction: DiscordMessage | ChatInputCom
 					const instruction = `\nYou just fetched the Warcraft Logs report "${report?.title}" from ${report?.description}, `
 						+ `link: ${report?.url}. A summary of it will be posted ${where}. Give the user a short, positive response about it. `
 						+ 'Only use the details given here; do not invent links or results.';
-					const successResponse = await generateResponse(config.prompt + instruction, conversation, false);
+					const successResponse = await generateReply({ model, systemPrompt: config.prompt + instruction, conversation, tools: false });
 					if (successResponse.text) {
 						await new Message().addText(successResponse.text).send(channel);
 					}
@@ -69,15 +67,10 @@ export default async function respond(interaction: DiscordMessage | ChatInputCom
 				break;
 		}
 	} else {
-		if (response.text === undefined) {
+		if (!response.text) {
 			throw new Error('No text in response');
 		}
 		message.addText(response.text);
 	}
 	await message.send(channel);
-}
-
-function getChannelSettings(channelID: string): ChannelSettings {
-	const { default: defaultSettings, [channelID]: channelSettings = {} } = config.channelSettings;
-	return { ...defaultSettings, ...channelSettings } as ChannelSettings;
 }

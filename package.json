@@ -15,11 +15,13 @@
         "deploy-commands": "node --env-file=.env dist/deploy-commands.js",
         "delete-commands": "node --env-file=.env dist/delete-commands.js",
         "test": "npm run build && node --test \"dist/**/*.test.js\"",
+        "compare": "tsc && node --env-file=.env dist/tools/compare.js",
         "vm": "node scripts/vm.mjs",
         "deploy": "node scripts/vm.mjs deploy",
         "logs": "node scripts/vm.mjs logs"
     },
     "dependencies": {
+        "@anthropic-ai/sdk": "^0.131.0",
         "@discordjs/voice": "^0.19.2",
         "@google/genai": "^1.30.0",
         "discord.js": "^14.25.1",

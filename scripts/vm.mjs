@@ -1,6 +1,7 @@
 // Runs maintenance commands on the bot's VM over SSH.
 // Expects an SSH host alias "wst-vm" in ~/.ssh/config pointing at the bot's user.
 import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
 
 const host = process.env.VM_HOST ?? 'wst-vm';
 const dir = '~/wst';
@@ -21,6 +22,21 @@ const remoteCommands = {
 const localCommands = {
 	// Copies the git-ignored music folder; existing files on the VM are overwritten, none are deleted
 	music: () => spawnSync('scp', ['-o', 'LogLevel=ERROR', '-r', 'music', `${host}:wst/`], { stdio: 'inherit' }),
+	// Saves recent conversations Botty replied to into eval/, for npm run compare. Reading the guild
+	// needs the production bot's token, so the export runs on the VM and the file is copied back.
+	chats: () => {
+		const file = 'eval/conversations/discord.json';
+		const args = process.argv.slice(3).join(' ');
+		const exported = spawnSync('ssh', ['-o', 'LogLevel=ERROR', host, `${nvm} && cd ${dir} && node --env-file=.env dist/tools/export-chats.js ${args}`], { stdio: 'inherit' });
+		if (exported.status !== 0) {
+			return exported;
+		}
+		fs.mkdirSync('eval/conversations', { recursive: true });
+		const copied = spawnSync('scp', ['-o', 'LogLevel=ERROR', `${host}:wst/${file}`, file], { stdio: 'inherit' });
+		// The messages are only needed here
+		spawnSync('ssh', ['-o', 'LogLevel=ERROR', host, `rm -rf ${dir}/eval`], { stdio: 'inherit' });
+		return copied;
+	},
 };
 
 const name = process.argv[2];

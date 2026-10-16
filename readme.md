@@ -30,12 +30,12 @@ A custom AI-powered Discord bot developed for the World of Warcraft guild 'Warse
 
 The `config/` directory ships with a working configuration for our guild. Edit these files to point the bot at your own server:
 
-* `config.json` (Guild and channel IDs, model names, and per-channel behaviour)
+* `config.json` (Guild and channel IDs, model names, and per-channel behaviour). The chat model can be a Gemini (`gemini-*`) or Claude (`claude-*`) model, and a channel can use its own by setting `model` in its `channelSettings`.
 * `prompt.txt` (The AI system prompt)
 
 To run a separate test bot locally, put the settings that differ in `config/config.local.json`. It is git-ignored and merged over `config.json` when present.
 
-Create a `.env` file in the project root with your API keys (see `.env.example`).
+Create a `.env` file in the project root with your API keys (see `.env.example`). `ANTHROPIC_API_KEY` is only needed when a Claude model is configured.
 
 ## Setup
 
@@ -73,3 +73,14 @@ npm run vm -- music     # Copy the local music/ folder to the VM
 ```
 
 Music files are not in the repository: put them in the git-ignored `music/` folder and copy them over with `npm run vm -- music`.
+
+## Comparing models and prompts
+
+To try other models or prompts before switching, reply to saved conversations with each and compare the results blind. Everything is kept in the git-ignored `eval/` folder, since the conversations are real messages from the server.
+
+```bash
+npm run vm -- chats     # Export the 20 most recent conversations Botty replied to (chats --count 40 for more)
+npm run compare         # Reply to each with every variant and write a comparison page
+```
+
+The first run creates `eval/variants.json`, which lists the model and prompt file of each variant. You can also add your own conversations as JSON files in `eval/conversations/`. The page in `eval/results/` shows the replies in random order: pick a favourite for each conversation, then reveal which variant wrote what along with the totals.

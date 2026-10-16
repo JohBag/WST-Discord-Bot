@@ -5,6 +5,7 @@ export interface Config {
 	name: string;
 	nicknames: string[];
 	models: {
+		// A gemini-* or claude-* model; channels can override it
 		text: string;
 		image: string;
 	};
@@ -41,6 +42,8 @@ export interface Config {
 export interface ChannelSettings {
 	messageLimit: number;
 	reactChance: number;
+	// Overrides models.text in this channel, to try a model on one channel first
+	model?: string;
 }
 
 export interface Secrets {
@@ -50,6 +53,7 @@ export interface Secrets {
 	};
 	keys: {
 		gemini: string | undefined;
+		anthropic: string | undefined;
 		warcraftLogs: string | undefined;
 	};
 }

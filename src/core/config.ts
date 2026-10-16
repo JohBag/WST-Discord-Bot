@@ -17,6 +17,7 @@ const secrets: Secrets = {
 	},
 	keys: {
 		gemini: process.env.GEMINI_API_KEY,
+		anthropic: process.env.ANTHROPIC_API_KEY,
 		warcraftLogs: process.env.WARCRAFT_LOGS_API_KEY,
 	}
 };

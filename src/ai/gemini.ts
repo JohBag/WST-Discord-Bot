@@ -1,43 +1,64 @@
 import { secrets } from "../core/config.js";
 import log from '../core/log.js';
 import fs from "fs";
-import { GoogleGenAI, Type } from "@google/genai";
-import type { GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
+import type { Content } from "@google/genai";
 import { config } from '../core/config.js';
 import Message from '../core/message.js';
+import { formatMessage } from './conversation.js';
+import type { ChatMessage, ChatReply, ReplyRequest } from './conversation.js';
+import { tools } from './tools.js';
 
-const ai = new GoogleGenAI({ apiKey: secrets.keys.gemini });
+let client: GoogleGenAI | undefined;
 
-const textModel = config.models.text;
-const imageModel = config.models.image;
-const functionDeclarations: any[] = [{ functionDeclarations: [] as any[] }];
-
-export async function generateResponse(systemPrompt: string, conversation: any, allowFunctions: boolean = true): Promise<GenerateContentResponse> {
-	log("Generating response");
-
-	const parameters: any = {
-		model: textModel,
-		contents: conversation,
-		config: {
-			systemInstruction: systemPrompt,
-		}
-	};
-
-	if (allowFunctions) {
-		parameters.config.tools = functionDeclarations;
+// Created on first use, so tools that only use Claude don't need a Gemini key
+function getClient(): GoogleGenAI {
+	if (!secrets.keys.gemini) {
+		throw new Error('GEMINI_API_KEY is not set');
 	}
+	client ??= new GoogleGenAI({ apiKey: secrets.keys.gemini });
+	return client;
+}
 
-	const response = await ai.models.generateContent(parameters);
+export function toGeminiContents(conversation: ChatMessage[]): Content[] {
+	return conversation.map(message => ({
+		role: message.fromBot ? 'model' : 'user',
+		parts: [{ text: formatMessage(message) }],
+	}));
+}
 
-	return response;
+export async function generateGeminiReply(request: ReplyRequest): Promise<ChatReply> {
+	const response = await getClient().models.generateContent({
+		model: request.model,
+		contents: toGeminiContents(request.conversation),
+		config: {
+			systemInstruction: request.systemPrompt,
+			tools: request.tools
+				? [{ functionDeclarations: tools.map(tool => ({ name: tool.name, description: tool.description, parametersJsonSchema: tool.parameters })) }]
+				: undefined,
+		},
+	});
+
+	const usage = response.usageMetadata;
+	// Read the parts directly, since response.text warns whenever there is also a function call
+	const parts = response.candidates?.[0]?.content?.parts ?? [];
+	return {
+		text: parts.map(part => part.text && !part.thought ? part.text : '').join('').trim(),
+		toolCalls: (response.functionCalls ?? []).map(call => ({ name: call.name ?? '', args: call.args ?? {} })),
+		usage: {
+			inputTokens: usage?.promptTokenCount ?? 0,
+			// Thinking is billed as output
+			outputTokens: (usage?.candidatesTokenCount ?? 0) + (usage?.thoughtsTokenCount ?? 0),
+		},
+	};
 }
 
 export async function generateImage(prompt: string): Promise<Message> {
 	log("Generating image");
 
 	const message = new Message();
-	const response = await ai.models.generateContent({
-		model: imageModel,
+	const response = await getClient().models.generateContent({
+		model: config.models.image,
 		contents: prompt,
 	});
 	for (const part of response.candidates![0].content!.parts!) {
@@ -53,55 +74,3 @@ export async function generateImage(prompt: string): Promise<Message> {
 
 	return message;
 }
-
-// ----- Function declarations ----- //
-const generatePictureFunction = {
-	name: 'generate_picture',
-	description: 'Generates a picture based on the given prompt.',
-	parameters: {
-		type: Type.OBJECT,
-		properties: {
-			prompt: {
-				type: Type.STRING,
-				description: 'The prompt to generate the picture.',
-			},
-		},
-		required: ['prompt'],
-	},
-};
-const createWarcraftLogFunction = {
-	name: 'create_warcraft_log',
-	description: 'Posts a summary of a Warcraft Logs report. Leave out the id to use the guild\'s most recent report.',
-	parameters: {
-		type: Type.OBJECT,
-		properties: {
-			id: {
-				type: Type.STRING,
-				description: 'The Warcraft Logs report ID, as seen in the report URL.',
-			},
-		},
-	},
-};
-const createVoteFunction = {
-	name: 'create_vote',
-	description: 'Starts a vote based on the given title and options.',
-	parameters: {
-		type: Type.OBJECT,
-		properties: {
-			title: {
-				type: Type.STRING,
-				description: 'The title of the vote.',
-			},
-			options: {
-				type: Type.STRING,
-				description: 'Comma-separated list of options (max 25).',
-			},
-			anonymity: {
-				type: Type.BOOLEAN,
-				description: 'Whether to hide voter names and use a score system instead (default: false).',
-			},
-		},
-		required: ['title', 'options'],
-	},
-};
-functionDeclarations[0].functionDeclarations.push(generatePictureFunction, createWarcraftLogFunction, createVoteFunction);

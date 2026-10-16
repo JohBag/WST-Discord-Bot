@@ -2,18 +2,16 @@ import getUsername from '../../core/get-username.js';
 import { config } from '../../core/config.js';
 import log from '../../core/log.js';
 import type { Message } from 'discord.js';
+import type { ChatMessage } from '../../ai/conversation.js';
 
-interface ConversationEntry {
-	role: 'model' | 'user';
-	parts: { text: string }[];
+// The parts of a message the history filters look at, so saved conversations can be filtered the same way
+export interface HistoryMessage {
+	createdTimestamp: number;
+	content: string;
 }
 
-export default async function getConversation(interaction: Message, messageLimit: number): Promise<ConversationEntry[] | undefined> {
-	let messages = await getMessages(interaction, messageLimit);
-
-	messages = filterByDate(messages);
-	messages = filterByCutoff(messages);
-	messages = filterEmpty(messages);
+export default async function getConversation(interaction: Message, messageLimit: number): Promise<ChatMessage[] | undefined> {
+	const messages = filterHistory(await getMessages(interaction, messageLimit), Date.now());
 
 	if (messages.length === 0) {
 		log('No messages remaining.');
@@ -28,17 +26,14 @@ async function getMessages(interaction: Message, messageLimit: number): Promise<
 	return Array.from(IdsToMessages.values());
 }
 
-async function formatConversation(messages: Message[]): Promise<ConversationEntry[]> {
+async function formatConversation(messages: Message[]): Promise<ChatMessage[]> {
 	const conversation = await Promise.all(
-		messages.map(async (message) => {
-			const username = await getUsername(message);
+		messages.map(async (message) => ({
+			author: await getUsername(message),
+			content: message.content,
 			// Compare IDs rather than names, since server nicknames can differ from config.name
-			const role: 'model' | 'user' = message.author.id === message.client.user.id ? 'model' : 'user';
-			return {
-				role,
-				parts: [{ text: `${username}: ${message.content}` }]
-			};
-		})
+			fromBot: message.author.id === message.client.user.id,
+		}))
 	);
 
 	conversation.reverse();
@@ -46,28 +41,24 @@ async function formatConversation(messages: Message[]): Promise<ConversationEntr
 	return conversation;
 }
 
-function filterByDate(messages: Message[]): Message[] {
-	const ageLimit = config.chat.ageLimitDays * (1000 * 60 * 60 * 24);
-	const currentDate = new Date();
-	for (let i = 0; i < messages.length; i++) {
-		const message = messages[i];
-		const messageDate = new Date(message.createdTimestamp);
-		const age = currentDate.getTime() - messageDate.getTime();
-
-		if (age > ageLimit) {
-			messages = messages.slice(0, i);
-			break;
-		}
-	}
-
-	return messages;
+// Takes messages newest first and keeps the recent, non-empty ones after the last cutoff marker
+export function filterHistory<T extends HistoryMessage>(messages: T[], now: number): T[] {
+	messages = filterByDate(messages, now);
+	messages = filterByCutoff(messages);
+	return filterEmpty(messages);
 }
 
-function filterByCutoff(messages: Message[]): Message[] {
+function filterByDate<T extends HistoryMessage>(messages: T[], now: number): T[] {
+	const ageLimit = config.chat.ageLimitDays * (1000 * 60 * 60 * 24);
+	const tooOld = messages.findIndex(message => now - message.createdTimestamp > ageLimit);
+	return tooOld === -1 ? messages : messages.slice(0, tooOld);
+}
+
+function filterByCutoff<T extends HistoryMessage>(messages: T[]): T[] {
 	const cutoffIndex = messages.findIndex((message) => message.content === config.chat.cutoff);
 	return cutoffIndex === -1 ? messages : messages.slice(0, cutoffIndex);
 }
 
-function filterEmpty(messages: Message[]): Message[] {
+function filterEmpty<T extends HistoryMessage>(messages: T[]): T[] {
 	return messages.filter((message) => message.content.trim() !== '');
 }
