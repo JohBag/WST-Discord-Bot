@@ -78,7 +78,7 @@ if (values.render) {
 	// Same data and creation time, so picks saved in the browser still apply
 	const html = fs.readFileSync(values.render, 'utf8');
 	const data = JSON.parse(html.match(/<script id="data" type="application\/json">([\s\S]*?)<\/script>/)![1]);
-	fs.writeFileSync(values.render, renderPage(data, data.botName));
+	fs.writeFileSync(values.render, renderPage(data));
 	console.log(`Rebuilt ${path.resolve(values.render)}`);
 	process.exit(0);
 }
@@ -131,5 +131,5 @@ for (const failure of failures.slice(0, 5)) {
 
 fs.mkdirSync(resultsDir, { recursive: true });
 const file = path.resolve(resultsDir, `${comparison.createdAt.slice(0, 16).replace(/[:T]/g, '-')}.html`);
-fs.writeFileSync(file, renderPage(comparison, config.name));
+fs.writeFileSync(file, renderPage(comparison));
 console.log(`${failures.length} failed. Open the comparison in a browser:\n${file}`);

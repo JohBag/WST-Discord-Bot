@@ -19,9 +19,9 @@ export interface Comparison {
 	conversations: (EvalConversation & { candidates: Candidate[] })[];
 }
 
-export function renderPage(comparison: Comparison, botName: string): string {
+export function renderPage(comparison: Comparison): string {
 	// Stops a message containing "</script>" from ending the data block early
-	const data = JSON.stringify({ ...comparison, botName }).replace(/</g, '\\u003c');
+	const data = JSON.stringify(comparison).replace(/</g, '\\u003c');
 	return `<!doctype html>
 <html lang="en">
 <head>
@@ -117,7 +117,7 @@ function save() {
 }
 
 function variantName(index) {
-	return index === -1 ? 'What ' + data.botName + ' actually said' : data.variants[index];
+	return index === -1 ? 'What the bot actually said' : data.variants[index];
 }
 
 function el(tag, className, text) {
