@@ -1,5 +1,5 @@
-import { save, load } from '../modules/json.js';
-import log from '../modules/log.js';
+import { save, load } from '../core/storage.js';
+import log from '../core/log.js';
 import type { Message, PartialMessage } from 'discord.js';
 import type { BotEvent, Vote } from '../types.js';
 

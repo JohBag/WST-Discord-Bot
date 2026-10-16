@@ -1,9 +1,9 @@
 import { MessageFlags } from 'discord.js';
 import type { Interaction } from 'discord.js';
-import log from '../modules/log.js';
-import getUsername from '../modules/get-username.js';
-import { registerVote } from '../modules/votes.js';
-import UserError from '../modules/user-error.js';
+import log from '../core/log.js';
+import getUsername from '../core/get-username.js';
+import { registerVote } from '../features/votes/votes.js';
+import UserError from '../core/user-error.js';
 import type { BotEvent } from '../types.js';
 
 export default {

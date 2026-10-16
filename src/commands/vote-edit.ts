@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
-import { editVote } from '../modules/votes.js';
-import UserError from '../modules/user-error.js';
+import { editVote } from '../features/votes/votes.js';
+import UserError from '../core/user-error.js';
 import type { BotCommand } from '../types.js';
 
 export default {

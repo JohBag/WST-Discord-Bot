@@ -13,19 +13,21 @@ Discord bot for the WoW guild Warseeker Tribe: Gemini-powered chat and voice, sl
 
 ```bash
 npm run build     # Wipe dist/ and compile
-npm test          # Build, then run node:test suites in dist/tests/
+npm test          # Build, then run every *.test.ts (compiled into dist/)
 npm start         # Run the bot locally (needs .env)
 npm run deploy-commands / delete-commands   # Register or remove slash commands with Discord
 ```
 
 ## Layout
 
-- `bot.ts`: creates the client, wires events through `safeHandler` and loads commands.
-- `index/commands.ts`, `index/events.ts`: barrel files. A new command or event must be exported here to be loaded.
-- `commands/`: slash commands (`data` builder plus `execute`), typed by `BotCommand` in `types.ts`.
-- `events/`: Discord event handlers, typed by `BotEvent`.
-- `modules/`: shared logic. `data.ts` loads config and secrets, `log.ts` writes to the console and `log.txt`, `gemini.ts` and `generate-response.ts` handle AI, `warcraft-log.ts` talks to the Warcraft Logs GraphQL API.
-- `config/config.json`: the production config (guild/channel IDs, model names, per-channel settings), typed by `Config` in `types.ts`. A git-ignored `config/config.local.json` is deep-merged over it when present, for running a local test bot. Never put test values in `config.json`.
+All source is in `src/` and compiles to `dist/` with the same structure (`src/bot.ts` becomes `dist/bot.js`, which pm2 runs). Tests sit next to the code they cover as `*.test.ts`.
+
+- `bot.ts`: creates the client, wires events through `safeHandler` and loads commands. `core/clear-log.js` must stay its first import.
+- `commands/`, `events/`: slash commands (`data` builder plus `execute`, typed by `BotCommand`) and Discord event handlers (`BotEvent`). Each folder's `index.ts` lists what gets loaded, so a new command or event must be exported there.
+- `core/`: shared plumbing. `config.ts` loads config and secrets, `log.ts` writes to the console and `log.txt`, `storage.ts` reads and writes JSON files in `config/`, `message.ts` builds and sends messages, `user-error.ts` marks errors whose message should be shown to the user.
+- `ai/`: AI provider code (currently `gemini.ts`).
+- `features/`: one folder per feature. `chat/` decides when to reply and builds the conversation, `votes/` handles button votes, `warcraft-logs/` talks to the Warcraft Logs GraphQL API.
+- `config/config.json`: the production config (guild/channel IDs, model names, per-channel settings), typed by `Config` in `src/types.ts`. A git-ignored `config/config.local.json` is deep-merged over it when present, for running a local test bot. Never put test values in `config.json`.
 
 ## Production
 

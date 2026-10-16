@@ -1,6 +1,6 @@
-import getUsername from './get-username.js';
-import { config } from './data.js';
-import log from './log.js';
+import getUsername from '../../core/get-username.js';
+import { config } from '../../core/config.js';
+import log from '../../core/log.js';
 import type { Message } from 'discord.js';
 
 interface ConversationEntry {

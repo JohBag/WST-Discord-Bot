@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
-import { createVote } from '../modules/votes.js';
+import { createVote } from '../features/votes/votes.js';
 import type { BotCommand } from '../types.js';
 
 const maxOptions = 25; // Discord limit: 5 rows x 5 buttons

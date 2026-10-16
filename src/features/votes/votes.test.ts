@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { splitOptions } from '../modules/votes.js';
+import { splitOptions } from './votes.js';
 
 describe('splitOptions', () => {
 	it('should trim options and drop empty ones', () => {

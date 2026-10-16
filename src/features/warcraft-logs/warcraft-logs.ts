@@ -1,9 +1,9 @@
 import { EmbedBuilder } from 'discord.js';
 import type { Message, SendableChannels } from 'discord.js';
-import { secrets } from '../modules/data.js';
-import log from '../modules/log.js';
-import BotMessage from '../modules/message.js';
-import { config } from '../modules/data.js';
+import { secrets } from '../../core/config.js';
+import log from '../../core/log.js';
+import BotMessage from '../../core/message.js';
+import { config } from '../../core/config.js';
 
 interface Fight {
 	id: number;

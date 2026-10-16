@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import merge from '../modules/merge.js';
+import merge from './merge.js';
 
 describe('merge', () => {
 	it('should override nested values and keep the rest', () => {

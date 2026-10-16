@@ -1,18 +1,18 @@
-import { config } from './data.js';
-import log from './log.js';
-import getConversation from './conversations.js';
-import getResponseAllowed from './response-allowed.js';
-import { generateResponse, generateImage } from './gemini.js';
-import createWarcraftLog from './warcraft-log.js';
-import { createVote } from './votes.js';
-import Message from './message.js';
+import { config } from '../../core/config.js';
+import log from '../../core/log.js';
+import getConversation from './conversation.js';
+import shouldRespond from './should-respond.js';
+import { generateResponse, generateImage } from '../../ai/gemini.js';
+import createWarcraftLog from '../warcraft-logs/warcraft-logs.js';
+import { createVote } from '../votes/votes.js';
+import Message from '../../core/message.js';
 import type { Message as DiscordMessage, ChatInputCommandInteraction, SendableChannels } from 'discord.js';
-import type { ChannelSettings } from '../types.js';
+import type { ChannelSettings } from '../../types.js';
 
-export default async function tryGenerateResponse(interaction: DiscordMessage | ChatInputCommandInteraction): Promise<void> {
+export default async function respond(interaction: DiscordMessage | ChatInputCommandInteraction): Promise<void> {
 	const channelSettings = getChannelSettings(interaction.channel!.id);
 
-	if (!getResponseAllowed(interaction as DiscordMessage, channelSettings.reactChance)) {
+	if (!shouldRespond(interaction as DiscordMessage, channelSettings.reactChance)) {
 		return;
 	}
 

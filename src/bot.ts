@@ -1,10 +1,10 @@
 // Must stay the first import
-import './modules/clear-log.js';
+import './core/clear-log.js';
 import { Client, Collection, GatewayIntentBits } from 'discord.js';
-import { secrets } from './modules/data.js';
-import * as events from './index/events.js';
-import * as commands from './index/commands.js';
-import log from './modules/log.js';
+import { secrets } from './core/config.js';
+import * as events from './events/index.js';
+import * as commands from './commands/index.js';
+import log from './core/log.js';
 import type { BotCommand, BotEvent } from './types.js';
 
 const client = new Client({

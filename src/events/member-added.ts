@@ -1,5 +1,5 @@
-import log from '../modules/log.js';
-import { config } from '../modules/data.js';
+import log from '../core/log.js';
+import { config } from '../core/config.js';
 import type { GuildMember } from 'discord.js';
 import type { BotEvent } from '../types.js';
 

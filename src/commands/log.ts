@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 import type { SendableChannels } from 'discord.js';
-import createWarcraftLog from '../modules/warcraft-log.js';
-import UserError from '../modules/user-error.js';
+import createWarcraftLog from '../features/warcraft-logs/warcraft-logs.js';
+import UserError from '../core/user-error.js';
 import type { BotCommand } from '../types.js';
 
 export default {

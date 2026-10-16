@@ -1,10 +1,10 @@
-import { secrets } from "./data.js";
-import log from './log.js';
+import { secrets } from "../core/config.js";
+import log from '../core/log.js';
 import fs from "fs";
 import { GoogleGenAI, Type } from "@google/genai";
 import type { GenerateContentResponse } from "@google/genai";
-import { config } from './data.js';
-import Message from './message.js';
+import { config } from '../core/config.js';
+import Message from '../core/message.js';
 
 const ai = new GoogleGenAI({ apiKey: secrets.keys.gemini });
 

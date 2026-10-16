@@ -1,4 +1,4 @@
-import log from '../modules/log.js';
+import log from '../core/log.js';
 import type { Client } from 'discord.js';
 import type { BotEvent } from '../types.js';
 

@@ -1,9 +1,9 @@
-import log from './log.js';
-import { config, secrets } from './data.js';
+import log from '../../core/log.js';
+import { config, secrets } from '../../core/config.js';
 import { ChatInputCommandInteraction } from 'discord.js';
 import type { Message, MessageMentions } from 'discord.js';
 
-export default function getResponseAllowed(interaction: Message | ChatInputCommandInteraction, reactChance: number): boolean {
+export default function shouldRespond(interaction: Message | ChatInputCommandInteraction, reactChance: number): boolean {
 	if (interaction instanceof ChatInputCommandInteraction) {
 		return true;
 	}

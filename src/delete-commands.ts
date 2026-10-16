@@ -1,5 +1,5 @@
 import { REST, Routes } from 'discord.js';
-import { secrets } from './modules/data.js';
+import { secrets } from './core/config.js';
 
 const rest = new REST({ version: '10' }).setToken(secrets.discord.botToken!);
 

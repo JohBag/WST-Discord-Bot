@@ -1,6 +1,6 @@
 import { REST, Routes } from 'discord.js';
-import { secrets } from './modules/data.js';
-import * as commands from './index/commands.js';
+import { secrets } from './core/config.js';
+import * as commands from './commands/index.js';
 import type { BotCommand } from './types.js';
 
 const commandsData = [];

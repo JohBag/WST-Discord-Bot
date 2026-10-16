@@ -1,11 +1,11 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, MessageFlags } from 'discord.js';
 import type { Message as DiscordMessage, ChatInputCommandInteraction, ButtonInteraction } from 'discord.js';
-import { load, save } from '../modules/json.js';
-import log from '../modules/log.js';
-import getUsername from '../modules/get-username.js';
-import Message from './message.js';
-import UserError from './user-error.js';
-import type { Vote } from '../types.js';
+import { load, save } from '../../core/storage.js';
+import log from '../../core/log.js';
+import getUsername from '../../core/get-username.js';
+import Message from '../../core/message.js';
+import UserError from '../../core/user-error.js';
+import type { Vote } from '../../types.js';
 
 const maxOptions = 25; // Discord limit: 5 rows x 5 buttons
 const maxOptionLength = 80;

@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
-import tryGenerateResponse from '../modules/generate-response.js';
+import respond from '../features/chat/respond.js';
 import type { BotCommand } from '../types.js';
 
 export default {
@@ -7,6 +7,6 @@ export default {
 		.setName('reply')
 		.setDescription('Generate a response'),
 	async execute(interaction: ChatInputCommandInteraction) {
-		await tryGenerateResponse(interaction);
+		await respond(interaction);
 	},
 } satisfies BotCommand;

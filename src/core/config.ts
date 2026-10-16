@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { load } from './json.js';
+import { load } from './storage.js';
 import merge from './merge.js';
 import type { Config, Secrets } from '../types.js';
 

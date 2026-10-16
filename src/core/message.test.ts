@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import Message, { splitResponse } from '../modules/message.js';
+import Message, { splitResponse } from './message.js';
 
 describe('Message builder', () => {
 	it('should initialize with empty defaults', () => {
