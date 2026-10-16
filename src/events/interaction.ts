@@ -14,6 +14,16 @@ export default {
 			return;
 		}
 
+		if (interaction.isAutocomplete()) {
+			const command = interaction.client.commands.get(interaction.commandName);
+			try {
+				await command?.autocomplete?.(interaction);
+			} catch (error) {
+				log.error(`Error autocompleting /${interaction.commandName}: ${error}`);
+			}
+			return;
+		}
+
 		if (!interaction.isChatInputCommand()) {
 			return;
 		}
@@ -31,8 +41,12 @@ export default {
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		try {
-			await command.execute(interaction);
-			await interaction.deleteReply();
+			const reply = await command.execute(interaction);
+			if (reply) {
+				await interaction.editReply({ content: reply });
+			} else {
+				await interaction.deleteReply();
+			}
 		} catch (error) {
 			const isUserError = error instanceof UserError;
 			if (isUserError) {

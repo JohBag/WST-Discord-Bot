@@ -8,19 +8,29 @@ const pm2Name = process.env.PM2_NAME ?? 'botty';
 // Non-interactive SSH sessions don't load nvm, so the system Node would be used otherwise
 const nvm = 'source ~/.nvm/nvm.sh';
 
-const commands = {
+const remoteCommands = {
 	deploy: `${nvm} && cd ${dir} && git pull --ff-only && npm ci && npm run build && pm2 restart ${pm2Name} && pm2 ls`,
+	// Registers slash commands with the production bot's credentials, which only exist on the VM
+	commands: `${nvm} && cd ${dir} && npm run deploy-commands`,
 	logs: `tail -n ${process.argv[3] ?? 50} ${dir}/log.txt`,
 	follow: `tail -n 20 -f ${dir}/log.txt`,
 	status: `${nvm} && cd ${dir} && git log -1 --oneline && git status -sb | head -5 && pm2 ls`,
 	restart: `${nvm} && pm2 restart ${pm2Name} && pm2 ls`
 };
 
-const command = commands[process.argv[2]];
-if (!command) {
-	console.error(`Usage: npm run vm -- <${Object.keys(commands).join('|')}>`);
+const localCommands = {
+	// Copies the git-ignored music folder; existing files on the VM are overwritten, none are deleted
+	music: () => spawnSync('scp', ['-o', 'LogLevel=ERROR', '-r', 'music', `${host}:wst/`], { stdio: 'inherit' }),
+};
+
+const name = process.argv[2];
+let result;
+if (name in remoteCommands) {
+	result = spawnSync('ssh', ['-o', 'LogLevel=ERROR', host, remoteCommands[name]], { stdio: 'inherit' });
+} else if (name in localCommands) {
+	result = localCommands[name]();
+} else {
+	console.error(`Usage: npm run vm -- <${[...Object.keys(remoteCommands), ...Object.keys(localCommands)].join('|')}>`);
 	process.exit(1);
 }
-
-const result = spawnSync('ssh', ['-o', 'LogLevel=ERROR', host, command], { stdio: 'inherit' });
 process.exit(result.status ?? 1);

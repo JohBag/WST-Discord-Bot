@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, Collection } from 'discord.js';
-import type { SlashCommandOptionsOnlyBuilder } from 'discord.js';
+import type { AutocompleteInteraction, SlashCommandOptionsOnlyBuilder, SlashCommandSubcommandsOnlyBuilder } from 'discord.js';
 
 export interface Config {
 	name: string;
@@ -19,6 +19,10 @@ export interface Config {
 	blacklist: Record<string, string>;
 	media: {
 		imageFile: string;
+	};
+	music: {
+		// Multiplier applied to every song; below 1 keeps it in the background
+		volume: number;
 	};
 	newUsersRoleId: string;
 	guildId: string;
@@ -51,8 +55,10 @@ export interface Secrets {
 }
 
 export interface BotCommand {
-	data: SlashCommandOptionsOnlyBuilder;
-	execute(interaction: ChatInputCommandInteraction): Promise<void>;
+	data: SlashCommandOptionsOnlyBuilder | SlashCommandSubcommandsOnlyBuilder;
+	// Returning a string keeps it as the (private) reply; otherwise the reply is removed
+	execute(interaction: ChatInputCommandInteraction): Promise<void | string>;
+	autocomplete?(interaction: AutocompleteInteraction): Promise<void>;
 }
 
 export interface BotEvent {

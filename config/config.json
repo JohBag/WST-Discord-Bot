@@ -27,6 +27,9 @@
 	"media": {
 		"imageFile": "./media/image.png"
 	},
+	"music": {
+		"volume": 0.4
+	},
 	"newUsersRoleId": "764130122961256498",
 	"guildId": "452956966093062145",
 	"warcraftLogs": {

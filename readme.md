@@ -7,11 +7,13 @@ A custom AI-powered Discord bot developed for the World of Warcraft guild 'Warse
 * **AI chat:** Talk to the bot by mentioning it or using its nickname. It can also generate pictures, post Warcraft Logs reports and start votes when asked.
 * **Warcraft Logs:** New raids are posted automatically and updated while they are being live-logged. `/log` posts a summary of any report: bosses killed, best pulls and who took part. Raids uploaded as personal logs by the uploaders listed in `config.json` count too.
 * **Votes:** `/vote` starts a vote with buttons, optionally anonymous, and `/vote-edit` adds options to one.
+* **Music:** `/music play` joins your voice channel and plays songs from the `music/` folder, shuffled on repeat or starting with a chosen song. `/music skip`, `/music stop` and `/music list` control it.
 * **New members:** Gives people who join the server a starting role.
 
 ## Prerequisites
 
 * **Node.js:** Version 22.0.0 or higher.
+* **FFmpeg:** Required for music. It must be on the PATH and include libopus, as the Debian package does.
 
 ## Installation
 
@@ -68,4 +70,8 @@ npm run logs            # Show the last 50 lines of log.txt (npm run logs -- 200
 npm run vm -- follow    # Stream log.txt live
 npm run vm -- status    # Deployed commit and pm2 status
 npm run vm -- restart   # Restart the bot without deploying
+npm run vm -- commands  # Register slash commands for the production bot
+npm run vm -- music     # Copy the local music/ folder to the VM
 ```
+
+Music files are not in the repository: put them in the git-ignored `music/` folder and copy them over with `npm run vm -- music`.
