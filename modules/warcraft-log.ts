@@ -205,7 +205,10 @@ async function getReport(id?: string): Promise<Report | null> {
 		log('No ID provided. Fetching most recent log.');
 		// Get ID of most recent guild log
 		const data = await sendQuery(`{ reportData { reports(guildID: ${config.warcraftLogsGuildId}, limit: 1) { data { code } } } }`);
-		id = data.data.reportData.reports.data[0].code;
+		id = data.data.reportData.reports.data[0]?.code;
+		if (!id) {
+			return null;
+		}
 	}
 
 	log('Fetching report with ID: ' + id);

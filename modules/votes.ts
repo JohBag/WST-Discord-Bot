@@ -4,9 +4,11 @@ import { load, save } from '../modules/json.js';
 import log from '../modules/log.js';
 import getUsername from '../modules/get-username.js';
 import Message from './message.js';
+import UserError from './user-error.js';
 import type { Vote } from '../types.js';
 
 const maxOptions = 25; // Discord limit: 5 rows x 5 buttons
+const maxOptionLength = 80;
 
 export async function createVote(interaction: DiscordMessage | ChatInputCommandInteraction, title?: string, optionString?: string, anonymity: boolean = false): Promise<Message> {
 	const message = new Message();
@@ -23,9 +25,14 @@ export async function createVote(interaction: DiscordMessage | ChatInputCommandI
 		? (interaction as ChatInputCommandInteraction).user.id
 		: (interaction as DiscordMessage).author.id;
 
+	const options = splitOptions(optionString, anonymity);
+	if (Object.keys(options).length === 0) {
+		throw new UserError('A vote needs at least one option.');
+	}
+
 	const vote: Vote = {
 		title: title,
-		options: splitOptions(optionString, anonymity),
+		options: options,
 		voters: [],
 		anonymity: anonymity,
 		creatorId: creatorId,
@@ -90,6 +97,9 @@ export function getResult(vote: Vote): EmbedBuilder {
 
 export async function registerVote(interaction: ButtonInteraction): Promise<void> {
 	try {
+		// Fetch the name before loading votes: awaiting between load and save
+		// lets simultaneous clicks overwrite each other's votes
+		const name = await getUsername(interaction);
 		const votes = load<Record<string, Vote>>('votes');
 
 		// Check if vote exists
@@ -121,7 +131,6 @@ export async function registerVote(interaction: ButtonInteraction): Promise<void
 			}
 			else {
 				// Allow multiple votes
-				const name = await getUsername(interaction);
 				option[userID] = name;
 			}
 		}
@@ -183,10 +192,12 @@ function getEmoji(inputString: string): string | null {
 	return matches ? matches[0] : null;
 }
 
-function splitOptions(optionString: string, anonymity: boolean): Record<string, number | Record<string, string>> {
+export function splitOptions(optionString: string, anonymity: boolean): Record<string, number | Record<string, string>> {
 	return optionString
 		.split(',')
-		.map(i => i.trim())
+		// Options double as button labels, which Discord requires to be 1-80 characters
+		.map(i => i.trim().slice(0, maxOptionLength))
+		.filter(i => i.length > 0)
 		.slice(0, maxOptions)
 		.reduce((options: Record<string, number | Record<string, string>>, i) => {
 			options[i] = anonymity ? 0 : {};

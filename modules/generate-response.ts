@@ -17,6 +17,9 @@ export default async function tryGenerateResponse(interaction: DiscordMessage | 
 	}
 
 	const conversation = await getConversation(interaction as DiscordMessage, channelSettings.messageLimit);
+	if (!conversation) {
+		return;
+	}
 
 	// Generate response
 	const response = await generateResponse(config.prompt, conversation);
@@ -43,11 +46,11 @@ export default async function tryGenerateResponse(interaction: DiscordMessage | 
 				message = await createWarcraftLog(interaction as DiscordMessage, args.id);
 				if (message.success) {
 					const successResponse = await generateResponse(config.prompt + '\nThe Warcraft Logs report was generated successfully! Give the user a positive response.', conversation, false);
-					const successMessage = new Message();
-					successMessage.addText(successResponse.text!);
-					await successMessage.send(interaction.channel as SendableChannels);
+					if (successResponse.text) {
+						await new Message().addText(successResponse.text).send(channel);
+					}
 
-					channel = message.channel as SendableChannels;
+					channel = message.channel ?? channel;
 				}
 				break;
 			case 'create_vote':

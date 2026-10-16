@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { editVote } from '../modules/votes.js';
+import UserError from '../modules/user-error.js';
 import type { BotCommand } from '../types.js';
 
 export default {
@@ -23,8 +24,7 @@ export default {
 		const result = await editVote(interaction, messageId, newOptions);
 
 		if (typeof result === 'string') {
-			await interaction.editReply({ content: result });
-			return;
+			throw new UserError(result);
 		}
 
 		const channel = interaction.channel!;

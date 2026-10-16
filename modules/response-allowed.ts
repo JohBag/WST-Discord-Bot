@@ -22,7 +22,7 @@ export default function getResponseAllowed(interaction: Message | ChatInputComma
 	}
 
 	if (isRandomResponse(reactChance)) {
-		log(`Random reply (${reactChance}% chance)`);
+		log(`Random reply (${reactChance * 100}% chance)`);
 		return true;
 	}
 

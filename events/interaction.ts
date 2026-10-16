@@ -3,6 +3,7 @@ import type { Interaction } from 'discord.js';
 import log from '../modules/log.js';
 import getUsername from '../modules/get-username.js';
 import { registerVote } from '../modules/votes.js';
+import UserError from '../modules/user-error.js';
 import type { BotCommand, BotEvent } from '../types.js';
 
 export default {
@@ -34,9 +35,14 @@ export default {
 			await command.execute(interaction);
 			await interaction.deleteReply();
 		} catch (error) {
-			log.error(`Error executing /${commandName}: ${error}`);
+			const isUserError = error instanceof UserError;
+			if (isUserError) {
+				log(`/${commandName} rejected: ${error.message}`);
+			} else {
+				log.error(`Error executing /${commandName}: ${error}`);
+			}
 			try {
-				await interaction.editReply({ content: `Something went wrong with /${commandName}.` });
+				await interaction.editReply({ content: isUserError ? error.message : `Something went wrong with /${commandName}.` });
 			} catch (replyError) {
 				log.error(`Failed to send error reply: ${replyError}`);
 			}

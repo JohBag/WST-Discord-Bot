@@ -135,16 +135,15 @@ const generatePictureFunction = {
 };
 const createWarcraftLogFunction = {
 	name: 'create_warcraft_log',
-	description: 'Generates a Warcraft Logs report based on the given id.',
+	description: 'Posts a summary of a Warcraft Logs report. Leave out the id to use the guild\'s most recent report.',
 	parameters: {
 		type: Type.OBJECT,
 		properties: {
 			id: {
 				type: Type.STRING,
-				description: 'The Warcraft Logs report ID.',
+				description: 'The Warcraft Logs report ID, as seen in the report URL.',
 			},
 		},
-		required: ['id'],
 	},
 };
 const createVoteFunction = {
@@ -159,7 +158,7 @@ const createVoteFunction = {
 			},
 			options: {
 				type: Type.STRING,
-				description: 'Comma-separated list of options (max 5).',
+				description: 'Comma-separated list of options (max 25).',
 			},
 			anonymity: {
 				type: Type.BOOLEAN,

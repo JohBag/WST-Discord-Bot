@@ -1,5 +1,7 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
+import type { SendableChannels } from 'discord.js';
 import createWarcraftLog from '../modules/warcraft-log.js';
+import UserError from '../modules/user-error.js';
 import type { BotCommand } from '../types.js';
 
 export default {
@@ -13,10 +15,10 @@ export default {
 	async execute(interaction: ChatInputCommandInteraction) {
 		const id = interaction.options.getString('id')!;
 		const message = await createWarcraftLog(interaction as any, id);
-		if (message.success) {
-			message.send();
-		} else {
-			throw new Error(message.text);
+		if (!message.success) {
+			throw new UserError(message.text);
 		}
+		// Post in the configured log channel, or here if there is none
+		await message.send((message.channel ?? interaction.channel) as SendableChannels);
 	},
 } satisfies BotCommand;

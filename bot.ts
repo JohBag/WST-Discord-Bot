@@ -1,3 +1,5 @@
+// Must stay the first import
+import './modules/clear-log.js';
 import { Client, Collection, GatewayIntentBits } from 'discord.js';
 import { secrets } from './modules/data.js';
 import * as events from './index/events.js';

@@ -32,7 +32,8 @@ async function formatConversation(messages: Message[]): Promise<ConversationEntr
 	const conversation = await Promise.all(
 		messages.map(async (message) => {
 			const username = await getUsername(message);
-			const role: 'model' | 'user' = username === config.name ? 'model' : 'user';
+			// Compare IDs rather than names, since server nicknames can differ from config.name
+			const role: 'model' | 'user' = message.author.id === message.client.user.id ? 'model' : 'user';
 			return {
 				role,
 				parts: [{ text: `${username}: ${message.content}` }]
