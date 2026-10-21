@@ -2,6 +2,9 @@
 
 Discord bot for the WoW guild Warseeker Tribe: AI chat (Claude or Gemini), slash commands, and Warcraft Logs report embeds. TypeScript (ESM, NodeNext), compiled to `dist/` with `tsc`.
 
+**Mode: hands-on.** The repo is public and deploys are live, so discuss changes before
+making them (overrides the AI-driven default in `C:\Home\Projects\CLAUDE.md`).
+
 ## This repository is public
 
 - Never commit secrets. API keys live only in `.env` (see `.env.example`), loaded with `node --env-file=.env`.
