@@ -11,15 +11,16 @@ export interface Config {
 	};
 	chat: {
 		cutoff: string;
-		ageLimitDays: number;
 		// Lets the model look up current information on the web, at a small cost per search
 		webSearch: boolean;
 		// How much of the channel the model sees: the current conversation, which ends at a pause
-		// longer than gapMinutes, but at least minMessages and at most maxMessages
+		// longer than gapMinutes, but at least minMessages and at most maxMessages, and never
+		// anything older than maxAgeDays
 		history: {
 			minMessages: number;
 			maxMessages: number;
 			gapMinutes: number;
+			maxAgeDays: number;
 		};
 	};
 	channelSettings: {

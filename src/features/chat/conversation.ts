@@ -70,7 +70,7 @@ function filterByPause<T extends HistoryMessage>(messages: T[]): T[] {
 }
 
 function filterByDate<T extends HistoryMessage>(messages: T[], now: number): T[] {
-	const ageLimit = config.chat.ageLimitDays * (1000 * 60 * 60 * 24);
+	const ageLimit = config.chat.history.maxAgeDays * (1000 * 60 * 60 * 24);
 	const tooOld = messages.findIndex(message => now - message.createdTimestamp > ageLimit);
 	return tooOld === -1 ? messages : messages.slice(0, tooOld);
 }

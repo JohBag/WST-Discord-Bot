@@ -9,7 +9,7 @@ const message = (content: string, daysAgo = 0) => ({ content, createdTimestamp: 
 
 describe('filterHistory', () => {
 	it('should stop at the first message older than the age limit', () => {
-		const messages = [message('new'), message('old', config.chat.ageLimitDays + 1), message('newer again')];
+		const messages = [message('new'), message('old', config.chat.history.maxAgeDays + 1), message('newer again')];
 		assert.deepEqual(filterHistory(messages, now).map(m => m.content), ['new']);
 	});
 

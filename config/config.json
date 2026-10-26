@@ -9,12 +9,12 @@
 	},
 	"chat": {
 		"cutoff": "###",
-		"ageLimitDays": 3,
 		"webSearch": true,
 		"history": {
 			"minMessages": 10,
 			"maxMessages": 50,
-			"gapMinutes": 60
+			"gapMinutes": 60,
+			"maxAgeDays": 3
 		}
 	},
 	"channelSettings": {
