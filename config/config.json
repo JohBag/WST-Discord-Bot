@@ -8,13 +8,13 @@
 		"image": "gemini-nano-banana-2.1"
 	},
 	"chat": {
-		"cutoff": "###",
 		"webSearch": true,
 		"history": {
 			"minMessages": 10,
 			"maxMessages": 50,
 			"gapMinutes": 60,
-			"maxAgeDays": 3
+			"maxAgeDays": 3,
+			"resetMarker": "###"
 		}
 	},
 	"channelSettings": {

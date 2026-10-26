@@ -13,8 +13,8 @@ describe('filterHistory', () => {
 		assert.deepEqual(filterHistory(messages, now).map(m => m.content), ['new']);
 	});
 
-	it('should stop at the cutoff marker', () => {
-		const messages = [message('after'), message(config.chat.cutoff), message('before')];
+	it('should stop at the reset marker', () => {
+		const messages = [message('after'), message(config.chat.history.resetMarker), message('before')];
 		assert.deepEqual(filterHistory(messages, now).map(m => m.content), ['after']);
 	});
 

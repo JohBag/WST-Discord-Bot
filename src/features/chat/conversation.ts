@@ -49,10 +49,10 @@ async function formatConversation(messages: Message[]): Promise<ChatMessage[]> {
 }
 
 // Takes messages newest first and keeps the current conversation: the non-empty messages after the
-// last cutoff marker, back to the first long pause, but at least a few if there are recent ones
+// last reset marker, back to the first long pause, but at least a few if there are recent ones
 export function filterHistory<T extends HistoryMessage>(messages: T[], now: number): T[] {
 	messages = filterByDate(messages, now);
-	messages = filterByCutoff(messages);
+	messages = filterByResetMarker(messages);
 	messages = filterEmpty(messages);
 	return filterByPause(messages);
 }
@@ -75,9 +75,9 @@ function filterByDate<T extends HistoryMessage>(messages: T[], now: number): T[]
 	return tooOld === -1 ? messages : messages.slice(0, tooOld);
 }
 
-function filterByCutoff<T extends HistoryMessage>(messages: T[]): T[] {
-	const cutoffIndex = messages.findIndex((message) => message.content === config.chat.cutoff);
-	return cutoffIndex === -1 ? messages : messages.slice(0, cutoffIndex);
+function filterByResetMarker<T extends HistoryMessage>(messages: T[]): T[] {
+	const resetIndex = messages.findIndex((message) => message.content === config.chat.history.resetMarker);
+	return resetIndex === -1 ? messages : messages.slice(0, resetIndex);
 }
 
 function filterEmpty<T extends HistoryMessage>(messages: T[]): T[] {
