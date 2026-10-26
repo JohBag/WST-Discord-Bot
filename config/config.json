@@ -9,7 +9,7 @@
 	},
 	"chat": {
 		"cutoff": "###",
-		"ageLimitDays": 7,
+		"ageLimitDays": 3,
 		"webSearch": true,
 		"history": {
 			"minMessages": 10,
