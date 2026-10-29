@@ -13,6 +13,10 @@ making them (overrides the AI-driven default in `C:\Home\Projects\CLAUDE.md`).
 - `eval/` is git-ignored because it holds real guild conversations exported for model comparisons. Never commit or publish anything from it.
 - Keep machine-specific details (IP addresses, usernames) out of committed files. The VM is reached through the SSH alias `wst-vm`, defined only in the local `~/.ssh/config`.
 
+## Docs
+
+`docs/roadmap.md`: what's built, what's parked (memory among them) and what was deliberately left out. Read it before working on chat features, and update it in the same commit when a decision changes.
+
 ## Commands
 
 ```bash
