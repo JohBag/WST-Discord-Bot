@@ -18,6 +18,9 @@ answered messages meant for others.
 - Link previews show their title and description.
 - In channels where Botty answers everything, a message that replies to or pings someone else, and
   doesn't name Botty, gets no reply. A reply to one of Botty's messages always counts as talking to him.
+- Prompt tuned against habits that afternoon: emoji only when they add tone, names only when it's
+  unclear who he's talking to, varied openings, no questions just to keep the chat going, no repeated
+  points, new games count as current. Checked blind against the old prompt on 20 conversations.
 
 ### Not doing
 
