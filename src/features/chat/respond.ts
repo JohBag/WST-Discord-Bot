@@ -1,11 +1,12 @@
 import { config } from '../../core/config.js';
 import log from '../../core/log.js';
-import getConversation from './conversation.js';
+import getConversation, { rememberReply } from './conversation.js';
 import shouldRespond from './should-respond.js';
 import getChannelSettings from './channel-settings.js';
 import { buildSystemPrompt } from './situation.js';
 import type { ReplyReason } from './situation.js';
 import { ReplyQueue } from './reply-queue.js';
+import { isAnyoneTyping } from './typing.js';
 import { generateReply } from '../../ai/chat.js';
 import { generateImage } from '../../ai/gemini.js';
 import { createVote } from '../votes/votes.js';
@@ -17,7 +18,7 @@ type Trigger = DiscordMessage | ChatInputCommandInteraction;
 // Discord shows "is typing" for about 10 seconds per request
 const typingRefreshMs = 8000;
 
-const queue = new ReplyQueue<Trigger>(reply);
+const queue = new ReplyQueue<Trigger>(reply, isAnyoneTyping);
 
 export default async function respond(trigger: Trigger): Promise<void> {
 	const settings = getChannelSettings(trigger.channelId!);
@@ -78,7 +79,8 @@ async function reply(trigger: Trigger, reason: ReplyReason): Promise<number> {
 			}
 			message.addText(response.text);
 		}
-		await message.send(channel);
+		const sent = await message.send(channel);
+		rememberReply(sent.map(m => m.id), seenUntil);
 		return seenUntil;
 	} finally {
 		stopTyping();

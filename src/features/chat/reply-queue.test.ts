@@ -15,13 +15,14 @@ const ping = (name: string, createdTimestamp: number): Ping => ({ name, createdT
 function setup(gather = { quietMs: 0, maxWaitMs: 0 }) {
 	const written: string[] = [];
 	const pending: { finish: (seenUntil: number) => void; fail: (error: Error) => void }[] = [];
+	const typing = { now: false };
 	const queue = new ReplyQueue<Ping>((trigger, reason: ReplyReason) => {
 		written.push(`${trigger.name} (${reason})`);
 		return new Promise((resolve, reject) => pending.push({ finish: resolve, fail: reject }));
-	}, gather);
+	}, () => typing.now, gather);
 	// Lets the queue get to the next reply
 	const settle = () => sleep(5);
-	return { queue, written, pending, settle };
+	return { queue, written, pending, settle, typing };
 }
 
 describe('ReplyQueue', () => {
@@ -90,6 +91,30 @@ describe('ReplyQueue', () => {
 		// Past the quiet time after the first ping, but not after the second
 		assert.equal(written.length, 0);
 		await sleep(200);
+		assert.deepEqual(written, ['first (direct)']);
+		pending[0].finish(200);
+		await done;
+	});
+
+	it('should wait while someone is still typing', async () => {
+		const { queue, written, pending, typing } = setup({ quietMs: 50, maxWaitMs: 5000 });
+		typing.now = true;
+		const done = queue.add('channel', ping('first', 100), 'direct');
+		await sleep(400);
+		assert.equal(written.length, 0);
+		typing.now = false;
+		queue.add('channel', ping('second thought', 140), 'direct');
+		await sleep(400);
+		assert.deepEqual(written, ['first (direct)']);
+		pending[0].finish(200);
+		await done;
+	});
+
+	it('should stop waiting for typing after the maximum wait', async () => {
+		const { queue, written, pending, typing } = setup({ quietMs: 50, maxWaitMs: 300 });
+		typing.now = true;
+		const done = queue.add('channel', ping('first', 100), 'direct');
+		await sleep(600);
 		assert.deepEqual(written, ['first (direct)']);
 		pending[0].finish(200);
 		await done;

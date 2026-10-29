@@ -16,16 +16,42 @@ export interface Conversation {
 	seenUntil: number;
 }
 
+// What each recent reply had read, as the time of the newest message it saw, by message ID
+const replies = new Map<string, number>();
+const rememberedReplies = 200;
+
 export default async function getConversation(interaction: Message): Promise<Conversation> {
 	const fetched = await getMessages(interaction, config.chat.history.maxMessages);
 	const seenUntil = fetched[0]?.createdTimestamp ?? interaction.createdTimestamp;
-	const messages = filterHistory(fetched, Date.now());
+	const messages = placeReplies(filterHistory(fetched, Date.now()));
 
 	if (messages.length === 0) {
 		log('No messages remaining.');
 	}
 
 	return { messages: await formatConversation(messages), seenUntil };
+}
+
+export function rememberReply(messageIds: string[], seenUntil: number): void {
+	for (const id of messageIds) {
+		replies.set(id, seenUntil);
+	}
+	// Maps keep insertion order, so the oldest replies go first
+	for (const id of replies.keys()) {
+		if (replies.size <= rememberedReplies) {
+			break;
+		}
+		replies.delete(id);
+	}
+}
+
+// Takes messages newest first. A reply lands after messages sent while it was being written, which it
+// never read, so the next reply would take those as answered. Moving each reply back to right after
+// the newest message it had read shows them as still open.
+export function placeReplies<T extends { id: string; createdTimestamp: number }>(messages: T[]): T[] {
+	const placedAt = (message: T) => replies.get(message.id) ?? message.createdTimestamp;
+	// A reply counts as newer than the message it follows. Sorting is stable, so a split reply keeps its order.
+	return [...messages].sort((a, b) => placedAt(b) - placedAt(a) || Number(replies.has(b.id)) - Number(replies.has(a.id)));
 }
 
 async function getMessages(interaction: Message, messageLimit: number): Promise<Message[]> {

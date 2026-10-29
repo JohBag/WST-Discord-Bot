@@ -52,7 +52,8 @@ export default class Message {
 		return this;
 	}
 
-	async send(channel?: SendableChannels): Promise<DiscordMessage> {
+	// Returns every message sent, since long text is split over several
+	async send(channel?: SendableChannels): Promise<DiscordMessage[]> {
 		if (channel) {
 			this.channel = channel;
 		}
@@ -81,10 +82,11 @@ export default class Message {
 		lastChunk.embeds = this.embeds;
 		lastChunk.components = this.components;
 
-		let sentMessage!: DiscordMessage;
+		const sent: DiscordMessage[] = [];
 		for (const chunk of chunks) {
 			try {
-				sentMessage = await this.channel!.send(chunk as any);
+				const sentMessage = await this.channel!.send(chunk as any);
+				sent.push(sentMessage);
 				log('Message sent, ID: ' + sentMessage.id);
 			} catch (error) {
 				log.error('Failed to send message: ' + error);
@@ -93,10 +95,10 @@ export default class Message {
 		}
 
 		if (this.onSend) {
-			await this.onSend(sentMessage, this);
+			await this.onSend(sent.at(-1)!, this);
 		}
 
-		return sentMessage;
+		return sent;
 	}
 }
 
