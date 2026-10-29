@@ -63,7 +63,8 @@ async function formatConversation(messages: Message[]): Promise<ChatMessage[]> {
 	const conversation = await Promise.all(
 		messages.map(async (message) => ({
 			author: await getUsername(message),
-			content: message.content,
+			// Discord writes mentions and custom emoji as IDs (<@123>, <:xdd:456>), which mean nothing to the model
+			content: message.cleanContent,
 			// Compare IDs rather than names, since server nicknames can differ from config.name
 			fromBot: message.author.id === message.client.user.id,
 		}))

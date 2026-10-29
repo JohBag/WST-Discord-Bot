@@ -65,6 +65,15 @@ async function getMessages(channelId: string, count: number): Promise<APIMessage
 	return messages.reverse();
 }
 
+// Mentions and custom emoji as names, like the bot reads them with discord.js's cleanContent
+async function readableContent(message: APIMessage): Promise<string> {
+	let content = message.content;
+	for (const user of message.mentions) {
+		content = content.replace(new RegExp(`<@!?${user.id}>`, 'g'), `@${await getName(user)}`);
+	}
+	return content.replace(/<a?(:\w+:)\d+>/g, '$1');
+}
+
 // Plain chat replies; posts with pictures, log summaries and votes can't be compared as text
 function isChatReply(message: APIMessage): boolean {
 	return message.author.id === bot.id
@@ -110,7 +119,7 @@ async function findConversations(channel: APIChannel): Promise<EvalConversation[
 			date: reply.timestamp,
 			messages: await Promise.all(history.map(async ({ message }) => ({
 				author: await getName(message.author),
-				content: message.content,
+				content: await readableContent(message),
 				fromBot: message.author.id === bot.id,
 			}))),
 			original: reply.content,
