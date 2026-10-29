@@ -29,6 +29,27 @@ describe('toClaudeMessages', () => {
 		]);
 	});
 
+	it('should say what a message replies to', () => {
+		const reply: ChatMessage = { author: 'Jay', content: 'Spelt aye', fromBot: false, replyTo: { author: 'Bart', content: 'i' } };
+		assert.deepEqual(toClaudeMessages([reply]), [
+			{ role: 'user', content: 'Jay (replying to Bart: "i"): Spelt aye' },
+		]);
+	});
+
+	it('should put pictures right after the line they came with', () => {
+		const image = { mediaType: 'image/png' as const, data: 'abc' };
+		const withPicture: ChatMessage = { author: 'Lath', content: 'look\n[picture]', fromBot: false, images: [image] };
+		assert.deepEqual(toClaudeMessages([user('Jay', 'hi'), withPicture, user('Jay', 'lol')]), [
+			{
+				role: 'user', content: [
+					{ type: 'text', text: 'Jay: hi\nLath: look\n[picture]' },
+					{ type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'abc' } },
+					{ type: 'text', text: 'Jay: lol' },
+				],
+			},
+		]);
+	});
+
 	it('should return nothing when only the bot has spoken', () => {
 		assert.deepEqual(toClaudeMessages([bot('Anyone there?')]), []);
 	});

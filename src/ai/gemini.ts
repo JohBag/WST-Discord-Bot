@@ -23,7 +23,10 @@ function getClient(): GoogleGenAI {
 export function toGeminiContents(conversation: ChatMessage[]): Content[] {
 	return conversation.map(message => ({
 		role: message.fromBot ? 'model' : 'user',
-		parts: [{ text: formatMessage(message) }],
+		parts: [
+			{ text: formatMessage(message) },
+			...(message.images ?? []).map(image => ({ inlineData: { mimeType: image.mediaType, data: image.data } })),
+		],
 	}));
 }
 

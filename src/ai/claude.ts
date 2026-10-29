@@ -22,22 +22,35 @@ function getClient(): Anthropic {
 
 interface ClaudeMessage {
 	role: 'user' | 'assistant';
-	content: string;
+	// Plain text unless the turn has pictures
+	content: string | Anthropic.Messages.ContentBlockParam[];
 }
 
-// Claude expects turns that start with someone else's message and end on one to reply to.
-// Several people talking in a row become a single turn, one line each.
+// Claude expects turns that start with someone else's message and end on one to reply to. Several
+// people talking in a row become a single turn, one line each, with pictures after the line they came with.
 export function toClaudeMessages(conversation: ChatMessage[]): ClaudeMessage[] {
-	const messages: ClaudeMessage[] = [];
+	const turns: { role: ClaudeMessage['role']; blocks: Anthropic.Messages.ContentBlockParam[] }[] = [];
 	for (const message of conversation) {
 		const role = message.fromBot ? 'assistant' : 'user';
-		const last = messages.at(-1);
-		if (last?.role === role) {
-			last.content += '\n' + formatMessage(message);
+		if (turns.at(-1)?.role !== role) {
+			turns.push({ role, blocks: [] });
+		}
+		const blocks = turns.at(-1)!.blocks;
+		const last = blocks.at(-1);
+		if (last?.type === 'text') {
+			last.text += '\n' + formatMessage(message);
 		} else {
-			messages.push({ role, content: formatMessage(message) });
+			blocks.push({ type: 'text', text: formatMessage(message) });
+		}
+		for (const image of message.images ?? []) {
+			blocks.push({ type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.data } });
 		}
 	}
+
+	const messages: ClaudeMessage[] = turns.map(({ role, blocks }) => ({
+		role,
+		content: blocks.length === 1 && blocks[0].type === 'text' ? blocks[0].text : blocks,
+	}));
 
 	while (messages[0]?.role === 'assistant') {
 		messages.shift();

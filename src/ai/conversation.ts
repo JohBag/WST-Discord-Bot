@@ -6,6 +6,16 @@ export interface ChatMessage {
 	content: string;
 	// Written by the bot itself, which the model sees as its own earlier replies
 	fromBot: boolean;
+	// The message this one answers with Discord's reply button, shortened
+	replyTo?: { author: string; content: string };
+	// Pictures in the message the model can look at
+	images?: ChatImage[];
+}
+
+export interface ChatImage {
+	mediaType: 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp';
+	// Base64
+	data: string;
 }
 
 export interface ToolCall {
@@ -38,5 +48,9 @@ export interface ReplyRequest {
 // Other people's messages are prefixed with their name so the model knows who said what. The bot's
 // own are not, since the model would otherwise learn to start its replies with its name.
 export function formatMessage(message: ChatMessage): string {
-	return message.fromBot ? message.content : `${message.author}: ${message.content}`;
+	if (message.fromBot) {
+		return message.content;
+	}
+	const replyTo = message.replyTo ? ` (replying to ${message.replyTo.author}: "${message.replyTo.content}")` : '';
+	return `${message.author}${replyTo}: ${message.content}`;
 }

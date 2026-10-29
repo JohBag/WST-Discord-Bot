@@ -18,9 +18,20 @@ export default function shouldRespond(interaction: Message | ChatInputCommandInt
 		return null;
 	}
 
-	// In channels where the bot answers everything, every message is meant for it
-	if (hasBotMention(interaction.mentions) || isMentionedByName(interaction.content) || reactChance === 1) {
+	const botId = secrets.discord.appId!;
+	// Replying to one of the bot's messages is talking to it, whether or not the reply pings
+	if (hasBotMention(interaction.mentions) || isMentionedByName(interaction.content) || interaction.mentions.repliedUser?.id === botId) {
 		log('Responding to mention');
+		return 'direct';
+	}
+
+	// In channels where the bot answers everything, every message is meant for it unless it's aimed at someone else
+	if (reactChance === 1) {
+		const others = [...interaction.mentions.users.keys(), interaction.mentions.repliedUser?.id];
+		if (isForSomeoneElse(interaction.author.id, others, botId)) {
+			log('Not responding: the message is for someone else');
+			return null;
+		}
 		return 'direct';
 	}
 
@@ -30,6 +41,11 @@ export default function shouldRespond(interaction: Message | ChatInputCommandInt
 	}
 
 	return null;
+}
+
+// Whether a message replies to or pings someone other than its author and the bot
+export function isForSomeoneElse(authorId: string, mentionedIds: (string | undefined)[], botId: string): boolean {
+	return mentionedIds.some(id => id !== undefined && id !== authorId && id !== botId);
 }
 
 function isInBlacklistedChannel(channelId: string): boolean {

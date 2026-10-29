@@ -10,6 +10,8 @@ import { config, secrets } from '../core/config.js';
 import { filterHistory } from '../features/chat/conversation.js';
 import getChannelSettings from '../features/chat/channel-settings.js';
 import { isMentionedByName } from '../features/chat/should-respond.js';
+import { describeMessage, quote } from '../features/chat/describe.js';
+import type { ChatMessage } from '../ai/conversation.js';
 import { conversationsDir } from './eval.js';
 import type { EvalConversation } from './eval.js';
 
@@ -74,6 +76,28 @@ async function readableContent(message: APIMessage): Promise<string> {
 	return content.replace(/<a?(:\w+:)\d+>/g, '$1');
 }
 
+// What the bot reads of a message; pictures stay notes, since the comparison is text only
+async function readMessage(message: APIMessage): Promise<string> {
+	return describeMessage({
+		text: await readableContent(message),
+		attachments: message.attachments.map(attachment => ({ contentType: attachment.content_type, url: attachment.url, size: attachment.size })),
+		embeds: message.embeds.map(embed => ({ type: embed.type, title: embed.title, description: embed.description })),
+	});
+}
+
+async function toChatMessage(message: APIMessage, content: string): Promise<ChatMessage> {
+	const fromBot = message.author.id === bot.id;
+	const original = message.referenced_message;
+	return {
+		author: await getName(message.author),
+		content,
+		fromBot,
+		replyTo: original && !fromBot
+			? { author: original.author.id === bot.id ? 'you' : await getName(original.author), content: quote(await readMessage(original)) }
+			: undefined,
+	};
+}
+
 // Plain chat replies; posts with pictures, log summaries and votes can't be compared as text
 function isChatReply(message: APIMessage): boolean {
 	return message.author.id === bot.id
@@ -101,8 +125,8 @@ async function findConversations(channel: APIChannel): Promise<EvalConversation[
 		}
 
 		// What the bot saw: the messages before its reply, filtered like it filters them
-		const before = messages.slice(Math.max(0, i - maxMessages), i)
-			.map(message => ({ message, createdTimestamp: timestamp(message), content: message.content }))
+		const before = (await Promise.all(messages.slice(Math.max(0, i - maxMessages), i)
+			.map(async message => ({ message, createdTimestamp: timestamp(message), content: await readMessage(message) }))))
 			.reverse();
 		const history = filterHistory(before, timestamp(reply)).reverse();
 		if (history.length === 0 || history.at(-1)!.message.author.id === bot.id) {
@@ -117,11 +141,7 @@ async function findConversations(channel: APIChannel): Promise<EvalConversation[
 			id: `${channel.name}-${reply.id}`,
 			channel: channel.name ?? undefined,
 			date: reply.timestamp,
-			messages: await Promise.all(history.map(async ({ message }) => ({
-				author: await getName(message.author),
-				content: await readableContent(message),
-				fromBot: message.author.id === bot.id,
-			}))),
+			messages: await Promise.all(history.map(({ message, content }) => toChatMessage(message, content))),
 			original: reply.content,
 			reason: direct ? 'direct' : 'random',
 		});

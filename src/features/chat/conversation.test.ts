@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { config } from '../../core/config.js';
-import { filterHistory, placeReplies, rememberReply } from './conversation.js';
+import { filterHistory, pickImages, placeReplies, rememberReply } from './conversation.js';
 
 const day = 24 * 60 * 60 * 1000;
 const now = 100 * day;
@@ -58,5 +58,17 @@ describe('placeReplies', () => {
 	it('should leave messages it knows nothing about where they are', () => {
 		const messages = [at('c', 300), at('b', 200), at('a', 100)];
 		assert.deepEqual(placeReplies(messages).map(m => m.id), ['c', 'b', 'a']);
+	});
+});
+
+describe('pickImages', () => {
+	it('should show the newest pictures up to the limit', () => {
+		const messages = [
+			{ id: 'newest', images: ['a'] },
+			{ id: 'text', images: [] },
+			{ id: 'two', images: ['b', 'c'] },
+			{ id: 'old', images: ['d'] },
+		];
+		assert.deepEqual([...pickImages(messages, 2)], [['newest', ['a']], ['two', ['b']]]);
 	});
 });
