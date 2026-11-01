@@ -11,8 +11,8 @@ function songs(count: number) {
 
 function render(status: MusicStatus | null, { loose = 3, folders = {} as Record<string, string[]>, mode = 'continue' as PlayMode, volume = 0.25, selection = undefined as Selection | undefined } = {}) {
 	const panel = buildPanel(status, buildPlaylists(songs(loose), folders), mode, volume, selection);
-	const [buttons, volumeButtons, ...menus] = panel.components.map(row => row.toJSON().components) as any[];
-	return { embed: panel.embeds[0].toJSON(), buttons, volumeButtons, menus: menus.map(row => row[0]) };
+	const [buttons, [volumeMenu], ...menus] = panel.components.map(row => row.toJSON().components) as any[];
+	return { embed: panel.embeds[0].toJSON(), buttons, volumeMenu, menus: menus.map(row => row[0]) };
 }
 
 const tracks = buildPlaylists(songs(3), {})[0].tracks;
@@ -48,15 +48,19 @@ describe('buildPanel', () => {
 		assert.equal(render(null, { mode: 'once' }).buttons[3].label, 'Play once');
 	});
 
-	it('should show the volume between its buttons', () => {
-		const { volumeButtons } = render(null, { volume: 0.4 });
-		assert.deepEqual(volumeButtons.map((b: any) => b.label ?? b.emoji.name), ['🔉', '40%', '🔊']);
-		assert.deepEqual(volumeButtons.map((b: any) => b.disabled), [false, true, false]);
+	it('should offer volumes from 1 to 20 percent with the current one chosen', () => {
+		const { volumeMenu } = render(null, { volume: 0.07 });
+		assert.equal(volumeMenu.custom_id, 'music-panel:volume');
+		assert.equal(volumeMenu.options.length, 20);
+		assert.equal(volumeMenu.options[0].label, 'Volume 1%');
+		assert.equal(volumeMenu.options[19].label, 'Volume 20%');
+		assert.deepEqual(volumeMenu.options.filter((o: any) => o.default).map((o: any) => o.value), ['7']);
 	});
 
-	it('should disable the volume buttons at the quietest and loudest steps', () => {
-		assert.equal(render(null, { volume: 0.1 }).volumeButtons[0].disabled, true);
-		assert.equal(render(null, { volume: 0.6 }).volumeButtons[2].disabled, true);
+	it('should show a volume that is not on the list in the placeholder', () => {
+		const { volumeMenu } = render(null, { volume: 0.25 });
+		assert.equal(volumeMenu.placeholder, 'Volume 25%');
+		assert.equal(volumeMenu.options.some((o: any) => o.default), false);
 	});
 
 	it('should split songs over menus of 25', () => {

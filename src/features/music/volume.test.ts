@@ -1,26 +1,18 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { stepVolume, volumeLabel } from './volume.js';
+import { volumeLevels, volumePercent } from './volume.js';
 
-describe('stepVolume', () => {
-	it('should move one step quieter or louder', () => {
-		assert.equal(stepVolume(0.25, 'quieter'), 0.15);
-		assert.equal(stepVolume(0.25, 'louder'), 0.4);
-	});
-
-	it('should stop at the quietest and loudest steps', () => {
-		assert.equal(stepVolume(0.1, 'quieter'), null);
-		assert.equal(stepVolume(0.6, 'louder'), null);
-	});
-
-	it('should move a volume between steps to the nearest step that way', () => {
-		assert.equal(stepVolume(0.3, 'quieter'), 0.25);
-		assert.equal(stepVolume(0.3, 'louder'), 0.4);
+describe('volumeLevels', () => {
+	it('should go from 1 to 20 percent in steps of 1', () => {
+		assert.equal(volumeLevels.length, 20);
+		assert.equal(volumeLevels[0], 1);
+		assert.equal(volumeLevels[19], 20);
 	});
 });
 
-describe('volumeLabel', () => {
-	it('should show the volume as a percentage', () => {
-		assert.equal(volumeLabel(0.15), '15%');
+describe('volumePercent', () => {
+	it('should round to a whole percent', () => {
+		assert.equal(volumePercent(0.07), 7);
+		assert.equal(volumePercent(0.25), 25);
 	});
 });

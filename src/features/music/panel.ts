@@ -13,11 +13,11 @@ import { allSongsId, listPlaylists, trackId } from './library.js';
 import type { Playlist } from './library.js';
 import { changeVolume, cycleMode, getMode, getStatus, musicEvents, play, skip, stop, togglePause } from './player.js';
 import type { MusicStatus, PlayMode } from './player.js';
-import { getVolume, stepVolume, volumeLabel } from './volume.js';
+import { getVolume, volumeLevels, volumePercent } from './volume.js';
 
 export const panelPrefix = 'music-panel:';
 
-// Discord limits: 25 options per menu, 5 rows per message (two are used for the buttons)
+// Discord limits: 25 options per menu, 5 rows per message (the buttons and the volume menu take two)
 const songsPerMenu = 25;
 const maxRows = 5;
 const maxOptionLength = 100;
@@ -121,16 +121,18 @@ export function buildPanel(status: MusicStatus | null, playlists: Playlist[], mo
 		new ButtonBuilder().setCustomId(panelPrefix + 'mode').setStyle(ButtonStyle.Secondary).setEmoji(modeButtons[mode].emoji).setLabel(modeButtons[mode].label),
 		new ButtonBuilder().setCustomId(panelPrefix + 'refresh').setStyle(ButtonStyle.Secondary).setEmoji('🔄'),
 	);
-	// The level sits between the buttons as a button that can't be pressed
-	const volumeButtons = row(
-		new ButtonBuilder().setCustomId(panelPrefix + 'quieter').setStyle(ButtonStyle.Secondary).setEmoji('🔉')
-			.setDisabled(stepVolume(volume, 'quieter') === null),
-		new ButtonBuilder().setCustomId(panelPrefix + 'volume').setStyle(ButtonStyle.Secondary).setLabel(volumeLabel(volume)).setDisabled(true),
-		new ButtonBuilder().setCustomId(panelPrefix + 'louder').setStyle(ButtonStyle.Secondary).setEmoji('🔊')
-			.setDisabled(stepVolume(volume, 'louder') === null),
-	);
+	// The closed menu shows the chosen level, or the placeholder when the volume is off the list
+	const volumeMenu = row(new StringSelectMenuBuilder()
+		.setCustomId(panelPrefix + 'volume')
+		.setPlaceholder(`Volume ${volumePercent(volume)}%`)
+		.addOptions(volumeLevels.map(level => ({
+			label: `Volume ${level}%`,
+			emoji: '🔊',
+			value: String(level),
+			default: level === volumePercent(volume),
+		}))));
 
-	const rows = [buttons, volumeButtons];
+	const rows = [buttons, volumeMenu];
 	if (showPlaylists) {
 		rows.push(row(new StringSelectMenuBuilder()
 			.setCustomId(panelPrefix + 'playlist')
@@ -243,6 +245,8 @@ export async function handlePanelInteraction(interaction: ButtonInteraction | St
 		// Picking only selects; Play starts it
 		if (interaction.isStringSelectMenu() && action === 'playlist') {
 			panel.selection = { playlistId: interaction.values[0] };
+		} else if (interaction.isStringSelectMenu() && action === 'volume') {
+			changeVolume(guild.id, Number(interaction.values[0]) / 100);
 		} else if (interaction.isStringSelectMenu()) {
 			// song:<menu>:<playlist>, where the playlist is a folder name that may contain colons
 			panel.selection = { playlistId: action.split(':').slice(2).join(':'), trackId: interaction.values[0] };
@@ -263,8 +267,6 @@ export async function handlePanelInteraction(interaction: ButtonInteraction | St
 			stop(guild.id);
 		} else if (action === 'mode') {
 			cycleMode(guild.id);
-		} else if (action === 'quieter' || action === 'louder') {
-			changeVolume(guild.id, action);
 		}
 	} catch (error) {
 		if (!(error instanceof UserError)) {

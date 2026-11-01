@@ -33,7 +33,7 @@
 		"imageFile": "./media/image.png"
 	},
 	"music": {
-		"volume": 0.25
+		"volume": 0.1
 	},
 	"newUsersRoleId": "764130122961256498",
 	"guildId": "452956966093062145",

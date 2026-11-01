@@ -19,7 +19,7 @@ import { ffmpegPath, hasFfmpeg } from './ffmpeg.js';
 import { allSongsId, findPlaylist, shuffle } from './library.js';
 import type { Track } from './library.js';
 import { measure, volumeFilter } from './loudness.js';
-import { getVolume, setVolume, stepVolume, volumeLabel } from './volume.js';
+import { getVolume, setVolume, volumePercent } from './volume.js';
 
 // What happens when a song ends: carry on with the playlist, play the song again, or stop
 export type PlayMode = 'continue' | 'repeat' | 'once';
@@ -135,15 +135,14 @@ export async function play(channel: VoiceBasedChannel, playlistId: string = allS
 	return session.current!;
 }
 
-// Moves the volume one step and returns it. A playing song restarts from the same spot at the new volume,
-// since ffmpeg sets the volume and can't change it once it is running.
-export function changeVolume(guildId: string, direction: 'quieter' | 'louder'): number {
-	const volume = stepVolume(getVolume(guildId), direction);
-	if (volume === null) {
-		return getVolume(guildId);
+// A playing song restarts from the same spot at the new volume, since ffmpeg sets the volume and can't
+// change it once it is running
+export function changeVolume(guildId: string, volume: number): void {
+	if (volume === getVolume(guildId)) {
+		return;
 	}
 	setVolume(guildId, volume);
-	log(`Music volume set to ${volumeLabel(volume)}`);
+	log(`Music volume set to ${volumePercent(volume)}%`);
 
 	const session = sessions.get(guildId);
 	if (session?.current) {
@@ -154,7 +153,6 @@ export function changeVolume(guildId: string, direction: 'quieter' | 'louder'): 
 		}
 	}
 	musicEvents.emit('change', guildId);
-	return volume;
 }
 
 function restartCurrent(session: Session): void {
