@@ -32,7 +32,7 @@ export interface Config {
 		imageFile: string;
 	};
 	music: {
-		// Multiplier applied to every song; below 1 keeps it in the background
+		// Multiplier applied to every song after they are evened out to the same loudness; below 1 keeps it in the background
 		volume: number;
 	};
 	newUsersRoleId: string;

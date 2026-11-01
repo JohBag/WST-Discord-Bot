@@ -1,4 +1,4 @@
-import { spawn, spawnSync } from 'child_process';
+import { spawn } from 'child_process';
 import type { ChildProcess } from 'child_process';
 import {
 	AudioPlayerStatus,
@@ -12,13 +12,14 @@ import {
 } from '@discordjs/voice';
 import type { AudioPlayer, VoiceConnection } from '@discordjs/voice';
 import { EventEmitter } from 'events';
-import { createRequire } from 'module';
 import type { VoiceBasedChannel } from 'discord.js';
 import log from '../../core/log.js';
 import { config } from '../../core/config.js';
 import UserError from '../../core/user-error.js';
+import { ffmpegPath, hasFfmpeg } from './ffmpeg.js';
 import { allSongsId, findPlaylist, shuffle } from './library.js';
 import type { Track } from './library.js';
+import { measure, volumeFilter } from './loudness.js';
 
 // What happens when a song ends: carry on with the playlist, play the song again, or stop
 export type PlayMode = 'continue' | 'repeat' | 'once';
@@ -44,17 +45,6 @@ const sessions = new Map<string, Session>();
 // Kept per guild between sessions, so it can be set before playing
 const modes = new Map<string, PlayMode>();
 const maxQuickFailures = 3;
-
-// Bundled through npm so the VM needs no system package; falls back to one on the PATH.
-// ffmpeg-static is CommonJS with types that claim an ES default export, so it is required directly.
-const ffmpegStatic: string | null = createRequire(import.meta.url)('ffmpeg-static');
-const ffmpegPath = ffmpegStatic ?? 'ffmpeg';
-let ffmpegAvailable: boolean | null = null;
-
-function hasFfmpeg(): boolean {
-	ffmpegAvailable ??= spawnSync(ffmpegPath, ['-version']).status === 0;
-	return ffmpegAvailable;
-}
 
 export interface MusicStatus {
 	channelId: string;
@@ -128,6 +118,8 @@ export async function play(channel: VoiceBasedChannel, playlistId: string = allS
 	}
 	session.quickFailures = 0;
 	playNext(session);
+	// The song that just started is measured last, so the next ones are ready in time
+	measure([...session.queue, session.current!].map(t => t.file));
 
 	return session.current!;
 }
@@ -245,6 +237,7 @@ function playNext(session: Session): void {
 	if (session.queue.length === 0) {
 		// Re-read the folder so songs added since the last round are included
 		session.queue = shuffle(findPlaylist(session.playlistId)?.tracks ?? []);
+		measure(session.queue.map(t => t.file));
 	}
 	const track = session.queue.shift();
 	if (!track) {
@@ -260,7 +253,7 @@ function playTrack(session: Session, track: Track): void {
 		'-loglevel', 'error',
 		'-i', track.file,
 		'-vn',
-		'-af', `volume=${config.music.volume}`,
+		'-af', volumeFilter(track.file, config.music.volume),
 		'-c:a', 'libopus',
 		'-b:a', '96k',
 		'-f', 'ogg',
