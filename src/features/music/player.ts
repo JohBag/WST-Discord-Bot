@@ -286,9 +286,15 @@ function playNext(session: Session): void {
 	playTrack(session, track);
 }
 
+// Stopping ffmpeg closes its output, which it reports as an error, so it is no longer logged from then on
+function stopFfmpeg(session: Session): void {
+	session.ffmpeg?.stderr?.removeAllListeners('data').resume();
+	session.ffmpeg?.kill();
+}
+
 // Starts the song from its beginning, or from startMs into it after a volume change
 function playTrack(session: Session, track: Track, startMs = 0): void {
-	session.ffmpeg?.kill();
+	stopFfmpeg(session);
 	const ffmpeg = spawn(ffmpegPath, [
 		'-loglevel', 'error',
 		...(startMs > 0 ? ['-ss', (startMs / 1000).toFixed(3)] : []),
@@ -318,7 +324,7 @@ function playTrack(session: Session, track: Track, startMs = 0): void {
 
 function end(session: Session): void {
 	sessions.delete(session.guildId);
-	session.ffmpeg?.kill();
+	stopFfmpeg(session);
 	session.player.stop(true);
 	if (session.connection.state.status !== VoiceConnectionStatus.Destroyed) {
 		session.connection.destroy();
