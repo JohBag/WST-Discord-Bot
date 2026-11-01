@@ -11,12 +11,13 @@ import log from '../../core/log.js';
 import UserError from '../../core/user-error.js';
 import { allSongsId, listPlaylists, trackId } from './library.js';
 import type { Playlist } from './library.js';
-import { cycleMode, getMode, getStatus, musicEvents, play, skip, stop, togglePause } from './player.js';
+import { changeVolume, cycleMode, getMode, getStatus, musicEvents, play, skip, stop, togglePause } from './player.js';
 import type { MusicStatus, PlayMode } from './player.js';
+import { getVolume, stepVolume, volumeLabel } from './volume.js';
 
 export const panelPrefix = 'music-panel:';
 
-// Discord limits: 25 options per menu, 5 rows per message (one is used for the buttons)
+// Discord limits: 25 options per menu, 5 rows per message (two are used for the buttons)
 const songsPerMenu = 25;
 const maxRows = 5;
 const maxOptionLength = 100;
@@ -69,7 +70,7 @@ function optionValue(text: string): string {
 	return text.slice(0, maxOptionLength);
 }
 
-export function buildPanel(status: MusicStatus | null, playlists: Playlist[], mode: PlayMode, selection?: Selection): PanelContent {
+export function buildPanel(status: MusicStatus | null, playlists: Playlist[], mode: PlayMode, volume: number, selection?: Selection): PanelContent {
 	// The menus show the selection, else the playlist that is playing, else every song
 	const playlist = playlists.find(p => p.id === (selection?.playlistId ?? status?.playlistId ?? allSongsId)) ?? playlists[0];
 	const playingPlaylist = playlists.find(p => p.id === status?.playlistId);
@@ -99,7 +100,7 @@ export function buildPanel(status: MusicStatus | null, playlists: Playlist[], mo
 	embed.setDescription(lines.join('\n'));
 
 	const showPlaylists = playlists.length > 1;
-	const songMenus = maxRows - 1 - (showPlaylists ? 1 : 0);
+	const songMenus = maxRows - 2 - (showPlaylists ? 1 : 0);
 	const shown = tracks.slice(0, songsPerMenu * songMenus);
 	const songCount = shown.length < tracks.length
 		? `Showing the first ${shown.length} of ${tracks.length} songs`
@@ -120,8 +121,16 @@ export function buildPanel(status: MusicStatus | null, playlists: Playlist[], mo
 		new ButtonBuilder().setCustomId(panelPrefix + 'mode').setStyle(ButtonStyle.Secondary).setEmoji(modeButtons[mode].emoji).setLabel(modeButtons[mode].label),
 		new ButtonBuilder().setCustomId(panelPrefix + 'refresh').setStyle(ButtonStyle.Secondary).setEmoji('🔄'),
 	);
+	// The level sits between the buttons as a button that can't be pressed
+	const volumeButtons = row(
+		new ButtonBuilder().setCustomId(panelPrefix + 'quieter').setStyle(ButtonStyle.Secondary).setEmoji('🔉')
+			.setDisabled(stepVolume(volume, 'quieter') === null),
+		new ButtonBuilder().setCustomId(panelPrefix + 'volume').setStyle(ButtonStyle.Secondary).setLabel(volumeLabel(volume)).setDisabled(true),
+		new ButtonBuilder().setCustomId(panelPrefix + 'louder').setStyle(ButtonStyle.Secondary).setEmoji('🔊')
+			.setDisabled(stepVolume(volume, 'louder') === null),
+	);
 
-	const rows = [buttons];
+	const rows = [buttons, volumeButtons];
 	if (showPlaylists) {
 		rows.push(row(new StringSelectMenuBuilder()
 			.setCustomId(panelPrefix + 'playlist')
@@ -154,7 +163,7 @@ export function buildPanel(status: MusicStatus | null, playlists: Playlist[], mo
 }
 
 function render(guildId: string, selection?: Selection): PanelContent {
-	return buildPanel(getStatus(guildId), listPlaylists(), getMode(guildId), selection);
+	return buildPanel(getStatus(guildId), listPlaylists(), getMode(guildId), getVolume(guildId), selection);
 }
 
 // Keeps the panel's latest interaction, whose token is what allows editing it, and its selection
@@ -254,6 +263,8 @@ export async function handlePanelInteraction(interaction: ButtonInteraction | St
 			stop(guild.id);
 		} else if (action === 'mode') {
 			cycleMode(guild.id);
+		} else if (action === 'quieter' || action === 'louder') {
+			changeVolume(guild.id, action);
 		}
 	} catch (error) {
 		if (!(error instanceof UserError)) {

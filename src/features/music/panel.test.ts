@@ -9,10 +9,10 @@ function songs(count: number) {
 	return Array.from({ length: count }, (_, i) => `Song ${String(i).padStart(3, '0')}.mp3`);
 }
 
-function render(status: MusicStatus | null, { loose = 3, folders = {} as Record<string, string[]>, mode = 'continue' as PlayMode, selection = undefined as Selection | undefined } = {}) {
-	const panel = buildPanel(status, buildPlaylists(songs(loose), folders), mode, selection);
-	const [buttons, ...menus] = panel.components.map(row => row.toJSON().components) as any[];
-	return { embed: panel.embeds[0].toJSON(), buttons, menus: menus.map(row => row[0]) };
+function render(status: MusicStatus | null, { loose = 3, folders = {} as Record<string, string[]>, mode = 'continue' as PlayMode, volume = 0.25, selection = undefined as Selection | undefined } = {}) {
+	const panel = buildPanel(status, buildPlaylists(songs(loose), folders), mode, volume, selection);
+	const [buttons, volumeButtons, ...menus] = panel.components.map(row => row.toJSON().components) as any[];
+	return { embed: panel.embeds[0].toJSON(), buttons, volumeButtons, menus: menus.map(row => row[0]) };
 }
 
 const tracks = buildPlaylists(songs(3), {})[0].tracks;
@@ -48,6 +48,17 @@ describe('buildPanel', () => {
 		assert.equal(render(null, { mode: 'once' }).buttons[3].label, 'Play once');
 	});
 
+	it('should show the volume between its buttons', () => {
+		const { volumeButtons } = render(null, { volume: 0.4 });
+		assert.deepEqual(volumeButtons.map((b: any) => b.label ?? b.emoji.name), ['🔉', '40%', '🔊']);
+		assert.deepEqual(volumeButtons.map((b: any) => b.disabled), [false, true, false]);
+	});
+
+	it('should disable the volume buttons at the quietest and loudest steps', () => {
+		assert.equal(render(null, { volume: 0.1 }).volumeButtons[0].disabled, true);
+		assert.equal(render(null, { volume: 0.6 }).volumeButtons[2].disabled, true);
+	});
+
 	it('should split songs over menus of 25', () => {
 		const { menus, embed } = render(null, { loose: 30 });
 		assert.deepEqual(menus.map((menu: any) => menu.options.length), [25, 5]);
@@ -55,10 +66,10 @@ describe('buildPanel', () => {
 		assert.equal(embed.footer!.text, '30 songs');
 	});
 
-	it('should show at most 100 songs, in four menus', () => {
+	it('should show at most 75 songs, in three menus', () => {
 		const { menus, embed } = render(null, { loose: 120 });
-		assert.equal(menus.length, 4);
-		assert.equal(embed.footer!.text, 'Showing the first 100 of 120 songs');
+		assert.equal(menus.length, 3);
+		assert.equal(embed.footer!.text, 'Showing the first 75 of 120 songs');
 	});
 
 	it('should disable Play and show no menus without songs', () => {
@@ -67,18 +78,18 @@ describe('buildPanel', () => {
 		assert.equal(menus.length, 0);
 	});
 
-	it('should add a playlist menu when there are folders, leaving room for three song menus', () => {
+	it('should add a playlist menu when there are folders, leaving room for two song menus', () => {
 		const { menus, embed } = render(null, { loose: 100, folders: { Ambience: ['Wind.mp3', 'Rain.ogg'] } });
 		assert.deepEqual(menus[0].options.map((o: any) => o.label), ['All songs', 'Ambience']);
-		assert.equal(menus.length, 4);
-		assert.equal(embed.footer!.text, 'All songs: Showing the first 75 of 102 songs');
+		assert.equal(menus.length, 3);
+		assert.equal(embed.footer!.text, 'All songs: Showing the first 50 of 102 songs');
 	});
 
 	it('should list the songs of the playlist that is playing', () => {
 		const playlists = buildPlaylists(songs(3), { Ambience: ['Wind.mp3', 'Rain.ogg'] });
 		const rain = playlists[1].tracks[0];
-		const panel = buildPanel({ channelId: '1', playlistId: 'Ambience', current: rain, next: null, paused: false }, playlists, 'continue');
-		const [, playlistMenu, songMenu] = panel.components.map(row => row.toJSON().components[0]) as any[];
+		const panel = buildPanel({ channelId: '1', playlistId: 'Ambience', current: rain, next: null, paused: false }, playlists, 'continue', 0.25);
+		const [, , playlistMenu, songMenu] = panel.components.map(row => row.toJSON().components[0]) as any[];
 		assert.deepEqual(playlistMenu.options.filter((o: any) => o.default).map((o: any) => o.label), ['Ambience']);
 		assert.deepEqual(songMenu.options.map((o: any) => o.label), ['Rain', 'Wind']);
 		assert.equal(songMenu.custom_id, 'music-panel:song:0:Ambience');

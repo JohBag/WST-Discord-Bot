@@ -32,7 +32,8 @@ export interface Config {
 		imageFile: string;
 	};
 	music: {
-		// Multiplier applied to every song after they are evened out to the same loudness; below 1 keeps it in the background
+		// Multiplier applied to every song after they are evened out to the same loudness; below 1 keeps it in the background.
+		// The default until someone uses the panel's volume buttons, which are saved per guild.
 		volume: number;
 	};
 	newUsersRoleId: string;

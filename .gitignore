@@ -7,6 +7,7 @@ config.local.json
 votes.json
 warcraft-logs-posts.json
 music-loudness.json
+music-volumes.json
 log.txt
 
 debug_output.pcm

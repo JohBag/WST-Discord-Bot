@@ -10,16 +10,16 @@ import {
 	entersState,
 	joinVoiceChannel,
 } from '@discordjs/voice';
-import type { AudioPlayer, VoiceConnection } from '@discordjs/voice';
+import type { AudioPlayer, AudioResource, VoiceConnection } from '@discordjs/voice';
 import { EventEmitter } from 'events';
 import type { VoiceBasedChannel } from 'discord.js';
 import log from '../../core/log.js';
-import { config } from '../../core/config.js';
 import UserError from '../../core/user-error.js';
 import { ffmpegPath, hasFfmpeg } from './ffmpeg.js';
 import { allSongsId, findPlaylist, shuffle } from './library.js';
 import type { Track } from './library.js';
 import { measure, volumeFilter } from './loudness.js';
+import { getVolume, setVolume, stepVolume, volumeLabel } from './volume.js';
 
 // What happens when a song ends: carry on with the playlist, play the song again, or stop
 export type PlayMode = 'continue' | 'repeat' | 'once';
@@ -36,7 +36,12 @@ interface Session {
 	// Set by skip, so the next song plays even when repeating
 	skipping: boolean;
 	ffmpeg: ChildProcess | null;
+	resource: AudioResource | null;
 	startedAt: number;
+	// Where in the song the current ffmpeg started, in milliseconds, after a volume change
+	offsetMs: number;
+	// Set when the volume changes while paused, so the song picks up the new volume when it resumes
+	restartOnResume: boolean;
 	// Tracks that ended almost immediately in a row, to stop instead of spinning on broken files
 	quickFailures: number;
 }
@@ -87,9 +92,15 @@ export function cycleMode(guildId: string): PlayMode {
 // Returns whether the music is paused afterwards
 export function togglePause(guildId: string): boolean {
 	const session = getSession(guildId);
-	const paused = session.player.state.status === AudioPlayerStatus.Paused
-		? !session.player.unpause()
-		: session.player.pause();
+	let paused: boolean;
+	if (session.player.state.status !== AudioPlayerStatus.Paused) {
+		paused = session.player.pause();
+	} else if (session.restartOnResume) {
+		restartCurrent(session);
+		paused = false;
+	} else {
+		paused = !session.player.unpause();
+	}
 	musicEvents.emit('change', guildId);
 	return paused;
 }
@@ -122,6 +133,33 @@ export async function play(channel: VoiceBasedChannel, playlistId: string = allS
 	measure([...session.queue, session.current!].map(t => t.file));
 
 	return session.current!;
+}
+
+// Moves the volume one step and returns it. A playing song restarts from the same spot at the new volume,
+// since ffmpeg sets the volume and can't change it once it is running.
+export function changeVolume(guildId: string, direction: 'quieter' | 'louder'): number {
+	const volume = stepVolume(getVolume(guildId), direction);
+	if (volume === null) {
+		return getVolume(guildId);
+	}
+	setVolume(guildId, volume);
+	log(`Music volume set to ${volumeLabel(volume)}`);
+
+	const session = sessions.get(guildId);
+	if (session?.current) {
+		if (session.player.state.status === AudioPlayerStatus.Paused) {
+			session.restartOnResume = true;
+		} else {
+			restartCurrent(session);
+		}
+	}
+	musicEvents.emit('change', guildId);
+	return volume;
+}
+
+function restartCurrent(session: Session): void {
+	const position = session.offsetMs + (session.resource?.playbackDuration ?? 0);
+	playTrack(session, session.current!, position);
 }
 
 export function skip(guildId: string): Track {
@@ -186,7 +224,10 @@ async function connect(channel: VoiceBasedChannel, existing?: Session): Promise<
 		current: null,
 		skipping: false,
 		ffmpeg: null,
+		resource: null,
 		startedAt: 0,
+		offsetMs: 0,
+		restartOnResume: false,
 		quickFailures: 0,
 	};
 	sessions.set(session.guildId, session);
@@ -247,13 +288,15 @@ function playNext(session: Session): void {
 	playTrack(session, track);
 }
 
-function playTrack(session: Session, track: Track): void {
+// Starts the song from its beginning, or from startMs into it after a volume change
+function playTrack(session: Session, track: Track, startMs = 0): void {
 	session.ffmpeg?.kill();
 	const ffmpeg = spawn(ffmpegPath, [
 		'-loglevel', 'error',
+		...(startMs > 0 ? ['-ss', (startMs / 1000).toFixed(3)] : []),
 		'-i', track.file,
 		'-vn',
-		'-af', volumeFilter(track.file, config.music.volume),
+		'-af', volumeFilter(track.file, getVolume(session.guildId)),
 		'-c:a', 'libopus',
 		'-b:a', '96k',
 		'-f', 'ogg',
@@ -265,8 +308,13 @@ function playTrack(session: Session, track: Track): void {
 	session.ffmpeg = ffmpeg;
 	session.current = track;
 	session.startedAt = Date.now();
-	session.player.play(createAudioResource(ffmpeg.stdout, { inputType: StreamType.OggOpus }));
-	log(`Now playing: ${track.name}`);
+	session.offsetMs = startMs;
+	session.restartOnResume = false;
+	session.resource = createAudioResource(ffmpeg.stdout, { inputType: StreamType.OggOpus });
+	session.player.play(session.resource);
+	if (startMs === 0) {
+		log(`Now playing: ${track.name}`);
+	}
 	musicEvents.emit('change', session.guildId);
 }
 
