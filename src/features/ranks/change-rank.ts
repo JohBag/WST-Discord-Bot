@@ -11,6 +11,12 @@ const verbs = {
 	down: { verb: 'demote', past: 'demoted', reason: 'Demoted' },
 };
 
+// Holds the Officer role or any role above it in Server Settings > Roles (a guild master role, say)
+function isOfficerOrAbove(member: GuildMember): boolean {
+	const officerRole = member.guild.roles.cache.get(config.roles.officer);
+	return member.roles.cache.some(role => role.id === config.roles.officer || (!!officerRole && role.position > officerRole.position));
+}
+
 // Moves the target one rank up or down (config.roles.ranks). Only officers may. Returns the private
 // reply for the officer; nothing is posted for anyone else.
 export default async function changeRank(officer: GuildMember, target: GuildMember, direction: Direction): Promise<string> {
@@ -18,8 +24,15 @@ export default async function changeRank(officer: GuildMember, target: GuildMemb
 	if (!officer.roles.cache.has(config.roles.officer)) {
 		throw new UserError(`Only officers can ${verb} members.`);
 	}
-
 	const guild = target.guild;
+	// Officers, and anyone with a role above Officer, are out of reach: taking one down stays a
+	// manual job for whoever runs the server
+	if (direction === 'down' && isOfficerOrAbove(target)) {
+		throw new UserError(target.id === officer.id
+			? "Officers can't be demoted, yourself included."
+			: `${target.displayName} is an officer or above. Officers can't be demoted.`);
+	}
+
 	const ranks: Rank[] = config.roles.ranks.map(id => {
 		const role = guild.roles.cache.get(id);
 		if (!role) {

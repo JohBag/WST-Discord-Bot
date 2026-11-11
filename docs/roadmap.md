@@ -9,8 +9,9 @@ Officers move a member one rank up (Visitor to Probationer to Member) with `/pro
 right-clicking the member > Apps > Promote, and one rank down with `/demote` or Apps > Demote.
 The new rank replaces the old one, in a single role change. Only the officer sees the reply.
 Members with the Officer role can use them, checked by Botty, so the commands show for everyone but
-refuse non-officers. Whoever runs the server can hide them from non-officers under
-Server Settings > Integrations. Botty's role has to sit above every rank in the role list.
+refuse non-officers. Officers, and anyone with a role above Officer, can't be demoted, not even by
+themselves: taking one down stays a manual job for whoever runs the server. Whoever runs the server can hide the commands from
+non-officers under Server Settings > Integrations. Botty's role has to sit above every rank in the role list.
 Otherwise he changes nothing and tells the officer which rank is in the way.
 
 ### Not doing

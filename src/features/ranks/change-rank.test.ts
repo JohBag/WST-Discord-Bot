@@ -1,5 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { Collection } from 'discord.js';
 import type { GuildMember } from 'discord.js';
 import { config } from '../../core/config.js';
 import changeRank from './change-rank.js';
@@ -10,10 +11,14 @@ const demote = (officer: GuildMember, target: GuildMember) => changeRank(officer
 
 const [visitorId, probationerId, memberId] = config.roles.ranks;
 const guildId = 'guild';
-const names: Record<string, string> = { [visitorId]: 'Visitor', [probationerId]: 'Probationer', [memberId]: 'Member' };
+// The server's roles from bottom to top, with a guild master role above Officer
+const serverRoles: [string, string][] = [
+	[visitorId, 'Visitor'], ['raider', 'Raider'], [probationerId, 'Probationer'], [memberId, 'Member'],
+	[config.roles.officer, 'Officer'], ['gm', 'Guild Master'],
+];
 
 function fakeGuild(notEditable: string[] = [], manageRoles = true) {
-	const roles = new Map(Object.entries(names).map(([id, name]) => [id, { name, editable: !notEditable.includes(id) }]));
+	const roles = new Collection(serverRoles.map(([id, name], index) => [id, { id, name, position: index + 1, editable: !notEditable.includes(id) }]));
 	return { id: guildId, name: 'Test', roles: { cache: roles }, members: { me: { permissions: { has: () => manageRoles } } } };
 }
 
@@ -21,11 +26,12 @@ function fakeGuild(notEditable: string[] = [], manageRoles = true) {
 function fakeMember(name: string, roleIds: string[], guild = fakeGuild()) {
 	const calls: string[][] = [];
 	const member = {
+		id: name,
 		displayName: name,
 		user: { username: name.toLowerCase() },
 		guild,
 		roles: {
-			cache: new Map([guildId, ...roleIds].map(id => [id, {}])),
+			cache: new Collection([guildId, ...roleIds].map(id => [id, guild.roles.cache.get(id) ?? { id, position: 0 }])),
 			async set(ids: string[]) { calls.push(ids); },
 		},
 	};
@@ -91,6 +97,35 @@ describe('demote', () => {
 	it('should refuse anyone without the Officer role', async () => {
 		const notOfficer = fakeMember('Bart', [memberId]).member;
 		const { member, calls } = fakeMember('Jay', [memberId]);
+		await assert.rejects(demote(notOfficer, member), { message: 'Only officers can demote members.' });
+		assert.deepEqual(calls, []);
+	});
+
+	it('should leave officers alone, including the officer running it', async () => {
+		const target = fakeMember('Mochi', [config.roles.officer, memberId]);
+		await assert.rejects(demote(officer, target.member), { message: "Mochi is an officer or above. Officers can't be demoted." });
+		assert.deepEqual(target.calls, []);
+
+		const self = fakeMember('Officer', [config.roles.officer, memberId]);
+		await assert.rejects(demote(self.member, self.member), { message: "Officers can't be demoted, yourself included." });
+		assert.deepEqual(self.calls, []);
+	});
+
+	it('should leave anyone with a role above Officer alone', async () => {
+		const { member, calls } = fakeMember('Bart', ['gm', memberId]);
+		await assert.rejects(demote(officer, member), { message: "Bart is an officer or above. Officers can't be demoted." });
+		assert.deepEqual(calls, []);
+	});
+
+	it('should give an officer without a rank the officer message', async () => {
+		const { member, calls } = fakeMember('Mochi', [config.roles.officer]);
+		await assert.rejects(demote(officer, member), { message: "Mochi is an officer or above. Officers can't be demoted." });
+		assert.deepEqual(calls, []);
+	});
+
+	it('should refuse a non-officer before saying anything about the target', async () => {
+		const notOfficer = fakeMember('Jay', [memberId]).member;
+		const { member, calls } = fakeMember('Mochi', [config.roles.officer, memberId]);
 		await assert.rejects(demote(notOfficer, member), { message: 'Only officers can demote members.' });
 		assert.deepEqual(calls, []);
 	});
