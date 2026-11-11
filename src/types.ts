@@ -1,5 +1,5 @@
-import { ChatInputCommandInteraction, Collection } from 'discord.js';
-import type { InteractionEditReplyOptions, SlashCommandOptionsOnlyBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, Collection, UserContextMenuCommandInteraction } from 'discord.js';
+import type { ContextMenuCommandBuilder, InteractionEditReplyOptions, SlashCommandOptionsOnlyBuilder } from 'discord.js';
 
 export interface Config {
 	name: string;
@@ -36,7 +36,13 @@ export interface Config {
 		// The default until someone picks a level in the panel's volume menu, which is saved per guild.
 		volume: number;
 	};
-	newUsersRoleId: string;
+	roles: {
+		// Who may promote members
+		officer: string;
+		// The guild ranks, lowest first (Visitor, Probationer, Member). New members get the first,
+		// and promoting moves someone one step up, replacing their old rank
+		ranks: string[];
+	};
 	guildId: string;
 	warcraftLogs: {
 		guildId: number;
@@ -66,10 +72,13 @@ export interface Secrets {
 	};
 }
 
-export interface BotCommand {
-	data: SlashCommandOptionsOnlyBuilder;
+// Slash commands, and right-click commands on a member
+export type BotCommandInteraction = ChatInputCommandInteraction | UserContextMenuCommandInteraction;
+
+export interface BotCommand<I extends BotCommandInteraction = ChatInputCommandInteraction> {
+	data: SlashCommandOptionsOnlyBuilder | ContextMenuCommandBuilder;
 	// Returning text or message content keeps it as the (private) reply; otherwise the reply is removed
-	execute(interaction: ChatInputCommandInteraction): Promise<void | string | InteractionEditReplyOptions>;
+	execute(interaction: I): Promise<void | string | InteractionEditReplyOptions>;
 }
 
 export interface BotEvent {
@@ -89,6 +98,6 @@ export interface Vote {
 
 declare module 'discord.js' {
 	interface Client {
-		commands: Collection<string, BotCommand>;
+		commands: Collection<string, BotCommand<BotCommandInteraction>>;
 	}
 }

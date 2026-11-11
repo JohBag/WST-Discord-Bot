@@ -21,13 +21,15 @@ export default {
 			return;
 		}
 
-		if (!interaction.isChatInputCommand()) {
+		if (!interaction.isChatInputCommand() && !interaction.isUserContextMenuCommand()) {
 			return;
 		}
 
 		const commandName = interaction.commandName;
+		// Slash commands read as /name, right-click commands by their menu name
+		const label = interaction.isChatInputCommand() ? `/${commandName}` : commandName;
 		const username = await getUsername(interaction);
-		log(`${username} used /${commandName}`);
+		log(`${username} used ${label}`);
 
 		const command = interaction.client.commands.get(commandName);
 		if (!command) {
@@ -47,12 +49,12 @@ export default {
 		} catch (error) {
 			const isUserError = error instanceof UserError;
 			if (isUserError) {
-				log(`/${commandName} rejected: ${error.message}`);
+				log(`${label} rejected: ${error.message}`);
 			} else {
-				log.error(`Error executing /${commandName}: ${error}`);
+				log.error(`Error executing ${label}: ${error}`);
 			}
 			try {
-				await interaction.editReply({ content: isUserError ? error.message : `Something went wrong with /${commandName}.` });
+				await interaction.editReply({ content: isUserError ? error.message : `Something went wrong with ${label}.` });
 			} catch (replyError) {
 				log.error(`Failed to send error reply: ${replyError}`);
 			}

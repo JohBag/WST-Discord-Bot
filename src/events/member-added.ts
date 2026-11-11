@@ -3,7 +3,8 @@ import { config } from '../core/config.js';
 import type { GuildMember } from 'discord.js';
 import type { BotEvent } from '../types.js';
 
-const newUsersRoleId = config.newUsersRoleId;
+// The lowest rank (Visitor)
+const newUsersRoleId = config.roles.ranks[0];
 
 export default {
 	name: 'guildMemberAdd',
