@@ -11,6 +11,7 @@ making them (overrides the AI-driven default in `C:\Home\Projects\CLAUDE.md`).
 - Do not read `.env`, `config/secrets.json` or any other credential file, locally or on the VM. Check that a variable is set without printing its value.
 - `config/config.json` and `config/prompt.txt` are committed on purpose and must stay free of secrets.
 - `eval/` is git-ignored because it holds real guild conversations exported for model comparisons. Never commit or publish anything from it.
+- Never commit anything personal: Johan's own words, chat excerpts, guild members' messages (2026-11-11). `docs/issues.md` quotes Johan's notes, so it is git-ignored and stays local. Commit messages and committed docs describe what changed, not what was said.
 - Keep machine-specific details (IP addresses, usernames) out of committed files. The VM is reached through the SSH alias `wst-vm`, defined only in the local `~/.ssh/config`.
 
 ## Docs
