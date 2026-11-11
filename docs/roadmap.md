@@ -3,22 +3,22 @@
 What's built, what's parked and why. Newest first. This repo is public: describe situations, never
 quote guild members or name them.
 
-## 2026-11-11: Promoting members
+## 2026-11-11: Promoting and demoting members
 
-Officers promote a member one rank, Visitor to Probationer or Probationer to Member, with `/promote`
-or by right-clicking the member > Apps > Promote. The new rank replaces the old one. Only the officer
-sees the reply. Members with the Officer role can use it, checked by Botty, so the command shows
-for everyone but refuses non-officers. Whoever runs the server can hide it from non-officers under
+Officers move a member one rank up (Visitor to Probationer to Member) with `/promote` or by
+right-clicking the member > Apps > Promote, and one rank down with `/demote` or Apps > Demote.
+The new rank replaces the old one, in a single role change. Only the officer sees the reply.
+Members with the Officer role can use them, checked by Botty, so the commands show for everyone but
+refuse non-officers. Whoever runs the server can hide them from non-officers under
 Server Settings > Integrations. Botty's role has to sit above every rank in the role list.
 Otherwise he changes nothing and tells the officer which rank is in the way.
 
 ### Not doing
 
-- **Demotion.** Not needed for now (decided 2026-11-11).
-- **Announcing promotions.** Silent for now (decided 2026-11-11). A short line in a guild channel is
+- **Announcing rank changes.** Silent for now (decided 2026-11-11). A short line in a guild channel is
   the obvious next step.
-- **Promoting through chat.** "Botty, promote X" is left out on purpose: members could talk the model
-  into it. The command's officer check is the only way in.
+- **Changing ranks through chat.** "Botty, promote X" is left out on purpose: members could talk the
+  model into it. The commands' officer check is the only way in.
 
 ## 2026-10-29: Chat reads more of Discord
 
