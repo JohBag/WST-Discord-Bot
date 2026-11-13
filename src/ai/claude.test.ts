@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { toClaudeMessages } from './claude.js';
+import { describePause } from './conversation.js';
 import type { ChatMessage } from './conversation.js';
 
 const user = (author: string, content: string): ChatMessage => ({ author, content, fromBot: false });
@@ -48,6 +49,22 @@ describe('toClaudeMessages', () => {
 				],
 			},
 		]);
+	});
+
+	it('should mark a long pause before the message that ends it', () => {
+		const hour = 60 * 60 * 1000;
+		const afterPause: ChatMessage = { author: 'Mochi', content: 'new meme', fromBot: false, pauseBefore: 14 * hour + 10 * 60 * 1000 };
+		assert.deepEqual(toClaudeMessages([user('Jay', 'old meme'), afterPause]), [
+			{ role: 'user', content: 'Jay: old meme\n(14 hours later)\nMochi: new meme' },
+		]);
+	});
+
+	it('should name the pause in hours under a day and in days after', () => {
+		const hour = 60 * 60 * 1000;
+		assert.equal(describePause(61 * 60 * 1000), '1 hour later');
+		assert.equal(describePause(23 * hour), '23 hours later');
+		assert.equal(describePause(26 * hour), '1 day later');
+		assert.equal(describePause(50 * hour), '2 days later');
 	});
 
 	it('should return nothing when only the bot has spoken', () => {

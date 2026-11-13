@@ -6,6 +6,7 @@ import { describeMessage, findImages, quote } from './describe.js';
 import type { MessageParts } from './describe.js';
 import { downloadImage } from './images.js';
 import type { ChatMessage } from '../../ai/conversation.js';
+import type { ReplyReason } from './situation.js';
 
 // The parts of a message the history filters look at, so saved conversations can be filtered the same way
 export interface HistoryMessage {
@@ -35,10 +36,10 @@ interface ReadMessage {
 	images: string[];
 }
 
-export default async function getConversation(interaction: Message): Promise<Conversation> {
+export default async function getConversation(interaction: Message, reason: ReplyReason): Promise<Conversation> {
 	const fetched = await getMessages(interaction, config.chat.history.maxMessages);
 	const seenUntil = fetched[0]?.createdTimestamp ?? interaction.createdTimestamp;
-	const messages = placeReplies(filterHistory(fetched.map(readMessage), Date.now()));
+	const messages = placeReplies(filterHistory(fetched.map(readMessage), Date.now(), reason));
 
 	if (messages.length === 0) {
 		log('No messages remaining.');
@@ -99,8 +100,9 @@ async function getMessages(interaction: Message, messageLimit: number): Promise<
 // Takes messages newest first and gives them oldest first
 async function formatConversation(messages: ReadMessage[]): Promise<ChatMessage[]> {
 	const shown = pickImages(messages, maxImages);
+	const pauses = markPauses(messages.map(read => ({ createdTimestamp: read.createdTimestamp, fromBot: isFromBot(read.message) })).reverse()).reverse();
 	const conversation = await Promise.all(
-		messages.map(async (read): Promise<ChatMessage> => {
+		messages.map(async (read, i): Promise<ChatMessage> => {
 			const images = await Promise.all((shown.get(read.id) ?? []).map(downloadImage));
 			return {
 				author: await getUsername(read.message),
@@ -108,6 +110,7 @@ async function formatConversation(messages: ReadMessage[]): Promise<ChatMessage[
 				fromBot: isFromBot(read.message),
 				replyTo: await getReplyTo(read.message, messages),
 				images: images.filter(image => image !== null),
+				pauseBefore: pauses[i],
 			};
 		})
 	);
@@ -157,24 +160,48 @@ function isFromBot(message: Message): boolean {
 }
 
 // Takes messages newest first and keeps the current conversation: the non-empty messages after the
-// last reset marker, back to the first long pause, but at least a few if there are recent ones
-export function filterHistory<T extends HistoryMessage>(messages: T[], now: number): T[] {
+// last reset marker, back to the first long pause. When someone asks for a reply it keeps at least a
+// few if there are recent ones, while dropping in on its own only reads the conversation going on now.
+export function filterHistory<T extends HistoryMessage>(messages: T[], now: number, reason: ReplyReason): T[] {
 	messages = filterByDate(messages, now);
 	messages = filterByResetMarker(messages);
 	messages = filterEmpty(messages);
-	return filterByPause(messages);
+	return filterByPause(messages, reason === 'direct' ? config.chat.history.minMessages : 1);
 }
 
 // A busy thread is followed back to where it started, while a quiet channel still gives some context
-function filterByPause<T extends HistoryMessage>(messages: T[]): T[] {
-	const { minMessages, gapMinutes } = config.chat.history;
-	const gap = gapMinutes * 60 * 1000;
+function filterByPause<T extends HistoryMessage>(messages: T[], minMessages: number): T[] {
 	for (let i = Math.max(minMessages, 1); i < messages.length; i++) {
-		if (messages[i - 1].createdTimestamp - messages[i].createdTimestamp > gap) {
+		if (findPause(messages[i - 1], messages[i])) {
 			return messages.slice(0, i);
 		}
 	}
 	return messages;
+}
+
+// How long passed between a message and the one before it, when that's long enough to count as a pause
+function findPause(message: { createdTimestamp: number }, before: { createdTimestamp: number } | undefined): number | undefined {
+	const elapsed = before ? message.createdTimestamp - before.createdTimestamp : 0;
+	return elapsed > config.chat.history.gapMinutes * 60 * 1000 ? elapsed : undefined;
+}
+
+// Takes messages oldest first and gives each one's pauseBefore. A pause is only marked before other
+// people's messages, so when one ends with the bot's own message (a /log summary posted the next
+// morning) it moves to the next message from someone else, timed from the last one before the pause.
+export function markPauses(messages: { createdTimestamp: number; fromBot: boolean }[]): (number | undefined)[] {
+	let lastOther: { createdTimestamp: number } | undefined;
+	let carried = false;
+	return messages.map((message, i) => {
+		const pause = findPause(message, messages[i - 1]);
+		if (message.fromBot) {
+			carried ||= pause !== undefined;
+			return undefined;
+		}
+		const marked = carried ? message.createdTimestamp - (lastOther ?? messages[0]).createdTimestamp : pause;
+		lastOther = message;
+		carried = false;
+		return marked;
+	});
 }
 
 function filterByDate<T extends HistoryMessage>(messages: T[], now: number): T[] {

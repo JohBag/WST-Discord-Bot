@@ -3,6 +3,27 @@
 What's built, what's parked and why. Newest first. This repo is public: describe situations, never
 quote guild members or name them.
 
+## 2026-11-13: Old context after a long pause
+
+To give some context in quiet channels, Botty's history keeps at least 10 messages even across a long
+pause (`chat.history.minMessages`). The model couldn't tell those were old: on 2026-10-29 he fitted a
+newcomer's question into a plan from two hours earlier, and on 2026-11-13 a random reply in a quiet
+channel picked up the previous day's conversation instead of the new message.
+
+- A pause of more than 60 minutes (`chat.history.gapMinutes`) shows in what the model reads as a line
+  like `(14 hours later)` before the message that ends it. Only before other people's messages, so
+  the model doesn't learn to start its own replies with one: a pause that ends with Botty's own post
+  (a `/log` summary the next morning) is marked before the next person's message instead, timed from
+  the last message before the pause.
+- A random reply reads only the conversation going on now, back to the last pause. A ping or a reply
+  still keeps the 10, with the pause marked.
+
+### Not doing
+
+- **An age limit on the kept messages.** The fix proposed when this was parked. It would also have
+  stopped both incidents, but it drops context that helps when someone pings Botty about something
+  earlier in a quiet channel. Marking the pause keeps that context and still shows it as old.
+
 ## 2026-11-11: Promoting and demoting members
 
 Officers move a member one rank up (Visitor to Probationer to Member) with `/promote` or by
@@ -111,12 +132,6 @@ Questions to settle first:
 - Pranks: members will try to make Botty remember things about others (a nickname for someone who
   never agreed to it). He held out against that in chat on 2026-10-29, but stored notes last.
 - Where it lives (git-ignored, like `config/warcraft-logs-posts.json`) and what it costs per reply.
-
-### Old context after a long pause
-
-The history keeps at least 10 messages even across a long pause (`chat.history.minMessages`). On
-2026-10-29 Botty fitted a newcomer's question into a group plan from two hours earlier. A limit on
-how old those kept messages may be would fix it.
 
 ### Language
 

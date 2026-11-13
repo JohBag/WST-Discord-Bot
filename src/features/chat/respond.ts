@@ -38,7 +38,7 @@ async function reply(trigger: Trigger, reason: ReplyReason): Promise<number> {
 	const channel = trigger.channel as SendableChannels;
 	const stopTyping = showTyping(channel);
 	try {
-		const { messages: conversation, seenUntil } = await getConversation(trigger as DiscordMessage);
+		const { messages: conversation, seenUntil } = await getConversation(trigger as DiscordMessage, reason);
 		if (conversation.length === 0) {
 			return seenUntil;
 		}

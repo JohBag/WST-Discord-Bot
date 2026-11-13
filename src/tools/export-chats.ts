@@ -7,7 +7,7 @@ import { parseArgs } from 'util';
 import { ChannelType, REST, Routes } from 'discord.js';
 import type { APIChannel, APIGuildMember, APIMessage, APIUser } from 'discord.js';
 import { config, secrets } from '../core/config.js';
-import { filterHistory } from '../features/chat/conversation.js';
+import { filterHistory, markPauses } from '../features/chat/conversation.js';
 import getChannelSettings from '../features/chat/channel-settings.js';
 import { isMentionedByName } from '../features/chat/should-respond.js';
 import { describeMessage, quote } from '../features/chat/describe.js';
@@ -85,7 +85,7 @@ async function readMessage(message: APIMessage): Promise<string> {
 	});
 }
 
-async function toChatMessage(message: APIMessage, content: string): Promise<ChatMessage> {
+async function toChatMessage(message: APIMessage, content: string, pauseBefore: number | undefined): Promise<ChatMessage> {
 	const fromBot = message.author.id === bot.id;
 	const original = message.referenced_message;
 	return {
@@ -95,6 +95,7 @@ async function toChatMessage(message: APIMessage, content: string): Promise<Chat
 		replyTo: original && !fromBot
 			? { author: original.author.id === bot.id ? 'you' : await getName(original.author), content: quote(await readMessage(original)) }
 			: undefined,
+		pauseBefore,
 	};
 }
 
@@ -128,20 +129,27 @@ async function findConversations(channel: APIChannel): Promise<EvalConversation[
 		const before = (await Promise.all(messages.slice(Math.max(0, i - maxMessages), i)
 			.map(async message => ({ message, createdTimestamp: timestamp(message), content: await readMessage(message) }))))
 			.reverse();
-		const history = filterHistory(before, timestamp(reply)).reverse();
+		let history = filterHistory(before, timestamp(reply), 'direct').reverse();
 		if (history.length === 0 || history.at(-1)!.message.author.id === bot.id) {
 			continue;
 		}
 
 		// Decided like the bot decides, from the message it replied to
 		const last = history.at(-1)!.message;
-		const direct = reactChance === 1 || last.mentions.some(user => user.id === bot.id) || isMentionedByName(last.content);
+		const direct = reactChance === 1
+			|| last.mentions.some(user => user.id === bot.id)
+			|| isMentionedByName(last.content)
+			|| last.referenced_message?.author.id === bot.id;
+		if (!direct) {
+			history = filterHistory(before, timestamp(reply), 'random').reverse();
+		}
+		const pauses = markPauses(history.map(({ message, createdTimestamp }) => ({ createdTimestamp, fromBot: message.author.id === bot.id })));
 
 		conversations.push({
 			id: `${channel.name}-${reply.id}`,
 			channel: channel.name ?? undefined,
 			date: reply.timestamp,
-			messages: await Promise.all(history.map(({ message, content }) => toChatMessage(message, content))),
+			messages: await Promise.all(history.map(({ message, content }, j) => toChatMessage(message, content, pauses[j]))),
 			original: reply.content,
 			reason: direct ? 'direct' : 'random',
 		});

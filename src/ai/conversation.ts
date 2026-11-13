@@ -10,6 +10,9 @@ export interface ChatMessage {
 	replyTo?: { author: string; content: string };
 	// Pictures in the message the model can look at
 	images?: ChatImage[];
+	// Milliseconds since the message before it, set only after a long pause, so the model can tell
+	// an old conversation from the one going on now
+	pauseBefore?: number;
 }
 
 export interface ChatImage {
@@ -46,11 +49,22 @@ export interface ReplyRequest {
 }
 
 // Other people's messages are prefixed with their name so the model knows who said what. The bot's
-// own are not, since the model would otherwise learn to start its replies with its name.
+// own are not, since the model would otherwise learn to start its replies with its name. For the same
+// reason a long pause is only marked before other people's messages.
 export function formatMessage(message: ChatMessage): string {
 	if (message.fromBot) {
 		return message.content;
 	}
+	const pause = message.pauseBefore ? `(${describePause(message.pauseBefore)})\n` : '';
 	const replyTo = message.replyTo ? ` (replying to ${message.replyTo.author}: "${message.replyTo.content}")` : '';
-	return `${message.author}${replyTo}: ${message.content}`;
+	return `${pause}${message.author}${replyTo}: ${message.content}`;
+}
+
+const hour = 60 * 60 * 1000;
+const day = 24 * hour;
+
+// "14 hours later", "2 days later"
+export function describePause(ms: number): string {
+	const [count, unit] = ms < day ? [Math.max(1, Math.round(ms / hour)), 'hour'] : [Math.round(ms / day), 'day'];
+	return `${count} ${unit}${count === 1 ? '' : 's'} later`;
 }
