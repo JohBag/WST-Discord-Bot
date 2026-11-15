@@ -79,5 +79,9 @@ The addon declares retail interface versions only, so it does not load in WoW Fo
 
 - **Picking the roster and raid groups.** Left out of the first version (2026-11-15). The export
   orders people by sign-up, so the addon's groups follow that order.
-- **A web view or comp tool** like Raid-Helper's.
+- **A web view or comp tool** like Raid-Helper's. Everything decided fits Discord's own buttons,
+  menus and forms: the post, private replies to each click, and a form for saving a character.
+  A web page earns its place for dragging people into the raid, bench and groups, which is left
+  out. It would also need hosting, HTTPS and a Discord login. Revisit together with roster and
+  groups.
 - **Events created by any member.** Officers only.
