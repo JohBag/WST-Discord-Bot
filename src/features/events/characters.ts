@@ -9,8 +9,7 @@ export interface Character {
 	id: string;
 	game: GameId;
 	name: string;
-	// The realm's official name (Der Rat von Dalaran). Empty for Forever, where everyone plays on
-	// the guild's realm (events.realms.forever), which the export adds
+	// The realm's official name (Der Rat von Dalaran). Empty for Forever, which has no realms
 	realm: string;
 	classId: string;
 	specId: string;
@@ -114,7 +113,7 @@ function validate(store: CharacterStore, userId: string, input: CharacterInput, 
 	if (typeof name !== 'string') {
 		return name;
 	}
-	// Forever characters all play on the guild's realm, so they're saved without one
+	// Forever has no realms
 	const realm = input.game === 'retail' ? findRealm(input.realm) : '';
 	if (typeof realm !== 'string') {
 		return realm;

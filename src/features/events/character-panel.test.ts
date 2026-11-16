@@ -29,7 +29,7 @@ describe('buildCharacterPanel', () => {
 		assert.equal(embed!.title, 'Your characters');
 		const lines = embed!.description!.split('\n');
 		assert.equal(lines[0], '**Retail**');
-		assert.match(lines[1], /^⭐ Thorvik(-ArgentDawn)?: Blood Death Knight \(off-spec Frost\)$/);
+		assert.equal(lines[1], '⭐ Thorvik-ArgentDawn: Blood Death Knight (off-spec Frost)');
 		assert.equal(lines[2], 'Kapi-TwistingNether: Subtlety Rogue');
 		assert.deepEqual(lines.slice(4), ['**Forever**', '⭐ Thorvik: Protection Warrior']);
 		assert.equal(embed!.footer!.text, '⭐ Main, used for raid sign-ups');
@@ -104,6 +104,11 @@ describe('buildCharacterModal', () => {
 		assert.deepEqual(modal.components[2].component.options.map((o: any) => o.label), ['Holy', 'Protection', 'Retribution']);
 		assert.deepEqual(modal.components[3].component.options.map((o: any) => o.label), ['None', 'Holy', 'Protection', 'Retribution']);
 		assert.deepEqual(modal.components[3].component.options.filter((o: any) => o.default).map((o: any) => o.label), ['None']);
+	});
+
+	it("should fill in the guild's realm for a new retail character", () => {
+		const modal = buildCharacterModal('u1', 'retail', 'MAGE').toJSON() as any;
+		assert.equal(modal.components[1].component.value, 'Aggramar');
 	});
 
 	it('should leave the realm out for Forever', () => {

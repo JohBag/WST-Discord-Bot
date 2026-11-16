@@ -55,8 +55,9 @@ export interface Config {
 	};
 	// Raid and event sign-ups (docs/events.md)
 	events: {
-		// The guild's realm in each game, filled in for new characters and left off their names
-		realms: Record<'retail' | 'forever', string>;
+		// The guild's retail realm, filled in for new characters and left off their names. WoW
+		// Forever has no realms
+		realm: string;
 	};
 	prompt: string;
 }

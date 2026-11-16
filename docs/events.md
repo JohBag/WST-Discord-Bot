@@ -58,8 +58,8 @@ without fixing a single name.
 
 1. **Class and spec data, and saving characters.** Built. `/characters` opens a private panel
    listing a member's characters per game, the main starred. Adding one is a class button, then a
-   form with name, realm (retail only, filled in with the guild's realm from `events.realms` in
-   config), spec and off-spec (None by default). A form that's turned down shows why, with Try
+   form with name, realm (retail only, filled in with the guild's realm, Aggramar, from
+   `events.realm` in config), spec and off-spec (None by default). A form that's turned down shows why, with Try
    again to reopen it as it was filled in. Picking a character opens it with Edit, Make main and
    Remove (asks first). The first character in a game becomes the main, and removing the main hands
    it to the next. Up to 10 characters per game.
@@ -68,7 +68,8 @@ without fixing a single name.
      library the addon checks names against), however it was typed, and saved under its official
      name. A realm the addon wouldn't know is turned down rather than silently failing on raid
      night. Off-realm names are written the way the game does (`Name-DerRatvonDalaran`).
-   - **WoW Forever characters have no realm field.** Everyone there plays on the guild's realm.
+   - **WoW Forever characters have no realm.** Forever has no realms (2026-11-16), so its
+     characters are a name only, in the panel and in the export.
    - **A character can only be saved once.** If someone else holds it, the message names them.
      Officers can open any member's characters with `/characters member` to fix or free one.
 2. Creating an event, the sign-up post, the status buttons, and edit, close and cancel.

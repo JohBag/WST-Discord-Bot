@@ -85,7 +85,7 @@ function row(...components: MessageActionRowComponentBuilder[]): ActionRowBuilde
 }
 
 export function homeRealm(game: GameId): string {
-	return config.events?.realms?.[game] ?? '';
+	return game === 'retail' ? config.events?.realm ?? '' : '';
 }
 
 function nameOf(character: Character): string {
@@ -214,8 +214,8 @@ class Panel {
 export function buildCharacterPanel(store: CharacterStore, ownerId: string, view: View, ownerName?: string): PanelContent {
 	return new Panel(store, ownerId, ownerName).build(view);
 }
-
-// The form for a new character of a class, or for editing a saved one. Forever has no realm field:
+// The form for a new character of a class, or for editing a saved one. Forever has no realms, so no
+// realm field
 // everyone there plays on the guild's realm
 export function buildCharacterModal(ownerId: string, game: GameId, classId: string, { existing, values }: { existing?: Character; values?: FormValues } = {}): ModalBuilder {
 	const wowClass = findClass(game, classId)!;
