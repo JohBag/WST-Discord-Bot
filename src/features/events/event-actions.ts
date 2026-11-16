@@ -156,7 +156,7 @@ export function buildEventModal(game: GameId, kind: EventKind, { existing, value
 			.setCustomId('apply-to')
 			.addOptions(
 				{ label: 'This event', value: 'this', default: !filled.allWeeks },
-				{ label: 'This and repeating events', description: 'Later weeks too, posted or not', value: 'all', default: !!filled.allWeeks },
+				{ label: 'This and repeating events', value: 'all', default: !!filled.allWeeks },
 			)));
 	}
 	// Switched later in Manage

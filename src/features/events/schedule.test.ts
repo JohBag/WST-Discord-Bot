@@ -207,6 +207,7 @@ describe('the Apply to choice', () => {
 		const repeating = buildEventModal('retail', 'raid', { existing: raid({ seriesId: 's1' }), repeating: true }).toJSON() as any;
 		assert.deepEqual(repeating.components.map((c: any) => c.label), ['Title', 'Start', 'Apply to', 'Description']);
 		assert.deepEqual(repeating.components[2].component.options.map((o: any) => [o.label, !!o.default]), [['This event', true], ['This and repeating events', false]]);
+		assert.ok(repeating.components[2].component.options.every((o: any) => o.description === undefined));
 		const single = buildEventModal('retail', 'raid', { existing: raid() }).toJSON() as any;
 		assert.deepEqual(single.components.map((c: any) => c.label), ['Title', 'Start', 'Description']);
 	});
