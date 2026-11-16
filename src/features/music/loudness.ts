@@ -68,8 +68,18 @@ export function measure(files: string[]): void {
 	}
 }
 
+// A damaged cache only means measuring again, so the music keeps working
+function loadCache(): Record<string, Measurement> {
+	try {
+		return storage.load<Record<string, Measurement>>(cacheName);
+	} catch (error) {
+		log.warn(`Measuring loudness again: ${error}`);
+		return {};
+	}
+}
+
 function measured(file: string): Loudness | null {
-	measurements ??= storage.exists(cacheName) ? storage.load<Record<string, Measurement>>(cacheName) : {};
+	measurements ??= loadCache();
 	const measurement = measurements[file];
 	if (!measurement) {
 		return null;
