@@ -5,6 +5,8 @@ import { config } from '../../core/config.js';
 import { exists, load, save } from '../../core/storage.js';
 import { embedReport, isLive } from './embed.js';
 import { findRaidNights } from './raids.js';
+import { linkLog } from '../events/logs.js';
+import { updatePost } from '../events/event-actions.js';
 import type { RaidNight, Report } from './raids.js';
 
 // A raid posted to the log channel, kept so later polls edit it instead of posting again
@@ -101,6 +103,10 @@ async function poll(client: Client): Promise<void> {
 
 			// Save after every change so a failure later in the loop cannot cause a second post
 			save(stateFile, state);
+
+			// The raid's sign-up post links to the log
+			await linkLog(client, { code: report.code, startTime: report.startTime, endTime: report.endTime }, updatePost)
+				.catch(error => log.error(`Linking ${report.code} to its raid post failed: ${error}`));
 		}
 
 		state.raids = state.raids.filter(raid => Date.now() - raid.endTime < keepMs);

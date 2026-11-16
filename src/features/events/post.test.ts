@@ -173,11 +173,11 @@ describe('roleQuestion', () => {
 });
 
 describe('buildEventModal', () => {
-	it('should ask for title, start and description', () => {
+	it('should ask for title, start, description and whether it repeats', () => {
 		const modal = buildEventModal('retail', 'raid').toJSON() as any;
 		assert.equal(modal.title, 'New Retail raid');
 		assert.equal(modal.custom_id, 'event:new:retail:raid');
-		assert.deepEqual(modal.components.map((c: any) => c.label), ['Title', 'Start', 'Description']);
+		assert.deepEqual(modal.components.map((c: any) => c.label), ['Title', 'Start', 'Description', 'Repeat']);
 		assert.equal(modal.components[1].description, 'Server time (Central European)');
 	});
 

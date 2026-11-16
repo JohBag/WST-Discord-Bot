@@ -58,6 +58,7 @@
 		"durationMinutes": {
 			"raid": 120,
 			"event": 120
-		}
+		},
+		"reminderMinutes": 60
 	}
 }

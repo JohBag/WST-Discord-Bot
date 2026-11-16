@@ -158,6 +158,9 @@ export function buildPostEmbed(event: RaidEvent, context: PostContext): EmbedBui
 		header.push('🔒 Sign-ups closed', '');
 	}
 	header.push(`📅 <t:${start}:F> (<t:${start}:R>)`, `👑 ${event.leaderName}`);
+	if (event.logUrl) {
+		header.push(`📜 [Warcraft Logs](${event.logUrl})`);
+	}
 	// An event's Attending list already gives the count
 	if (event.kind === 'raid') {
 		header.push(`✅ ${inRoster} signed up`);

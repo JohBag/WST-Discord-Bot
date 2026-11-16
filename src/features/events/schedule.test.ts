@@ -1,0 +1,135 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { buildEventModal } from './event-actions.js';
+import { eventForLog, logUrl } from './logs.js';
+import { overlap } from './logs.js';
+import { reminderDue, reminderMessages, reminderPings, reminderText } from './reminders.js';
+import { createSeries, dueStarts, passedWeek, seriesEvent, weekAfter } from './series.js';
+import { createEvent, respond } from './store.js';
+import type { RaidEvent } from './store.js';
+import { fromWallClock } from './when.js';
+
+const hour = 60 * 60 * 1000;
+const day = 24 * hour;
+
+// Wednesday 2026-11-18 19:30 server time
+const wednesday = fromWallClock(2026, 11, 18, 19, 30);
+
+function raid(fields: Partial<RaidEvent> = {}): RaidEvent {
+	return {
+		...createEvent({ game: 'retail', kind: 'raid', title: 'Mythic night', description: 'Flasks', start: wednesday, leaderId: 'l', leaderName: 'Leesha', channelId: 'c', guildId: 'g' }, wednesday - 5 * day, 'e1'),
+		messageId: 'm',
+		...fields,
+	};
+}
+
+describe('weekAfter', () => {
+	it('should keep the server time across a daylight saving change', () => {
+		// Sunday 2027-03-21 20:00 to Sunday 2027-03-28 20:00, the day the clocks go forward
+		const before = fromWallClock(2027, 3, 21, 20, 0);
+		assert.equal(weekAfter(before), fromWallClock(2027, 3, 28, 20, 0));
+		assert.equal(weekAfter(before) - before, 7 * day - hour);
+		assert.equal(weekAfter(wednesday), fromWallClock(2026, 11, 25, 19, 30));
+	});
+});
+
+describe('dueStarts', () => {
+	const series = createSeries(raid(), 's1');
+
+	it("should post next week's once this week's raid starts, a week ahead", () => {
+		assert.deepEqual(dueStarts(series, wednesday - hour), []);
+		assert.deepEqual(dueStarts(series, wednesday), [weekAfter(wednesday)]);
+	});
+
+	it('should skip weeks that started while Botty was offline, and post the one still ahead', () => {
+		const now = wednesday + 15 * day;
+		const second = weekAfter(weekAfter(wednesday));
+		const third = weekAfter(second);
+		assert.equal(passedWeek(series, now), second);
+		assert.deepEqual(dueStarts({ ...series, lastStart: passedWeek(series, now) }, now), [third]);
+	});
+
+	it('should keep offering a week until it is posted, so a failed post is tried again', () => {
+		const later = wednesday + hour;
+		assert.deepEqual(dueStarts(series, later), [weekAfter(wednesday)]);
+		assert.deepEqual(dueStarts({ ...series, lastStart: weekAfter(wednesday) }, later), []);
+	});
+
+	it('should copy the series into a new post for the week', () => {
+		const event = seriesEvent(series, weekAfter(wednesday));
+		assert.deepEqual([event.title, event.description, event.leaderName, event.channelId, event.seriesId, event.signups.length], ['Mythic night', 'Flasks', 'Leesha', 'c', 's1', 0]);
+		assert.equal(event.start, weekAfter(wednesday));
+	});
+});
+
+describe('reminders', () => {
+	it('should be due from an hour before the start until the start, once', () => {
+		assert.equal(reminderDue(raid(), wednesday - hour - 1), false);
+		assert.equal(reminderDue(raid(), wednesday - hour), true);
+		assert.equal(reminderDue(raid(), wednesday), false);
+		assert.equal(reminderDue(raid({ reminded: true }), wednesday - hour), false);
+		assert.equal(reminderDue(raid({ cancelled: true }), wednesday - hour), false);
+	});
+
+	it('should skip an event posted after its reminder time', () => {
+		assert.equal(reminderDue(raid({ createdAt: wednesday - 30 * 60 * 1000 }), wednesday - 10 * 60 * 1000), false);
+	});
+
+	it('should ping signed up, Late and Tentative in answering order, not Absent', () => {
+		const event = raid();
+		respond(event, 'u1', 'A', 'tentative');
+		respond(event, 'u2', 'B', 'absence');
+		respond(event, 'u3', 'C', 'late');
+		respond(event, 'u4', 'D', 'signed');
+		const pings = reminderPings(event);
+		assert.deepEqual(pings, ['u1', 'u3', 'u4']);
+		assert.equal(reminderText(event, pings), `**Mythic night** starts <t:${wednesday / 1000}:R>.\n<@u1> <@u3> <@u4>`);
+	});
+
+	it('should split a big event into messages of at most 60 pings, each under 2000 characters', () => {
+		const pings = Array.from({ length: 130 }, (_, i) => String(100000000000000000n + BigInt(i)));
+		const messages = reminderMessages(raid(), pings);
+		assert.deepEqual(messages.map(m => m.users.length), [60, 60, 10]);
+		assert.ok(messages.every(m => m.content.length <= 2000));
+		assert.match(messages[0].content, /^\*\*Mythic night\*\* starts/);
+		assert.match(messages[1].content, /^<@/);
+	});
+});
+
+describe('eventForLog', () => {
+	const night = (start: number, end = start + 2 * hour) => ({ code: 'abc', startTime: start, endTime: end });
+
+	it("should find the retail raid whose time the log overlaps, give or take an hour", () => {
+		assert.equal(eventForLog({ e1: raid() }, night(wednesday + 10 * 60 * 1000))?.id, 'e1');
+		assert.equal(eventForLog({ e1: raid() }, night(wednesday - 2 * hour, wednesday - 30 * 60 * 1000))?.id, 'e1');
+		assert.equal(eventForLog({ e1: raid() }, night(wednesday + 4 * hour)), undefined);
+	});
+
+	it('should leave Forever raids, plain events and cancelled raids alone', () => {
+		const log = night(wednesday);
+		assert.equal(eventForLog({ e1: raid({ game: 'forever' }) }, log), undefined);
+		assert.equal(eventForLog({ e1: raid({ kind: 'event' }) }, log), undefined);
+		assert.equal(eventForLog({ e1: raid({ cancelled: true }) }, log), undefined);
+	});
+
+	it('should measure how much of the raid a log covers', () => {
+		assert.equal(overlap(raid(), night(wednesday, wednesday + 2 * hour)), 2 * hour);
+		assert.equal(overlap(raid(), night(wednesday - 3 * hour, wednesday - 2 * hour)), 0);
+	});
+
+	it('should pick the raid that started closest to the log', () => {
+		const store = { early: raid({ id: 'early', start: wednesday - 2 * hour }), late: raid({ id: 'late' }) };
+		assert.equal(eventForLog(store, night(wednesday + 5 * 60 * 1000))?.id, 'late');
+		assert.equal(logUrl('abc'), 'https://www.warcraftlogs.com/reports/abc/');
+	});
+});
+
+describe('the Repeat choice', () => {
+	it('should be in the form when creating, not when editing', () => {
+		const create = buildEventModal('retail', 'raid').toJSON() as any;
+		assert.deepEqual(create.components.map((c: any) => c.label), ['Title', 'Start', 'Description', 'Repeat']);
+		assert.deepEqual(create.components[3].component.options.map((o: any) => [o.label, !!o.default]), [["Doesn't repeat", true], ['Every week', false]]);
+		const edit = buildEventModal('retail', 'raid', { existing: raid() }).toJSON() as any;
+		assert.deepEqual(edit.components.map((c: any) => c.label), ['Title', 'Start', 'Description']);
+	});
+});

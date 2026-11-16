@@ -49,6 +49,13 @@ export interface RaidEvent {
 	// The server, and the event's entry in its Events tab
 	guildId?: string;
 	calendarId?: string;
+	// The weekly series this week's post belongs to
+	seriesId?: string;
+	// The hour-before reminder has gone out
+	reminded?: boolean;
+	// That night's log on Warcraft Logs, once the auto-post found it, and how much of the raid it covers
+	logUrl?: string;
+	logOverlap?: number;
 	closed: boolean;
 	// Who closed sign-ups: the start passing, or an officer. Moving the start later only undoes the first
 	closedBy?: 'start' | 'officer';

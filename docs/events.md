@@ -143,7 +143,24 @@ without fixing a single name.
    4000 characters. Should one ever not fit, Export replies with a file instead.
    - **WoW Forever** raids export the names to invite, one per line, since the addon doesn't load
      there. Our own Forever addon is to read the full export later.
-5. Repeating events, reminders and the Warcraft Logs link.
+5. **Repeating events, reminders and the Warcraft Logs link.** Built.
+   - **Repeating:** the create form has Repeat: Doesn't repeat or Every week. A weekly series posts
+     each week's raid a week before it starts, at the same server time (daylight saving doesn't
+     move it), so the Wednesday and Sunday raids are both always open. Each week's post is its own:
+     an edit changes that week only. Manage on a week of a series has Stop repeating (asks first),
+     which leaves the posts already up. A week counts as posted only once its post is up: a failed
+     post is tried again each minute until its start, and a week with a post is never posted twice.
+     Weeks whose start passed while Botty was offline are skipped. A series posts in the game's
+     channel from config when one is set. The series are in the git-ignored
+     `config/event-series.json`.
+   - **Reminder:** `events.reminderMinutes` (60) before the start, a reply to the post pings
+     everyone signed up, Late or Tentative ("**Mythic night** starts in an hour." and the pings).
+     Once per event, and again after the start is moved. None for a cancelled one or one posted
+     after its reminder time. A big event's pings are split over several messages.
+   - **Warcraft Logs link:** when the auto-post handles a raid night, the retail raid whose time it
+     overlaps (give or take an hour) gets a "📜 Warcraft Logs" line linking that night's log. When
+     two logs fall near one raid, the one covering more of it keeps the link. Not for Forever: its
+     logs aren't on the site Botty reads.
 
 ## Defaults (not asked, change on request)
 

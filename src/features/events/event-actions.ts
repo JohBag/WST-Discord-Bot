@@ -25,6 +25,8 @@ import { buildCharacterPanel, homeRealm, setSignupHook } from './character-panel
 import { characterName, charactersOf, gameName, loadCharacters } from './characters.js';
 import type { Character } from './characters.js';
 import { addMissingEntries, syncCalendar } from './calendar.js';
+import { sendReminders } from './reminders.js';
+import { createSeries, loadSeries, postDueWeeks, saveSeries } from './series.js';
 import { catchUpInterest } from './interest.js';
 import { getClassEmoji } from './emoji.js';
 import { exportText, rosterSize } from './export.js';
@@ -99,6 +101,8 @@ export interface EventFormValues {
 	title: string;
 	when: string;
 	description: string;
+	// Only when creating: post it again every week
+	weekly?: boolean;
 }
 
 // The last turned-down event form per officer, one for creating and one per event edited, so Try
@@ -133,6 +137,15 @@ export function buildEventModal(game: GameId, kind: EventKind, { existing, value
 		new LabelBuilder().setLabel('Start').setDescription('Server time (Central European)').setTextInputComponent(when),
 		new LabelBuilder().setLabel('Description').setTextInputComponent(description),
 	];
+	// An edit changes that one post. A repeating series is set up when creating, and stopped in Manage
+	if (!existing) {
+		fields.push(new LabelBuilder().setLabel('Repeat').setStringSelectMenuComponent(new StringSelectMenuBuilder()
+			.setCustomId('repeat')
+			.addOptions(
+				{ label: "Doesn't repeat", value: 'once', default: !filled.weekly },
+				{ label: 'Every week', description: "Each week's post goes up a week before it starts", value: 'weekly', default: !!filled.weekly },
+			)));
+	}
 	return new ModalBuilder()
 		.setCustomId(existing ? `${eventPrefix}${existing.id}:save` : `${eventPrefix}new:${game}:${kind}`)
 		.setTitle(existing ? `Edit ${existing.title}`.slice(0, 45) : `New ${gameName(game)} ${kind}`)
@@ -140,11 +153,29 @@ export function buildEventModal(game: GameId, kind: EventKind, { existing, value
 }
 
 function formValues(interaction: ModalSubmitInteraction): EventFormValues {
+	const repeat = interaction.fields.fields.has('repeat') ? interaction.fields.getStringSelectValues('repeat')[0] : undefined;
 	return {
 		title: interaction.fields.getTextInputValue('title').trim(),
 		when: interaction.fields.getTextInputValue('when'),
 		description: interaction.fields.getTextInputValue('description').trim(),
+		weekly: repeat === 'weekly',
 	};
+}
+
+// Sends an event's post, saves the event and adds its Events tab entry. Returns the post's link and,
+// when the Events tab failed, a line saying so. Throws when the post couldn't be sent
+export async function postEvent(client: Client, event: RaidEvent): Promise<{ url: string; problem?: string }> {
+	const channel = await client.channels.fetch(event.channelId);
+	if (!channel?.isSendable()) {
+		throw new Error(`can't post in channel ${event.channelId}`);
+	}
+	const message = await channel.send(render(event));
+	event.messageId = message.id;
+	const store = loadEvents();
+	store[event.id] = event;
+	saveEvents(store);
+	const problem = await syncCalendar(client, event);
+	return { url: message.url, problem };
 }
 
 // /event create: officers only, opens the form
@@ -208,23 +239,31 @@ async function createFromForm(interaction: ModalSubmitInteraction, game: GameId,
 		channelId,
 		guildId: interaction.guildId ?? undefined,
 	});
-	let message;
+	if (values.weekly) {
+		const series = createSeries(event);
+		event.seriesId = series.id;
+		const all = loadSeries();
+		all[series.id] = series;
+		saveSeries(all);
+	}
+	let posted;
 	try {
-		message = await channel.send(render(event));
+		posted = await postEvent(interaction.client, event);
 	} catch (error) {
 		log.error(`Failed to post ${event.title}: ${error}`);
+		if (event.seriesId) {
+			const all = loadSeries();
+			delete all[event.seriesId];
+			saveSeries(all);
+		}
 		drafts.set(draftKey(interaction.user.id), { game, kind, values });
 		await interaction.editReply(rejected(`Posting in ${where} failed.`));
 		return;
 	}
 	drafts.delete(draftKey(interaction.user.id));
-	event.messageId = message.id;
-	const store = loadEvents();
-	store[event.id] = event;
-	saveEvents(store);
-	log(`${interaction.user.username} created ${gameName(game)} ${kind} ${event.title}`);
-	const problem = await syncCalendar(interaction.client, event);
-	await interaction.editReply({ content: [`Posted: ${message.url}`, problem].filter(Boolean).join('\n'), components: [] });
+	log(`${interaction.user.username} created ${gameName(game)} ${kind} ${event.title}${values.weekly ? ', every week' : ''}`);
+	const lines = [`Posted: ${posted.url}`, values.weekly ? "Next week's goes up a week before it starts." : undefined, posted.problem];
+	await interaction.editReply({ content: lines.filter(Boolean).join('\n'), components: [] });
 }
 
 // Keeps the Events tab entry in step after an officer's change, and tells them if that failed
@@ -252,6 +291,10 @@ function managePanel(event: RaidEvent, notice?: string) {
 		buttons.push(button(`${event.id}:export`, 'Export'));
 	}
 	buttons.push(button(`${event.id}:cancel`, 'Cancel event', ButtonStyle.Danger));
+	if (event.seriesId && loadSeries()[event.seriesId]?.active) {
+		lines.push('Repeats every week.');
+		buttons.push(button(`${event.id}:stop-repeat`, 'Stop repeating'));
+	}
 	return { content: lines.join('\n'), embeds: [], components: [row(...buttons)] };
 }
 
@@ -304,6 +347,8 @@ async function saveFromForm(interaction: ModalSubmitInteraction, eventId: string
 			return;
 		}
 		start = parsed;
+		// A new start gets its own reminder
+		event.reminded = false;
 		// Moved to later: sign-ups closed by the start open again, ones an officer closed stay closed
 		event.autoClosed = false;
 		if (event.closedBy === 'start') {
@@ -627,6 +672,26 @@ export async function handleEventInteraction(interaction: AnyInteraction): Promi
 		case 'cancel':
 			await interaction.update(confirmCancel(event));
 			return;
+		case 'stop-repeat':
+			await interaction.update({
+				content: `Stop **${event.title}** repeating? No more weeks are posted. Posts already up stay.`,
+				embeds: [],
+				components: [row(
+					button(`${event.id}:stop-repeat-yes`, 'Stop repeating', ButtonStyle.Danger),
+					button(`${event.id}:manage-back`, 'Keep it'),
+				)],
+			});
+			return;
+		case 'stop-repeat-yes': {
+			const all = loadSeries();
+			if (event.seriesId && all[event.seriesId]) {
+				all[event.seriesId].active = false;
+				saveSeries(all);
+				log(`${interaction.user.username} stopped ${event.title} repeating`);
+			}
+			await interaction.update(managePanel(event, 'No more weeks will be posted. Posts already up stay.'));
+			return;
+		}
 		case 'cancel-yes':
 			event.cancelled = true;
 			saveEvents(store);
@@ -676,6 +741,8 @@ export function startEventTimer(client: Client): void {
 					await updatePost(client, event.id);
 				}
 			}
+			await sendReminders(client);
+			await postDueWeeks(client, async (c, event) => (await postEvent(c, event)).url);
 		} catch (error) {
 			log.error(`Event timer failed: ${error}`);
 		} finally {
