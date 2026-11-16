@@ -1,12 +1,27 @@
 import { MessageFlags } from 'discord.js';
-import type { Interaction } from 'discord.js';
+import type { Interaction, RepliableInteraction } from 'discord.js';
 import log from '../core/log.js';
 import getUsername from '../core/get-username.js';
 import { registerVote } from '../features/votes/votes.js';
 import { handlePanelInteraction, panelPrefix } from '../features/music/panel.js';
 import { charactersPrefix, handleCharacterInteraction } from '../features/events/character-panel.js';
+import { handleEventInteraction } from '../features/events/event-actions.js';
+import { eventPrefix } from '../features/events/post.js';
 import UserError from '../core/user-error.js';
 import type { BotEvent } from '../types.js';
+
+// Answers a failed interaction: a new private reply, or the one already started
+async function replyError(interaction: RepliableInteraction, content: string): Promise<void> {
+	try {
+		if (interaction.deferred) {
+			await interaction.editReply({ content, components: [] });
+		} else if (!interaction.replied) {
+			await interaction.reply({ content, flags: MessageFlags.Ephemeral });
+		}
+	} catch (error) {
+		log.error(`Failed to send error reply: ${error}`);
+	}
+}
 
 export default {
 	name: 'interactionCreate',
@@ -21,9 +36,17 @@ export default {
 				await handleCharacterInteraction(interaction);
 			} catch (error) {
 				log.error(`Error in character panel (${interaction.customId}): ${error}`);
-				if (!interaction.replied && !interaction.deferred) {
-					await interaction.reply({ content: 'Something went wrong with your characters.', flags: MessageFlags.Ephemeral }).catch(() => {});
-				}
+				await replyError(interaction, 'Something went wrong with your characters.');
+			}
+			return;
+		}
+
+		if ((interaction.isButton() || interaction.isStringSelectMenu() || interaction.isModalSubmit()) && interaction.customId.startsWith(eventPrefix)) {
+			try {
+				await handleEventInteraction(interaction);
+			} catch (error) {
+				log.error(`Error in event sign-ups (${interaction.customId}): ${error}`);
+				await replyError(interaction, 'Something went wrong with that event.');
 			}
 			return;
 		}
@@ -41,10 +64,22 @@ export default {
 		const commandName = interaction.commandName;
 		// Slash commands read as /name, right-click commands by their menu name
 		const label = interaction.isChatInputCommand() ? `/${commandName}` : commandName;
+		const command = interaction.client.commands.get(commandName);
+
+		// A command that opens a form has 3 seconds to do it, so it doesn't wait for the name lookup
+		if (command?.defer === false) {
+			log(`${interaction.user.username} used ${label}`);
+			try {
+				await command.execute(interaction);
+			} catch (error) {
+				log.error(`Error executing ${label}: ${error}`);
+				await replyError(interaction, `Something went wrong with ${label}.`);
+			}
+			return;
+		}
+
 		const username = await getUsername(interaction);
 		log(`${username} used ${label}`);
-
-		const command = interaction.client.commands.get(commandName);
 		if (!command) {
 			log.warn(`No command matching ${commandName} was found.`);
 			return;

@@ -45,7 +45,8 @@ const noOffSpec = 'none';
 // What the private panel shows. A notice is the line above it saying what just happened
 export type View =
 	| { kind: 'home'; notice?: string }
-	| { kind: 'pick-class'; game: GameId }
+	// then: a sign-up waiting for this character ("<event ID>/<status>"), done once it's saved
+	| { kind: 'pick-class'; game: GameId; then?: string; notice?: string }
 	| { kind: 'character'; id: string; notice?: string }
 	| { kind: 'confirm-remove'; id: string }
 	// A form that was turned down, with a button to open it again as it was filled in
@@ -72,7 +73,16 @@ interface Draft {
 	game: GameId;
 	classId: string;
 	editId?: string;
+	then?: string;
 	values: FormValues;
+}
+
+// Called once a character added from a sign-up is saved, to make the sign-up and answer the member
+export type SignupHook = (interaction: ModalSubmitInteraction, then: string, character: Character) => Promise<void>;
+let signupHook: SignupHook | undefined;
+
+export function setSignupHook(hook: SignupHook): void {
+	signupHook = hook;
 }
 
 // The last turned-down form per member using the panel
@@ -107,11 +117,13 @@ class Panel {
 	build(view: View): PanelContent {
 		switch (view.kind) {
 			case 'pick-class':
-				return this.pickClass(view.game);
+				return this.pickClass(view.game, view.then, view.notice);
 			case 'rejected':
 				return this.content(view.notice, [], [row(
 					this.button('retry', 'Try again', ButtonStyle.Primary),
-					this.button(view.back.kind === 'character' ? `character:${view.back.id}` : 'home', 'Back'),
+					this.button(view.back.kind === 'character' ? `character:${view.back.id}`
+						: view.back.kind === 'pick-class' ? `add:${view.back.game}${view.back.then ? `:${view.back.then}` : ''}`
+						: 'home', 'Back'),
 				)]);
 			case 'character':
 			case 'confirm-remove': {
@@ -163,18 +175,21 @@ class Panel {
 
 	// Buttons rather than a menu: a menu doesn't react when the same class is picked again after
 	// closing the form. 13 classes fit in three rows of five, with Back on a fourth
-	private pickClass(game: GameId): PanelContent {
+	private pickClass(game: GameId, then?: string, notice?: string): PanelContent {
 		const embed = new EmbedBuilder()
 			.setColor(color)
 			.setTitle(`New ${gameName(game)} character`)
 			.setDescription('Pick a class.');
-		const classButtons = games[game].classes.map(c => this.button(`class:${game}:${c.id}`, c.name));
+		const classButtons = games[game].classes.map(c => this.button(`class:${game}:${c.id}${then ? `:${then}` : ''}`, c.name));
 		const rows: ActionRowBuilder<MessageActionRowComponentBuilder>[] = [];
 		for (let i = 0; i < classButtons.length; i += 5) {
 			rows.push(row(...classButtons.slice(i, i + 5)));
 		}
-		rows.push(row(this.button('home', 'Back')));
-		return this.content(undefined, [embed], rows);
+		// From a sign-up there is no panel to go back to
+		if (!then) {
+			rows.push(row(this.button('home', 'Back')));
+		}
+		return this.content(notice, [embed], rows);
 	}
 
 	private character(character: Character, notice?: string): PanelContent {
@@ -217,7 +232,7 @@ export function buildCharacterPanel(store: CharacterStore, ownerId: string, view
 // The form for a new character of a class, or for editing a saved one. Forever has no realms, so no
 // realm field
 // everyone there plays on the guild's realm
-export function buildCharacterModal(ownerId: string, game: GameId, classId: string, { existing, values }: { existing?: Character; values?: FormValues } = {}): ModalBuilder {
+export function buildCharacterModal(ownerId: string, game: GameId, classId: string, { existing, values, then }: { existing?: Character; values?: FormValues; then?: string } = {}): ModalBuilder {
 	const wowClass = findClass(game, classId)!;
 	const filled: Partial<FormValues> = values ?? (existing
 		? { name: existing.name, realm: existing.realm, specId: existing.specId, offSpecId: existing.offSpecId }
@@ -251,7 +266,7 @@ export function buildCharacterModal(ownerId: string, game: GameId, classId: stri
 			)),
 	);
 
-	const target = existing ? `save:${existing.id}` : `new:${game}:${classId}`;
+	const target = existing ? `save:${existing.id}` : `new:${game}:${classId}${then ? `:${then}` : ''}`;
 	return new ModalBuilder()
 		.setCustomId(`${charactersPrefix}${ownerId}:${target}`)
 		.setTitle(existing ? `Edit ${existing.name}` : `New ${gameName(game)} ${wowClass.name}`)
@@ -303,17 +318,21 @@ export async function handleCharacterInteraction(interaction: ComponentInteracti
 	const who = ownerId === viewerId ? interaction.user.username : `${interaction.user.username} (for ${ownerName})`;
 
 	if (interaction.isModalSubmit()) {
-		const draft = { ownerId, game: args[0] as GameId, classId: args[1] };
+		const draft = { ownerId, game: args[0] as GameId, classId: args[1], then: args[2] };
 		if (action === 'new' && isGameId(draft.game) && findClass(draft.game, draft.classId)) {
 			const values = formValues(interaction, draft.game);
 			const result = addCharacter(store, ownerId, { game: draft.game, classId: draft.classId, ...values });
 			if ('error' in result) {
 				drafts.set(viewerId, { ...draft, values });
-				await render({ kind: 'rejected', notice: result.error, back: { kind: 'home' } });
+				await render({ kind: 'rejected', notice: result.error, back: draft.then ? { kind: 'pick-class', game: draft.game, then: draft.then } : { kind: 'home' } });
 				return;
 			}
 			saveCharacters(store);
 			log(`${who} saved ${gameName(draft.game)} character ${nameOf(result)}`);
+			if (draft.then && signupHook) {
+				await signupHook(interaction, draft.then, result);
+				return;
+			}
 			await render({ kind: 'home', notice: result.main ? `Saved ${result.name} as ${gameName(draft.game)} main.` : `Saved ${result.name}.` });
 			return;
 		}
@@ -341,12 +360,12 @@ export async function handleCharacterInteraction(interaction: ComponentInteracti
 			return;
 		case 'add':
 			if (isGameId(args[0])) {
-				await render({ kind: 'pick-class', game: args[0] });
+				await render({ kind: 'pick-class', game: args[0], then: args[1] });
 			}
 			return;
 		case 'class':
 			if (isGameId(args[0]) && findClass(args[0], args[1])) {
-				await interaction.showModal(buildCharacterModal(ownerId, args[0], args[1]));
+				await interaction.showModal(buildCharacterModal(ownerId, args[0], args[1], { then: args[2] }));
 			}
 			return;
 		case 'retry': {
@@ -356,7 +375,7 @@ export async function handleCharacterInteraction(interaction: ComponentInteracti
 				await render({ kind: 'home', notice: 'That form was lost. Start it again.' });
 				return;
 			}
-			await interaction.showModal(buildCharacterModal(ownerId, draft.game, draft.classId, { existing, values: draft.values }));
+			await interaction.showModal(buildCharacterModal(ownerId, draft.game, draft.classId, { existing, values: draft.values, then: draft.then }));
 			return;
 		}
 		case 'pick':

@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, Collection, UserContextMenuCommandInteraction } from 'discord.js';
-import type { ContextMenuCommandBuilder, InteractionEditReplyOptions, SlashCommandOptionsOnlyBuilder } from 'discord.js';
+import type { ContextMenuCommandBuilder, InteractionEditReplyOptions, SlashCommandOptionsOnlyBuilder, SlashCommandSubcommandsOnlyBuilder } from 'discord.js';
 
 export interface Config {
 	name: string;
@@ -58,6 +58,8 @@ export interface Config {
 		// The guild's retail realm, filled in for new characters and left off their names. WoW
 		// Forever has no realms
 		realm: string;
+		// The channel each game's events are posted in. Without one, the post goes where /event was used
+		channels?: Partial<Record<'retail' | 'forever', string>>;
 	};
 	prompt: string;
 }
@@ -82,7 +84,10 @@ export interface Secrets {
 export type BotCommandInteraction = ChatInputCommandInteraction | UserContextMenuCommandInteraction;
 
 export interface BotCommand<I extends BotCommandInteraction = ChatInputCommandInteraction> {
-	data: SlashCommandOptionsOnlyBuilder | ContextMenuCommandBuilder;
+	data: SlashCommandOptionsOnlyBuilder | SlashCommandSubcommandsOnlyBuilder | ContextMenuCommandBuilder;
+	// False for a command that answers by itself, such as by opening a form, which has to be its
+	// first reply. Otherwise a private reply is started before execute runs
+	defer?: boolean;
 	// Returning text or message content keeps it as the (private) reply; otherwise the reply is removed
 	execute(interaction: I): Promise<void | string | InteractionEditReplyOptions>;
 }

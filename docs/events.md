@@ -36,8 +36,9 @@ without fixing a single name.
 
 - **The post:** one list per role (Tanks, Healers, Melee, Ranged), each line a class icon, sign-up
   number, character, spec and the member's Discord name. Late people stay in their role with a mark.
-  Counts for Tentative, Late, Bench and Absence underneath. Taller than Raid-Helper's columns, but
-  reads the same on phones, where Discord stacks columns anyway.
+  Tentative, Bench and Absence underneath, with their count and names (the picked mockup showed
+  counts only, names added in step 2 so officers can see who). Taller than Raid-Helper's columns,
+  but reads the same on phones, where Discord stacks columns anyway.
 - **Reminders:** one channel message an hour before start, pinging everyone signed up, Late or
   Tentative. No DMs.
 - **Repeating events:** the guild raids twice a week (Wednesday and Sunday). Each raid's post goes
@@ -72,7 +73,34 @@ without fixing a single name.
      characters are a name only, in the panel and in the export.
    - **A character can only be saved once.** If someone else holds it, the message names them.
      Officers can open any member's characters with `/characters member` to fix or free one.
-2. Creating an event, the sign-up post, the status buttons, and edit, close and cancel.
+2. **Creating an event, the sign-up post, answering, and edit, close and cancel.** Built.
+   - **Creating:** `/event create game type` (officers only) opens a form: title, start, description,
+     and for raids how many tanks and healers are needed. The start is typed in EU server time
+     ("wed 19:30", "26/11 19:30", "tomorrow 20:00") and shown to everyone in their own time zone.
+     The post goes to the game's channel (`events.channels` in config), or where the command was
+     used while none is set.
+   - **The post:** title, description, start with a countdown, leader and how many signed up, then
+     a section each for Tanks, Healers, Melee and Ranged, each line a class icon, sign-up number,
+     character, spec, the off-spec's role as a small icon (only when it adds a role), "(late)" when
+     late, and the member's server name. Tentative, Bench and Absence are listed under it with names,
+     since officers need to know who. Members are named in plain text, saved when they answer: a
+     mention in a post can read as "unknown user" on phones and takes three times the room.
+   - **Room:** Discord allows 6000 characters per post. A full 40-player Forever raid with 15 more
+     answers takes about 3500, or 4500 with the longest description. Should it ever run out, the
+     member names go first, then the last lines of each list, replaced by "+N more". An event post
+     is one Attending list plus Tentative and Absence.
+   - **Answering:** Sign up uses the main in one click and answers privately with what they signed
+     up as and a menu to switch to another character, spec or role. A spec that fills two roles
+     (Feral, Enhancement, Survival in Forever) asks which the first time, then remembers the role
+     that character last signed up as. With no character for that game, the reply is the class
+     picker, and they're signed up once it's saved. Late, Tentative and Bench work the same way, so
+     officers see the class of everyone who might come. Changing status keeps the character. Absence
+     and Withdraw just update the post. Sign-up numbers follow the order people first answered and
+     stay through changes.
+   - **Manage (officers):** Edit (the same form, filled in), Close or Open sign-ups, and Cancel
+     event (asks first). A cancelled post stays, marked cancelled, without buttons. Sign-ups close
+     by themselves at the start, once. An officer can open them again after. Moving the start later
+     opens sign-ups again only if the start had closed them, not if an officer did.
 3. The Discord scheduled event.
 4. The addon export.
 5. Repeating events, reminders and the Warcraft Logs link.

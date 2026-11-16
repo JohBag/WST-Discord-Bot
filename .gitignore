@@ -9,6 +9,7 @@ warcraft-logs-posts.json
 music-loudness.json
 music-volumes.json
 characters.json
+events.json
 log.txt
 
 debug_output.pcm
