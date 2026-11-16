@@ -131,7 +131,18 @@ without fixing a single name.
      sign-up remembers which entry's Interested made it, so a replaced entry (moved raid, entry
      deleted by hand) withdraws no one. Bots can't mark anyone Interested, so a sign-up on the post
      doesn't tick Interested.
-4. The addon export.
+4. **The addon export.** Built. Manage has an Export button on raids (officers only). It opens a
+   form with the JSON in a text box: Ctrl+A, Ctrl+C, then paste into /rhh in game (decided
+   2026-11-16, over a file). It holds Signed up and Late, in answering order, and leaves Tentative
+   and Absent out (decided 2026-11-16). Each entry is `Name-Realm` (spaces and hyphens removed from
+   the realm), the addon's role (DPS split back into Melee or Ranged by spec) and Raid-Helper's spec
+   name. The realm is always there, Aggramar too: an officer inviting from Hellscream (connected to
+   Aggramar) would otherwise invite namesakes there. The addon drops it when it's the officer's own
+   realm. No position: the addon takes the list order, five to a group, so more than 40 on the
+   roster would spill into a group 9. A full 40-player raid takes about 3000 to 3700 of the box's
+   4000 characters. Should one ever not fit, Export replies with a file instead.
+   - **WoW Forever** raids export the names to invite, one per line, since the addon doesn't load
+     there. Our own Forever addon is to read the full export later.
 5. Repeating events, reminders and the Warcraft Logs link.
 
 ## Defaults (not asked, change on request)

@@ -1,5 +1,6 @@
 import {
 	ActionRowBuilder,
+	AttachmentBuilder,
 	ButtonBuilder,
 	ButtonStyle,
 	LabelBuilder,
@@ -26,6 +27,7 @@ import type { Character } from './characters.js';
 import { addMissingEntries, syncCalendar } from './calendar.js';
 import { catchUpInterest } from './interest.js';
 import { getClassEmoji } from './emoji.js';
+import { exportText, rosterSize } from './export.js';
 import { findClass, findSpec, isGameId } from './games.js';
 import { signupRoleOf, signupRolesOf } from './games.js';
 import type { GameId, SignupRole } from './games.js';
@@ -241,15 +243,36 @@ function managePanel(event: RaidEvent, notice?: string) {
 	if (event.cancelled) {
 		return { content: [...lines, 'Cancelled.'].join('\n'), embeds: [], components: [] };
 	}
-	return {
-		content: lines.join('\n'),
-		embeds: [],
-		components: [row(
-			button(`${event.id}:edit`, 'Edit', ButtonStyle.Primary),
-			event.closed ? button(`${event.id}:reopen`, 'Open sign-ups') : button(`${event.id}:close`, 'Close sign-ups'),
-			button(`${event.id}:cancel`, 'Cancel event', ButtonStyle.Danger),
-		)],
-	};
+	const buttons = [
+		button(`${event.id}:edit`, 'Edit', ButtonStyle.Primary),
+		event.closed ? button(`${event.id}:reopen`, 'Open sign-ups') : button(`${event.id}:close`, 'Close sign-ups'),
+	];
+	// Raids only: an event has no characters to invite
+	if (event.kind === 'raid') {
+		buttons.push(button(`${event.id}:export`, 'Export'));
+	}
+	buttons.push(button(`${event.id}:cancel`, 'Cancel event', ButtonStyle.Danger));
+	return { content: lines.join('\n'), embeds: [], components: [row(...buttons)] };
+}
+
+// A text box holds 4000 characters. A full 40-player raid takes about 3000
+const maxCopyBox = 4000;
+
+// The export in a form, to copy. The form's own Submit just closes it
+export function buildExportModal(event: RaidEvent, text: string): ModalBuilder {
+	const box = new TextInputBuilder()
+		.setCustomId('export')
+		.setStyle(TextInputStyle.Paragraph)
+		.setValue(text)
+		.setRequired(false);
+	const retail = event.game === 'retail';
+	return new ModalBuilder()
+		.setCustomId(`${eventPrefix}${event.id}:export-done`)
+		.setTitle(retail ? 'Export for Raid-Helper Helper' : 'Names to invite')
+		.addLabelComponents(new LabelBuilder()
+			.setLabel(`${rosterSize(event)} to invite`)
+			.setDescription(retail ? 'Ctrl+A, Ctrl+C, then paste into /rhh in game' : 'Ctrl+A, Ctrl+C, then invite them in game')
+			.setTextInputComponent(box));
 }
 
 function confirmCancel(event: RaidEvent) {
@@ -473,6 +496,9 @@ export async function handleEventInteraction(interaction: AnyInteraction): Promi
 		}
 		if (eventId === 'new' && isGameId(action) && (args[0] === 'raid' || args[0] === 'event')) {
 			await createFromForm(interaction, action, args[0]);
+		} else if (action === 'export-done') {
+			// Submit on the export form only closes it
+			await interaction.deferUpdate().catch(() => {});
 		} else if (action === 'save') {
 			await saveFromForm(interaction, eventId);
 		}
@@ -566,6 +592,26 @@ export async function handleEventInteraction(interaction: AnyInteraction): Promi
 		case 'manage-back':
 			await interaction.update(managePanel(event));
 			return;
+		case 'export': {
+			if (rosterSize(event) === 0) {
+				await interaction.update(managePanel(event, 'Nobody is signed up yet.'));
+				return;
+			}
+			const text = exportText(event);
+			if (text.length > maxCopyBox) {
+				// Too long for the box: a file to open and copy from instead
+				const retail = event.game === 'retail';
+				const file = new AttachmentBuilder(Buffer.from(text, 'utf8'), { name: retail ? 'raid.json' : 'raid.txt' });
+				await interaction.reply({
+					content: retail ? 'Open the file, copy everything and paste it into /rhh in game.' : 'Open the file for the names to invite.',
+					files: [file],
+					flags: MessageFlags.Ephemeral,
+				});
+				return;
+			}
+			await interaction.showModal(buildExportModal(event, text));
+			return;
+		}
 		case 'edit':
 			await interaction.showModal(buildEventModal(event.game, event.kind, { existing: event }));
 			return;
