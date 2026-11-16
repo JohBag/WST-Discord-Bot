@@ -14,7 +14,8 @@ export interface Signup {
 	// "unknown user" on phones and takes three times the room
 	displayName: string;
 	status: SignupStatus;
-	// Sign-up order, kept when the status or character changes
+	// Answering order, kept when the status or character changes. The post shows each answer's place
+	// in this order among the answers still there
 	number: number;
 	// Raids: the character, spec and role. A copy, so the post still reads right if the character
 	// is removed later

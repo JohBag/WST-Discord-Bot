@@ -99,8 +99,10 @@ without fixing a single name.
      which the first time, then remembers the role that character last signed up as, and with no
      character for that game the reply is the class picker, and they're signed up once it's saved.
      Late and Tentative work the same way, so officers see the class of everyone who might come.
-     Changing status keeps the character. Sign-up numbers follow the order people first answered
-     and stay through changes, so officers can see who answered first.
+     Changing status keeps the character. The number on each line is the order people answered,
+     counting only who's on the post now, so officers can see who answered first. It stays through
+     a change of status or spec. Withdrawing and coming back goes to the end (2026-11-16: a number
+     that kept counting up after a withdraw read as a bug).
    - **After a restart** the bot draws the posts from the last week and ahead again, so a change to
      how posts look reaches the ones already up.
    - **Manage (officers):** Edit (the same form, filled in), Close or Open sign-ups, and Cancel

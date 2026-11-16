@@ -37,13 +37,20 @@ function byNumber(a: Signup, b: Signup): number {
 	return a.number - b.number;
 }
 
-function rosterLine(event: RaidEvent, signup: Signup, context: PostContext, withMember: boolean): string {
+// The number shown on the post: each answer's place in answering order, counting only the answers
+// on the post now, so someone who withdrew doesn't leave a gap
+function positions(event: RaidEvent): (signup: Signup) => number {
+	const order = new Map([...event.signups].sort(byNumber).map((s, i) => [s.userId, i + 1]));
+	return signup => order.get(signup.userId) ?? 0;
+}
+
+function rosterLine(event: RaidEvent, signup: Signup, position: number, context: PostContext, withMember: boolean): string {
 	const character = signup.character!;
 	const spec = findSpec(event.game, character.classId, character.specId);
 	const offSpec = character.offSpecId ? findSpec(event.game, character.classId, character.offSpecId) : undefined;
 	const parts = [
 		context.classEmoji(character.classId),
-		`\`${signup.number}\``,
+		`\`${position}\``,
 		`**${characterName(character, context.homeRealm)}**`,
 		spec?.name ?? '?',
 	];
@@ -62,11 +69,11 @@ function rosterLine(event: RaidEvent, signup: Signup, context: PostContext, with
 }
 
 // Under the roster: number, class icon and character, or the member when there's no character
-function listedName(signup: Signup, context: PostContext): string {
+function listedName(signup: Signup, position: number, context: PostContext): string {
 	const who = signup.character
 		? [context.classEmoji(signup.character.classId), characterName(signup.character, context.homeRealm)]
 		: [signup.displayName];
-	return [`\`${signup.number}\``, ...who].filter(Boolean).join(' ');
+	return [`\`${position}\``, ...who].filter(Boolean).join(' ');
 }
 
 // Lines into as many fields as they need, the first under the heading, the rest untitled
@@ -92,6 +99,7 @@ interface Section {
 
 function sections(event: RaidEvent, context: PostContext, withMember: boolean): Section[] {
 	const inRoster = event.signups.filter(s => s.status === 'signed' || s.status === 'late').sort(byNumber);
+	const position = positions(event);
 	const result: Section[] = [];
 	if (event.kind === 'raid') {
 		for (const role of signupRoles) {
@@ -99,17 +107,17 @@ function sections(event: RaidEvent, context: PostContext, withMember: boolean): 
 			const { emoji, label } = roleHeadings[role];
 			result.push({
 				heading: `${emoji} ${label} ${members.length}`,
-				lines: members.map(s => rosterLine(event, s, context, withMember)),
+				lines: members.map(s => rosterLine(event, s, position(s), context, withMember)),
 				separator: '\n',
 			});
 		}
 	} else {
-		result.push({ heading: `✅ Attending ${inRoster.length}`, lines: inRoster.map(s => `\`${s.number}\` ${s.displayName}`), separator: '\n' });
+		result.push({ heading: `✅ Attending ${inRoster.length}`, lines: inRoster.map(s => `\`${position(s)}\` ${s.displayName}`), separator: '\n' });
 	}
 	for (const { status, emoji, label } of listedStatuses) {
 		const members = event.signups.filter(s => s.status === status).sort(byNumber);
 		if (members.length > 0) {
-			result.push({ heading: `${emoji} ${label} ${members.length}`, lines: members.map(s => listedName(s, context)), separator: ', ' });
+			result.push({ heading: `${emoji} ${label} ${members.length}`, lines: members.map(s => listedName(s, position(s), context)), separator: ', ' });
 		}
 	}
 	return result;

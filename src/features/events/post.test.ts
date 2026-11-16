@@ -4,7 +4,7 @@ import { addCharacter } from './characters.js';
 import type { CharacterStore } from './characters.js';
 import { buildPostButtons, buildPostEmbed } from './post.js';
 import type { PostContext } from './post.js';
-import { createEvent, respond, signupChoices } from './store.js';
+import { createEvent, respond, signupChoices, withdraw } from './store.js';
 import type { RaidEvent } from './store.js';
 import { buildEventModal, roleQuestion, signupReply } from './event-actions.js';
 
@@ -201,5 +201,29 @@ describe('off-spec icon', () => {
 			':shaman: `2` **Shocky** Elemental (🛡️) ShockyDiscord',
 			':warrior: `3` **Furyboy** Fury FuryboyDiscord',
 		].join('\n')]);
+	});
+});
+
+describe('numbers on the post', () => {
+	it('should count only the answers on the post, so withdrawing leaves no gap', () => {
+		const event = raid('forever');
+		signUp(event, 'u1', 'Elto', 'WARRIOR', 'arms');
+		withdraw(event, 'u1');
+		signUp(event, 'u1', 'Elto', 'WARRIOR', 'arms');
+		assert.equal(fieldsOf(event)[2][1], ':warrior: `1` **Elto** Arms EltoDiscord');
+	});
+
+	it('should keep answering order across the roster and the lists below, and move a returning member to the end', () => {
+		const event = raid('forever');
+		signUp(event, 'u1', 'Elto', 'WARRIOR', 'arms');
+		respond(event, 'u2', 'Stylz', 'absence');
+		signUp(event, 'u3', 'Nel', 'MAGE', 'frost', 'tentative');
+		withdraw(event, 'u1');
+		signUp(event, 'u1', 'Elto', 'WARRIOR', 'arms');
+		assert.deepEqual(fieldsOf(event).slice(2), [
+			['⚔️ DPS 1', ':warrior: `3` **Elto** Arms EltoDiscord'],
+			['❔ Tentative 1', '`2` :mage: Nel'],
+			['🚫 Absent 1', '`1` Stylz'],
+		]);
 	});
 });
