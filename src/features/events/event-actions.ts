@@ -135,9 +135,9 @@ export function buildEventModal(game: GameId, kind: EventKind, { existing, value
 	const fields = [
 		new LabelBuilder().setLabel('Title').setTextInputComponent(title),
 		new LabelBuilder().setLabel('Start').setDescription('Server time (Central European)').setTextInputComponent(when),
-		new LabelBuilder().setLabel('Description').setTextInputComponent(description),
 	];
-	// An edit changes that one post. A repeating series is set up when creating, and stopped in Manage
+	// An edit changes that one post. A repeating series is set up when creating, and stopped in Manage.
+	// Above the description, which can be tall enough to push it out of sight
 	if (!existing) {
 		fields.push(new LabelBuilder().setLabel('Repeat').setStringSelectMenuComponent(new StringSelectMenuBuilder()
 			.setCustomId('repeat')
@@ -146,6 +146,7 @@ export function buildEventModal(game: GameId, kind: EventKind, { existing, value
 				{ label: 'Every week', description: "Each week's post goes up a week before it starts", value: 'weekly', default: !!filled.weekly },
 			)));
 	}
+	fields.push(new LabelBuilder().setLabel('Description').setTextInputComponent(description));
 	return new ModalBuilder()
 		.setCustomId(existing ? `${eventPrefix}${existing.id}:save` : `${eventPrefix}new:${game}:${kind}`)
 		.setTitle(existing ? `Edit ${existing.title}`.slice(0, 45) : `New ${gameName(game)} ${kind}`)

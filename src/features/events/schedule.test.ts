@@ -86,6 +86,10 @@ describe('reminders', () => {
 		assert.equal(reminderText(event, pings), `**Mythic night** starts <t:${wednesday / 1000}:R>.\n<@u1> <@u3> <@u4>`);
 	});
 
+	it('should still go out with nobody signed up, without pings', () => {
+		assert.deepEqual(reminderMessages(raid(), []), [{ content: `**Mythic night** starts <t:${wednesday / 1000}:R>.`, users: [] }]);
+	});
+
 	it('should split a big event into messages of at most 60 pings, each under 2000 characters', () => {
 		const pings = Array.from({ length: 130 }, (_, i) => String(100000000000000000n + BigInt(i)));
 		const messages = reminderMessages(raid(), pings);
@@ -127,8 +131,8 @@ describe('eventForLog', () => {
 describe('the Repeat choice', () => {
 	it('should be in the form when creating, not when editing', () => {
 		const create = buildEventModal('retail', 'raid').toJSON() as any;
-		assert.deepEqual(create.components.map((c: any) => c.label), ['Title', 'Start', 'Description', 'Repeat']);
-		assert.deepEqual(create.components[3].component.options.map((o: any) => [o.label, !!o.default]), [["Doesn't repeat", true], ['Every week', false]]);
+		assert.deepEqual(create.components.map((c: any) => c.label), ['Title', 'Start', 'Repeat', 'Description']);
+		assert.deepEqual(create.components[2].component.options.map((o: any) => [o.label, !!o.default]), [["Doesn't repeat", true], ['Every week', false]]);
 		const edit = buildEventModal('retail', 'raid', { existing: raid() }).toJSON() as any;
 		assert.deepEqual(edit.components.map((c: any) => c.label), ['Title', 'Start', 'Description']);
 	});

@@ -177,7 +177,7 @@ describe('buildEventModal', () => {
 		const modal = buildEventModal('retail', 'raid').toJSON() as any;
 		assert.equal(modal.title, 'New Retail raid');
 		assert.equal(modal.custom_id, 'event:new:retail:raid');
-		assert.deepEqual(modal.components.map((c: any) => c.label), ['Title', 'Start', 'Description', 'Repeat']);
+		assert.deepEqual(modal.components.map((c: any) => c.label), ['Title', 'Start', 'Repeat', 'Description']);
 		assert.equal(modal.components[1].description, 'Server time (Central European)');
 	});
 
