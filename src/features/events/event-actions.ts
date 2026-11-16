@@ -25,7 +25,7 @@ import { buildCharacterPanel, homeRealm, setSignupHook } from './character-panel
 import { characterName, charactersOf, gameName, loadCharacters } from './characters.js';
 import type { Character } from './characters.js';
 import { addMissingEntries, syncCalendar } from './calendar.js';
-import { sendReminders } from './reminders.js';
+import { reminderLead, sendReminders } from './reminders.js';
 import { createSeries, loadSeries, postDueWeeks, saveSeries } from './series.js';
 import { catchUpInterest } from './interest.js';
 import { getClassEmoji } from './emoji.js';
@@ -101,8 +101,9 @@ export interface EventFormValues {
 	title: string;
 	when: string;
 	description: string;
-	// Only when creating: post it again every week
+	// Only when creating: post it again every week, and whether to remind
 	weekly?: boolean;
+	noReminder?: boolean;
 }
 
 // The last turned-down event form per officer, one for creating and one per event edited, so Try
@@ -146,6 +147,15 @@ export function buildEventModal(game: GameId, kind: EventKind, { existing, value
 				{ label: 'Every week', description: "Each week's post goes up a week before it starts", value: 'weekly', default: !!filled.weekly },
 			)));
 	}
+	// Switched later in Manage
+	if (!existing) {
+		fields.push(new LabelBuilder().setLabel('Reminder').setStringSelectMenuComponent(new StringSelectMenuBuilder()
+			.setCustomId('reminder')
+			.addOptions(
+				{ label: `Ping ${reminderLead()} before`, description: 'Everyone signed up, Late or Tentative', value: 'on', default: !filled.noReminder },
+				{ label: 'No reminder', value: 'off', default: !!filled.noReminder },
+			)));
+	}
 	fields.push(new LabelBuilder().setLabel('Description').setTextInputComponent(description));
 	return new ModalBuilder()
 		.setCustomId(existing ? `${eventPrefix}${existing.id}:save` : `${eventPrefix}new:${game}:${kind}`)
@@ -160,6 +170,7 @@ function formValues(interaction: ModalSubmitInteraction): EventFormValues {
 		when: interaction.fields.getTextInputValue('when'),
 		description: interaction.fields.getTextInputValue('description').trim(),
 		weekly: repeat === 'weekly',
+		noReminder: interaction.fields.fields.has('reminder') && interaction.fields.getStringSelectValues('reminder')[0] === 'off',
 	};
 }
 
@@ -240,6 +251,9 @@ async function createFromForm(interaction: ModalSubmitInteraction, game: GameId,
 		channelId,
 		guildId: interaction.guildId ?? undefined,
 	});
+	if (values.noReminder) {
+		event.noReminder = true;
+	}
 	if (values.weekly) {
 		const series = createSeries(event);
 		event.seriesId = series.id;
@@ -292,11 +306,17 @@ function managePanel(event: RaidEvent, notice?: string) {
 		buttons.push(button(`${event.id}:export`, 'Export'));
 	}
 	buttons.push(button(`${event.id}:cancel`, 'Cancel event', ButtonStyle.Danger));
-	if (event.seriesId && loadSeries()[event.seriesId]?.active) {
+	// A second row, since a row holds five
+	const more = [event.noReminder
+		? button(`${event.id}:reminder-on`, 'Turn reminder on')
+		: button(`${event.id}:reminder-off`, 'Turn reminder off')];
+	lines.push(event.noReminder ? 'Reminder: off' : `Reminder: ${reminderLead()} before`);
+	const repeating = !!event.seriesId && !!loadSeries()[event.seriesId]?.active;
+	if (repeating) {
 		lines.push('Repeats every week.');
-		buttons.push(button(`${event.id}:stop-repeat`, 'Stop repeating'));
+		more.push(button(`${event.id}:stop-repeat`, 'Stop repeating'));
 	}
-	return { content: lines.join('\n'), embeds: [], components: [row(...buttons)] };
+	return { content: lines.join('\n'), embeds: [], components: [row(...buttons), row(...more)] };
 }
 
 // A text box holds 4000 characters. A full 40-player raid takes about 3000
@@ -673,6 +693,34 @@ export async function handleEventInteraction(interaction: AnyInteraction): Promi
 		case 'cancel':
 			await interaction.update(confirmCancel(event));
 			return;
+		case 'reminder-on':
+		case 'reminder-off': {
+			const off = action === 'reminder-off';
+			// On a repeating raid it goes for every week still to come, and the weeks not posted yet
+			const now = Date.now();
+			for (const other of Object.values(store)) {
+				if (other.id === event.id || (event.seriesId && other.seriesId === event.seriesId && other.start > now)) {
+					if (off) {
+						other.noReminder = true;
+					} else {
+						delete other.noReminder;
+					}
+				}
+			}
+			saveEvents(store);
+			const all = loadSeries();
+			if (event.seriesId && all[event.seriesId]) {
+				if (off) {
+					all[event.seriesId].noReminder = true;
+				} else {
+					delete all[event.seriesId].noReminder;
+				}
+				saveSeries(all);
+			}
+			log(`${interaction.user.username} turned the reminder ${off ? 'off' : 'on'} for ${event.title}`);
+			await interaction.update(managePanel(event, off ? 'Reminder off.' : 'Reminder on.'));
+			return;
+		}
 		case 'stop-repeat':
 			await interaction.update({
 				content: `Stop **${event.title}** repeating? No more weeks are posted. Posts already up stay.`,

@@ -156,6 +156,9 @@ without fixing a single name.
      `config/event-series.json`.
    - **Reminder:** `events.reminderMinutes` (60) before the start, a reply to the post pings
      everyone signed up, Late or Tentative ("**Mythic night** starts in an hour." and the pings).
+     On by default: the create form has Reminder: Ping an hour before or No reminder, and Manage
+     has Turn reminder off or on (decided 2026-11-16: officers, per event). On a repeating raid the
+     switch goes for every week still to come.
      Once per event, and again after the start is moved. With nobody signed up it still goes out,
      without pings. None for a cancelled one or one posted after its reminder time. A big event's
      pings are split over several messages.

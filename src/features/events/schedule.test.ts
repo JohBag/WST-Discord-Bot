@@ -71,6 +71,17 @@ describe('reminders', () => {
 		assert.equal(reminderDue(raid({ cancelled: true }), wednesday - hour), false);
 	});
 
+	it('should skip an event whose reminder an officer switched off', () => {
+		assert.equal(reminderDue(raid({ noReminder: true }), wednesday - hour), false);
+	});
+
+	it('should give a series week the series reminder setting', () => {
+		const series = { ...createSeries(raid({ noReminder: true }), 's1') };
+		assert.equal(series.noReminder, true);
+		assert.equal(seriesEvent(series, weekAfter(wednesday)).noReminder, true);
+		assert.equal(seriesEvent(createSeries(raid(), 's2'), weekAfter(wednesday)).noReminder, undefined);
+	});
+
 	it('should skip an event posted after its reminder time', () => {
 		assert.equal(reminderDue(raid({ createdAt: wednesday - 30 * 60 * 1000 }), wednesday - 10 * 60 * 1000), false);
 	});
@@ -131,7 +142,8 @@ describe('eventForLog', () => {
 describe('the Repeat choice', () => {
 	it('should be in the form when creating, not when editing', () => {
 		const create = buildEventModal('retail', 'raid').toJSON() as any;
-		assert.deepEqual(create.components.map((c: any) => c.label), ['Title', 'Start', 'Repeat', 'Description']);
+		assert.deepEqual(create.components.map((c: any) => c.label), ['Title', 'Start', 'Repeat', 'Reminder', 'Description']);
+		assert.deepEqual(create.components[3].component.options.map((o: any) => [o.label, !!o.default]), [['Ping an hour before', true], ['No reminder', false]]);
 		assert.deepEqual(create.components[2].component.options.map((o: any) => [o.label, !!o.default]), [["Doesn't repeat", true], ['Every week', false]]);
 		const edit = buildEventModal('retail', 'raid', { existing: raid() }).toJSON() as any;
 		assert.deepEqual(edit.components.map((c: any) => c.label), ['Title', 'Start', 'Description']);

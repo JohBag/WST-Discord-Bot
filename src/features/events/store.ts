@@ -53,6 +53,8 @@ export interface RaidEvent {
 	seriesId?: string;
 	// The hour-before reminder has gone out
 	reminded?: boolean;
+	// An officer switched the reminder off
+	noReminder?: boolean;
 	// That night's log on Warcraft Logs, once the auto-post found it, and how much of the raid it covers
 	logUrl?: string;
 	logOverlap?: number;

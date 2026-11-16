@@ -25,6 +25,8 @@ export interface Series {
 	// The start of the latest week posted. The next is 7 days on, at the same server time
 	lastStart: number;
 	active: boolean;
+	// The weeks go up with the reminder switched off
+	noReminder?: boolean;
 }
 
 export type SeriesStore = Record<string, Series>;
@@ -74,6 +76,7 @@ export function seriesEvent(series: Series, start: number): RaidEvent {
 			guildId: series.guildId,
 		}),
 		seriesId: series.id,
+		...(series.noReminder ? { noReminder: true } : {}),
 	};
 }
 
@@ -90,6 +93,7 @@ export function createSeries(event: RaidEvent, id = randomUUID().slice(0, 8)): S
 		guildId: event.guildId,
 		lastStart: event.start,
 		active: true,
+		...(event.noReminder ? { noReminder: true } : {}),
 	};
 }
 

@@ -17,7 +17,13 @@ export function reminderMinutes(): number {
 // gets none: everyone on it has only just answered
 export function reminderDue(event: RaidEvent, now = Date.now()): boolean {
 	const at = event.start - reminderMinutes() * 60 * 1000;
-	return !event.cancelled && !event.reminded && !!event.messageId && now >= at && now < event.start && event.createdAt < at;
+	return !event.cancelled && !event.noReminder && !event.reminded && !!event.messageId && now >= at && now < event.start && event.createdAt < at;
+}
+
+// "an hour" or "30 minutes", for the form and Manage
+export function reminderLead(): string {
+	const minutes = reminderMinutes();
+	return minutes === 60 ? 'an hour' : `${minutes} minutes`;
 }
 
 export function reminderPings(event: RaidEvent): string[] {
