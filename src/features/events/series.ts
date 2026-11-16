@@ -1,6 +1,5 @@
 import { randomUUID } from 'crypto';
 import type { Client } from 'discord.js';
-import { config } from '../../core/config.js';
 import log from '../../core/log.js';
 import { load, save } from '../../core/storage.js';
 import { createEvent, loadEvents } from './store.js';
@@ -83,8 +82,8 @@ export function seriesEvent(series: Series, start: number): RaidEvent {
 			start,
 			leaderId: series.leaderId,
 			leaderName: series.leaderName,
-			// The game's channel when one is set, so a change in config moves the series too
-			channelId: config.events?.channels?.[series.game] || series.channelId,
+			// Where the series was created
+			channelId: series.channelId,
 			guildId: series.guildId,
 		}),
 		seriesId: series.id,

@@ -51,7 +51,8 @@ without fixing a single name.
 - **Raids and other events.** The officer picks raid or event when creating. An event post (guild
   meeting, M+ night) has one Attending list plus Tentative and Absent, and needs no characters. It
   gets the same calendar event and reminder.
-- **One channel per game**, set in config.
+- **Posts go where `/event create` is used** (2026-11-16, overturning "one channel per game, set
+  in config"). A repeating raid posts each week where it was created.
 - **Melee and ranged are one DPS role** (2026-11-16). The spec's own melee or ranged stays in the
   data for the addon export. Survival in Forever (melee or ranged) is then just DPS.
 - **No role targets** (2026-11-16, overturning "role limits are targets"). Headings give the count
@@ -80,8 +81,7 @@ without fixing a single name.
    - **Creating:** `/event create game type` (officers only) opens a form: title, start and
      description. The start is typed in EU server time
      ("wed 19:30", "26/11 19:30", "tomorrow 20:00") and shown to everyone in their own time zone.
-     The post goes to the game's channel (`events.channels` in config), or where the command was
-     used while none is set.
+     The post goes in the channel where the command was used.
    - **The post:** title, description, start with a countdown, leader and how many signed up, then
      a section each for Tanks, Healers and DPS, each line a class icon, sign-up number,
      character, spec, the off-spec's role as a small icon (only when it adds a role), "(late)" when
@@ -153,8 +153,8 @@ without fixing a single name.
      way this week moved (same days, same new time). Earlier weeks stay. Manage on a week of a series has Stop repeating (asks first),
      which leaves the posts already up. A week counts as posted only once its post is up: a failed
      post is tried again each minute until its start, and a week with a post is never posted twice.
-     Weeks whose start passed while Botty was offline are skipped. A series posts in the game's
-     channel from config when one is set. The series are in the git-ignored
+     Weeks whose start passed while Botty was offline are skipped. A series posts where it was
+     created. The series are in the git-ignored
      `config/event-series.json`.
    - **Reminder:** `events.reminderMinutes` (60) before the start, a reply to the post pings
      everyone signed up, Late or Tentative ("**Mythic night** starts in an hour." and the pings).

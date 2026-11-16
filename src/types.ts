@@ -58,8 +58,6 @@ export interface Config {
 		// The guild's retail realm, filled in for new characters and left off their names. WoW
 		// Forever has no realms
 		realm: string;
-		// The channel each game's events are posted in. Without one, the post goes where /event was used
-		channels?: Partial<Record<'retail' | 'forever', string>>;
 		// How long a raid and an event last, for the entry in the server's Events tab
 		durationMinutes: Record<'raid' | 'event', number>;
 		// How long before the start the reminder pings everyone signed up

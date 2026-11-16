@@ -240,11 +240,10 @@ async function createFromForm(interaction: ModalSubmitInteraction, game: GameId,
 		await interaction.editReply(rejected(start.error));
 		return;
 	}
-	// The game's channel, or where the command was used while none is set
-	const configured = config.events?.channels?.[game];
-	const channelId = configured || interaction.channelId!;
+	// The post goes where the command was used (decided 2026-11-16)
+	const channelId = interaction.channelId!;
 	const channel = await interaction.client.channels.fetch(channelId).catch(() => null);
-	const where = configured ? `<#${configured}>` : 'this channel';
+	const where = 'this channel';
 	const me = interaction.client.user;
 	const canPost = !!channel && channel.isTextBased() && 'send' in channel && (!('permissionsFor' in channel)
 		|| !!channel.permissionsFor(me)?.has([PermissionFlagsBits.ViewChannel, channel.isThread() ? PermissionFlagsBits.SendMessagesInThreads : PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks]));
