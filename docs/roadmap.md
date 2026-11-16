@@ -3,6 +3,27 @@
 What's built, what's parked and why. Newest first. This repo is public: describe situations, never
 quote guild members or name them.
 
+## 2026-11-16: Raid and event sign-ups
+
+Raid-Helper-style sign-ups for WoW retail and WoW Forever, built into Botty instead of adding a
+separate bot, so sign-ups carry real character names. The design, every decision and how each part
+works are in `docs/events.md`. In short:
+
+- Members save their characters once with `/characters`. Retail realms are checked against the EU
+  realm list the Raid-Helper Helper addon uses.
+- Officers post a raid or event with `/event create`, in the channel where they use it. Members sign
+  up with one click on their main, and switch character, spec or role under My sign-up. Clicking
+  Interested in the server's Events tab signs them up too.
+- Each post has an entry in the Events tab, an hour-before reminder that officers can switch off,
+  and, for retail raids, a link to that night's Warcraft Logs report.
+- Raids can repeat every week. Officers export the roster for the addon's raid invites.
+
+### Not doing
+
+- **A web view or comp tool**, and picking the roster and groups. See `docs/events.md`.
+- **Our own WoW Forever invite addon.** Planned as a separate project. Until then Forever raids
+  export a plain list of names.
+
 ## 2026-11-13: Old context after a long pause
 
 To give some context in quiet channels, Botty's history keeps at least 10 messages even across a long
