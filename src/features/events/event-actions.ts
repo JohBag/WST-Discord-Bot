@@ -25,7 +25,8 @@ import { characterName, charactersOf, gameName, loadCharacters } from './charact
 import type { Character } from './characters.js';
 import { getClassEmoji } from './emoji.js';
 import { findClass, findSpec, isGameId } from './games.js';
-import type { GameId, Role } from './games.js';
+import { signupRoleOf, signupRolesOf } from './games.js';
+import type { GameId, SignupRole } from './games.js';
 import { buildPost, eventPrefix } from './post.js';
 import { choiceValue, createEvent, findChoice, lastRole, loadEvents, respond, saveEvents, signupChoices, withdraw } from './store.js';
 import type { EventKind, EventStore, RaidEvent, Signup, SignupChoice, SignupStatus } from './store.js';
@@ -34,10 +35,9 @@ import { formatWhen, parseWhen } from './when.js';
 type ComponentInteraction = ButtonInteraction | StringSelectMenuInteraction;
 type AnyInteraction = ComponentInteraction | ModalSubmitInteraction;
 
-const noTarget = 'none';
-const answerStatuses: SignupStatus[] = ['signed', 'late', 'tentative', 'bench', 'absence'];
-// Answers that put a character on the post. Absence and plain events don't need one
-const characterStatuses: SignupStatus[] = ['signed', 'late', 'tentative', 'bench'];
+const answerStatuses: SignupStatus[] = ['signed', 'late', 'tentative', 'absence'];
+// Answers that put a character on the post. Absent and plain events don't need one
+const characterStatuses: SignupStatus[] = ['signed', 'late', 'tentative'];
 
 function row(...components: MessageActionRowComponentBuilder[]): ActionRowBuilder<MessageActionRowComponentBuilder> {
 	return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(...components);
@@ -95,8 +95,6 @@ export interface EventFormValues {
 	title: string;
 	when: string;
 	description: string;
-	tanks?: number;
-	healers?: number;
 }
 
 // The last turned-down event form per officer, one for creating and one per event edited, so Try
@@ -104,23 +102,12 @@ export interface EventFormValues {
 const drafts = new Map<string, { game: GameId; kind: EventKind; editId?: string; values: EventFormValues }>();
 const draftKey = (userId: string, editId?: string) => `${userId}:${editId ?? 'new'}`;
 
-function targetMenu(id: string, max: number, selected?: number): StringSelectMenuBuilder {
-	return new StringSelectMenuBuilder()
-		.setCustomId(id)
-		.addOptions(
-			{ label: 'No target', value: noTarget, default: !selected },
-			...Array.from({ length: max }, (_, i) => ({ label: String(i + 1), value: String(i + 1), default: selected === i + 1 })),
-		);
-}
-
 export function buildEventModal(game: GameId, kind: EventKind, { existing, values }: { existing?: RaidEvent; values?: EventFormValues } = {}): ModalBuilder {
 	const filled: Partial<EventFormValues> = values ?? (existing
 		? {
 			title: existing.title,
 			when: formatWhen(existing.start),
 			description: existing.description,
-			tanks: existing.targets.Tank,
-			healers: existing.targets.Healer,
 		}
 		: {});
 	const title = new TextInputBuilder().setCustomId('title').setStyle(TextInputStyle.Short).setMaxLength(100).setRequired(true);
@@ -142,40 +129,18 @@ export function buildEventModal(game: GameId, kind: EventKind, { existing, value
 		new LabelBuilder().setLabel('Start').setDescription('Server time (Central European)').setTextInputComponent(when),
 		new LabelBuilder().setLabel('Description').setTextInputComponent(description),
 	];
-	if (kind === 'raid') {
-		fields.push(
-			new LabelBuilder().setLabel('Tanks needed').setStringSelectMenuComponent(targetMenu('tanks', 5, filled.tanks)),
-			new LabelBuilder().setLabel('Healers needed').setStringSelectMenuComponent(targetMenu('healers', 10, filled.healers)),
-		);
-	}
 	return new ModalBuilder()
 		.setCustomId(existing ? `${eventPrefix}${existing.id}:save` : `${eventPrefix}new:${game}:${kind}`)
 		.setTitle(existing ? `Edit ${existing.title}`.slice(0, 45) : `New ${gameName(game)} ${kind}`)
 		.addLabelComponents(...fields);
 }
 
-function formValues(interaction: ModalSubmitInteraction, kind: EventKind): EventFormValues {
-	const target = (id: string) => {
-		const value = interaction.fields.getStringSelectValues(id)[0];
-		return value && value !== noTarget ? Number(value) : undefined;
-	};
+function formValues(interaction: ModalSubmitInteraction): EventFormValues {
 	return {
 		title: interaction.fields.getTextInputValue('title').trim(),
 		when: interaction.fields.getTextInputValue('when'),
 		description: interaction.fields.getTextInputValue('description').trim(),
-		...(kind === 'raid' ? { tanks: target('tanks'), healers: target('healers') } : {}),
 	};
-}
-
-function targetsFrom(values: EventFormValues): Partial<Record<Role, number>> {
-	const targets: Partial<Record<Role, number>> = {};
-	if (values.tanks) {
-		targets.Tank = values.tanks;
-	}
-	if (values.healers) {
-		targets.Healer = values.healers;
-	}
-	return targets;
 }
 
 // /event create: officers only, opens the form
@@ -208,7 +173,7 @@ async function createFromForm(interaction: ModalSubmitInteraction, game: GameId,
 	} else {
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 	}
-	const values = formValues(interaction, kind);
+	const values = formValues(interaction);
 	const start = parseWhen(values.when);
 	if (typeof start !== 'number') {
 		drafts.set(draftKey(interaction.user.id), { game, kind, values });
@@ -237,7 +202,6 @@ async function createFromForm(interaction: ModalSubmitInteraction, game: GameId,
 		leaderId: interaction.user.id,
 		leaderName: displayNameOf(interaction),
 		channelId,
-		targets: targetsFrom(values),
 	});
 	let message;
 	try {
@@ -294,7 +258,7 @@ async function saveFromForm(interaction: ModalSubmitInteraction, eventId: string
 		await show(interaction, { content: event ? 'This event was cancelled.' : 'This event no longer exists.', components: [] });
 		return;
 	}
-	const values = formValues(interaction, event.kind);
+	const values = formValues(interaction);
 	// An unchanged start is kept even when it has passed, so a started raid can still be edited
 	let start = event.start;
 	if (values.when.trim() !== formatWhen(event.start)) {
@@ -315,7 +279,6 @@ async function saveFromForm(interaction: ModalSubmitInteraction, eventId: string
 	event.title = values.title;
 	event.description = values.description;
 	event.start = start;
-	event.targets = event.kind === 'raid' ? targetsFrom(values) : {};
 	drafts.delete(draftKey(interaction.user.id, event.id));
 	saveEvents(store);
 	log(`${interaction.user.username} edited ${event.title}`);
@@ -338,28 +301,31 @@ const statusLabel: Record<SignupStatus, string> = {
 	signed: 'Signed up',
 	late: 'Late',
 	tentative: 'Tentative',
-	bench: 'Bench',
-	absence: 'Absence',
+	absence: 'Absent',
 };
 
-function describeCharacter(game: GameId, character: { name: string; realm: string; classId: string }, specId: string, role?: Role): string {
+function describeCharacter(game: GameId, character: { name: string; realm: string; classId: string }, specId: string, role?: SignupRole): string {
 	const spec = findSpec(game, character.classId, specId);
 	const what = `**${characterName(character, homeRealm(game))}**, ${spec?.name ?? '?'} ${findClass(game, character.classId)?.name ?? '?'}`;
 	return role ? `${what} (${role})` : what;
 }
 
-// The private reply after an answer: what they're signed up as, and a menu to switch
-export function signupReply(event: RaidEvent, signup: Signup, characters: Character[], userId: string) {
-	const content = signup.character
-		? `${statusLabel[signup.status]}: ${describeCharacter(event.game, signup.character, signup.character.specId, signup.character.role)}`
-		: statusLabel[signup.status];
+// My sign-up: what they're signed up as, and a menu to switch character, spec or role. Not signed up
+// yet, the menu signs them up
+export function signupReply(event: RaidEvent, signup: Signup | undefined, characters: Character[], userId: string) {
+	const role = signup?.character ? signupRoleOf(signup.character.role) : undefined;
+	const content = !signup
+		? (characters.length > 0 ? 'Not signed up. Pick a character to sign up with.' : `Not signed up, and no ${gameName(event.game)} character saved yet.`)
+		: signup.character
+			? `${statusLabel[signup.status]}: ${describeCharacter(event.game, signup.character, signup.character.specId, role)}`
+			: statusLabel[signup.status];
 	const choices = signupChoices(characters);
-	const current = signup.character ? `${signup.character.id}|${signup.character.specId}|${signup.character.role}` : '';
+	const current = signup?.character ? `${signup.character.id}|${signup.character.specId}|${role}` : '';
 	const components: ActionRowBuilder<MessageActionRowComponentBuilder>[] = [];
 	if (choices.some(choice => choiceValue(choice) !== current)) {
 		components.push(row(new StringSelectMenuBuilder()
 			.setCustomId(`${eventPrefix}${event.id}:choose`)
-			.setPlaceholder('Switch character or spec')
+			.setPlaceholder(signup ? 'Switch character or spec' : 'Pick a character')
 			.addOptions(choices.map(choice => ({
 				label: `${characterName(choice.character, homeRealm(event.game))}: ${findSpec(event.game, choice.character.classId, choice.specId)?.name ?? '?'} (${choice.role})`.slice(0, 100),
 				description: findClass(event.game, choice.character.classId)?.name,
@@ -372,7 +338,7 @@ export function signupReply(event: RaidEvent, signup: Signup, characters: Charac
 }
 
 // For a spec that fills two roles and hasn't been signed up with before: which role
-export function roleQuestion(event: RaidEvent, status: SignupStatus, character: Character, specId: string, roles: Role[]) {
+export function roleQuestion(event: RaidEvent, status: SignupStatus, character: Character, specId: string, roles: SignupRole[]) {
 	return {
 		content: `${describeCharacter(event.game, character, specId)}: which role?`,
 		embeds: [],
@@ -381,7 +347,18 @@ export function roleQuestion(event: RaidEvent, status: SignupStatus, character: 
 	};
 }
 
-type Pick = { choice: SignupChoice } | { ask: { character: Character; specId: string; roles: Role[] } };
+// The class picker for a member with no character for the game. The character panel signs them up
+// once it's saved
+function addCharacterFirst(event: RaidEvent, userId: string, status: SignupStatus) {
+	return buildCharacterPanel(loadCharacters(), userId, {
+		kind: 'pick-class',
+		game: event.game,
+		then: `${event.id}/${status}`,
+		notice: `Add your ${gameName(event.game)} character first. You're signed up as soon as it's saved.`,
+	});
+}
+
+type Pick = { choice: SignupChoice } | { ask: { character: Character; specId: string; roles: SignupRole[] } };
 
 // A character's own spec, in the role it last signed up as. A two-role spec it never signed up with
 // asks. From the given character, else the main
@@ -395,14 +372,15 @@ function pickFor(store: EventStore, userId: string, characters: Character[], cha
 		const fallback = signupChoices(characters)[0];
 		return fallback ? { choice: fallback } : undefined;
 	}
-	if (spec.roles.length > 1) {
+	const roles = signupRolesOf(spec);
+	if (roles.length > 1) {
 		const role = lastRole(store, userId, character.id, spec.id);
 		if (!role) {
-			return { ask: { character, specId: spec.id, roles: spec.roles } };
+			return { ask: { character, specId: spec.id, roles } };
 		}
 		return { choice: { character, specId: spec.id, role } };
 	}
-	return { choice: { character, specId: spec.id, role: spec.roles[0] } };
+	return { choice: { character, specId: spec.id, role: roles[0] } };
 }
 
 async function answer(interaction: ButtonInteraction, store: EventStore, event: RaidEvent, status: SignupStatus): Promise<void> {
@@ -423,9 +401,9 @@ async function answer(interaction: ButtonInteraction, store: EventStore, event: 
 	// An earlier sign-up keeps its character when only the status changes
 	const existing = event.signups.find(s => s.userId === userId);
 	if (existing?.character) {
-		const signup = respond(event, userId, name, status);
+		respond(event, userId, name, status);
 		saveEvents(store);
-		await interaction.reply({ ...signupReply(event, signup, charactersOf(loadCharacters(), userId, event.game), userId), flags: MessageFlags.Ephemeral });
+		await interaction.update(render(event));
 		await updatePost(interaction.client, event.id);
 		return;
 	}
@@ -433,23 +411,17 @@ async function answer(interaction: ButtonInteraction, store: EventStore, event: 
 	const characters = charactersOf(loadCharacters(), userId, event.game);
 	const pick = pickFor(store, userId, characters);
 	if (!pick) {
-		// Add one first. The character panel signs them up once it's saved
-		const panel = buildCharacterPanel(loadCharacters(), userId, {
-			kind: 'pick-class',
-			game: event.game,
-			then: `${event.id}/${status}`,
-			notice: `Add your ${gameName(event.game)} character first. You're signed up as soon as it's saved.`,
-		});
-		await interaction.reply({ ...panel, flags: MessageFlags.Ephemeral });
+		await interaction.reply({ ...addCharacterFirst(event, userId, status), flags: MessageFlags.Ephemeral });
 		return;
 	}
 	if ('ask' in pick) {
 		await interaction.reply({ ...roleQuestion(event, status, pick.ask.character, pick.ask.specId, pick.ask.roles), flags: MessageFlags.Ephemeral });
 		return;
 	}
-	const signup = respond(event, userId, name, status, pick.choice);
+	// The post shows the answer. My sign-up switches character, spec or role
+	respond(event, userId, name, status, pick.choice);
 	saveEvents(store);
-	await interaction.reply({ ...signupReply(event, signup, characters, userId), flags: MessageFlags.Ephemeral });
+	await interaction.update(render(event));
 	await updatePost(interaction.client, event.id);
 }
 
@@ -477,7 +449,9 @@ setSignupHook(async (interaction, then, character) => {
 // ---- Routing ----
 
 export async function handleEventInteraction(interaction: AnyInteraction): Promise<void> {
-	const [eventId, action, ...args] = interaction.customId.slice(eventPrefix.length).split(':');
+	const [eventId, parsedAction, ...args] = interaction.customId.slice(eventPrefix.length).split(':');
+	// A Bench button on a post drawn before Bench was dropped counts as Tentative
+	const action = parsedAction === 'bench' ? 'tentative' : parsedAction;
 
 	if (interaction.isModalSubmit()) {
 		if (!isOfficer(interaction)) {
@@ -511,12 +485,23 @@ export async function handleEventInteraction(interaction: AnyInteraction): Promi
 	}
 
 	// Members' answers on the post, and the role buttons and switch menu in their private reply
-	if (answerStatuses.includes(action as SignupStatus) || action === 'withdraw' || action === 'choose' || action === 'role') {
+	if (answerStatuses.includes(action as SignupStatus) || ['withdraw', 'choose', 'role', 'mine'].includes(action)) {
 		if (event.cancelled || event.closed) {
 			await interaction.reply({ content: event.cancelled ? 'This event was cancelled.' : 'Sign-ups are closed.', flags: MessageFlags.Ephemeral });
 			return;
 		}
 		const userId = interaction.user.id;
+		if (action === 'mine') {
+			const characters = charactersOf(loadCharacters(), userId, event.game);
+			const signup = event.signups.find(s => s.userId === userId);
+			if (characters.length === 0 && !signup?.character) {
+				// Nothing to switch to: add a character, which signs them up once saved
+				await interaction.reply({ ...addCharacterFirst(event, userId, signup?.status ?? 'signed'), flags: MessageFlags.Ephemeral });
+				return;
+			}
+			await interaction.reply({ ...signupReply(event, signup, characters, userId), flags: MessageFlags.Ephemeral });
+			return;
+		}
 		if (action === 'withdraw') {
 			if (!withdraw(event, userId)) {
 				await interaction.reply({ content: "You're not signed up.", flags: MessageFlags.Ephemeral });
@@ -529,8 +514,10 @@ export async function handleEventInteraction(interaction: AnyInteraction): Promi
 		}
 		if (action === 'choose' || action === 'role') {
 			const characters = charactersOf(loadCharacters(), userId, event.game);
-			const value = action === 'choose' && interaction.isStringSelectMenu() ? interaction.values[0] : args.slice(1).join('|');
-			const choice = findChoice(characters, value);
+			const raw = action === 'choose' && interaction.isStringSelectMenu() ? interaction.values[0] : args.slice(1).join('|');
+			// A menu sent before melee and ranged became DPS still says Melee or Ranged
+			const [characterId, specId, role] = raw.split('|');
+			const choice = findChoice(characters, `${characterId}|${specId}|${signupRoleOf(role as SignupRole)}`);
 			if (!choice) {
 				await interaction.update({ content: 'That character is no longer saved.', components: [] });
 				return;
@@ -590,6 +577,7 @@ export async function handleEventInteraction(interaction: AnyInteraction): Promi
 			return;
 		default:
 			log.warn(`Unknown event action: ${interaction.customId}`);
+			await interaction.reply({ content: 'That button is out of date.', flags: MessageFlags.Ephemeral });
 	}
 }
 
@@ -628,4 +616,20 @@ export function startEventTimer(client: Client): void {
 	};
 	void tick();
 	setInterval(tick, 60 * 1000);
+	void redrawRecent(client);
+}
+
+// After a restart, posts from the last week and ahead are drawn again, so a change to how posts look
+// or which buttons they have reaches the ones already up
+async function redrawRecent(client: Client): Promise<void> {
+	try {
+		const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+		for (const event of Object.values(loadEvents())) {
+			if (event.start > weekAgo) {
+				await updatePost(client, event.id);
+			}
+		}
+	} catch (error) {
+		log.error(`Redrawing event posts failed: ${error}`);
+	}
 }

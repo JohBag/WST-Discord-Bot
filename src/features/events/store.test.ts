@@ -15,21 +15,27 @@ function characters(): Character[] {
 }
 
 function newEvent(id = 'e1') {
-	return createEvent({ game: 'forever', kind: 'raid', title: 'Onyxia', description: '', start: 2_000, leaderId: 'lead', leaderName: 'Lead', channelId: 'c', targets: { Tank: 2 } }, 1_000, id);
+	return createEvent({ game: 'forever', kind: 'raid', title: 'Onyxia', description: '', start: 2_000, leaderId: 'lead', leaderName: 'Lead', channelId: 'c' }, 1_000, id);
 }
 
 describe('signupChoices', () => {
 	it("should offer every character's spec and off-spec first, the main first, then their other specs, once per role", () => {
 		const labels = signupChoices(characters()).map(c => `${c.character.name} ${c.specId} ${c.role}`);
 		assert.deepEqual(labels, [
-			'Thorvik feral Melee',
+			'Thorvik feral DPS',
 			'Thorvik feral Tank',
 			'Thorvik restoration Healer',
-			'Kapi combat Melee',
-			'Thorvik balance Ranged',
-			'Kapi assassination Melee',
-			'Kapi subtlety Melee',
+			'Kapi combat DPS',
+			'Thorvik balance DPS',
+			'Kapi assassination DPS',
+			'Kapi subtlety DPS',
 		]);
+	});
+
+	it('should treat melee and ranged as one DPS role, so Survival signs up as DPS only', () => {
+		const store: CharacterStore = {};
+		addCharacter(store, 'u1', { game: 'forever', name: 'Hunta', realm: '', classId: 'HUNTER', specId: 'survival' }, 'h');
+		assert.deepEqual(signupChoices(store.u1).filter(c => c.specId === 'survival').map(c => c.role), ['DPS']);
 	});
 
 	it('should reach the tenth alt within the 25 options', () => {

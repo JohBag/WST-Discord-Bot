@@ -1,24 +1,22 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
 import type { APIEmbedField } from 'discord.js';
 import { characterName, gameName } from './characters.js';
-import { findSpec, roles } from './games.js';
-import type { Role } from './games.js';
+import { findSpec, signupRoleOf, signupRoles, signupRolesOf } from './games.js';
+import type { SignupRole } from './games.js';
 import type { RaidEvent, Signup, SignupStatus } from './store.js';
 
 // IDs are event:<event ID>:<action>
 export const eventPrefix = 'event:';
 
-export const roleHeadings: Record<Role, { emoji: string; label: string }> = {
+export const roleHeadings: Record<SignupRole, { emoji: string; label: string }> = {
 	Tank: { emoji: '🛡️', label: 'Tanks' },
 	Healer: { emoji: '💚', label: 'Healers' },
-	Melee: { emoji: '⚔️', label: 'Melee' },
-	Ranged: { emoji: '🏹', label: 'Ranged' },
+	DPS: { emoji: '⚔️', label: 'DPS' },
 };
 
 const listedStatuses: { status: SignupStatus; emoji: string; label: string }[] = [
 	{ status: 'tentative', emoji: '❔', label: 'Tentative' },
-	{ status: 'bench', emoji: '🪑', label: 'Bench' },
-	{ status: 'absence', emoji: '🚫', label: 'Absence' },
+	{ status: 'absence', emoji: '🚫', label: 'Absent' },
 ];
 
 const colors = { retail: 0xF1C40F, forever: 0x9B59B6, closed: 0x95A5A6, cancelled: 0x992D22 };
@@ -49,8 +47,10 @@ function rosterLine(event: RaidEvent, signup: Signup, context: PostContext, with
 		`**${characterName(character, context.homeRealm)}**`,
 		spec?.name ?? '?',
 	];
-	if (offSpec) {
-		parts.push(`(${offSpec.roles.map(role => roleHeadings[role].emoji).join('')})`);
+	// Only the roles the off-spec adds: a Balance druid with Feral off-spec shows the tank shield
+	const extra = offSpec ? signupRolesOf(offSpec).filter(role => role !== signupRoleOf(character.role)) : [];
+	if (extra.length > 0) {
+		parts.push(`(${extra.map(role => roleHeadings[role].emoji).join('')})`);
 	}
 	if (signup.status === 'late') {
 		parts.push('(late)');
@@ -94,12 +94,11 @@ function sections(event: RaidEvent, context: PostContext, withMember: boolean): 
 	const inRoster = event.signups.filter(s => s.status === 'signed' || s.status === 'late').sort(byNumber);
 	const result: Section[] = [];
 	if (event.kind === 'raid') {
-		for (const role of roles) {
-			const members = inRoster.filter(s => s.character?.role === role);
-			const target = event.targets[role];
+		for (const role of signupRoles) {
+			const members = inRoster.filter(s => s.character && signupRoleOf(s.character.role) === role);
 			const { emoji, label } = roleHeadings[role];
 			result.push({
-				heading: `${emoji} ${label} ${members.length}${target ? `/${target}` : ''}`,
+				heading: `${emoji} ${label} ${members.length}`,
 				lines: members.map(s => rosterLine(event, s, context, withMember)),
 				separator: '\n',
 			});
@@ -108,9 +107,6 @@ function sections(event: RaidEvent, context: PostContext, withMember: boolean): 
 		result.push({ heading: `✅ Attending ${inRoster.length}`, lines: inRoster.map(s => `\`${s.number}\` ${s.displayName}`), separator: '\n' });
 	}
 	for (const { status, emoji, label } of listedStatuses) {
-		if (event.kind === 'event' && status === 'bench') {
-			continue;
-		}
 		const members = event.signups.filter(s => s.status === status).sort(byNumber);
 		if (members.length > 0) {
 			result.push({ heading: `${emoji} ${label} ${members.length}`, lines: members.map(s => listedName(s, context)), separator: ', ' });
@@ -180,7 +176,8 @@ function button(event: RaidEvent, action: string, label: string, style = ButtonS
 	return new ButtonBuilder().setCustomId(`${eventPrefix}${event.id}:${action}`).setLabel(label).setStyle(style);
 }
 
-// A cancelled event keeps its post but loses its buttons. A closed one keeps only Manage
+// A cancelled event keeps its post but loses its buttons. A closed one keeps only Manage. My sign-up
+// is a raid's private view for switching character, spec or role
 export function buildPostButtons(event: RaidEvent): ActionRowBuilder<ButtonBuilder>[] {
 	if (event.cancelled) {
 		return [];
@@ -190,22 +187,24 @@ export function buildPostButtons(event: RaidEvent): ActionRowBuilder<ButtonBuild
 			button(event, 'signed', 'Sign up', ButtonStyle.Success),
 			button(event, 'late', 'Late'),
 			button(event, 'tentative', 'Tentative'),
-			button(event, 'bench', 'Bench'),
-			button(event, 'absence', 'Absence'),
+			button(event, 'absence', 'Absent'),
 		]
 		: [
 			button(event, 'signed', 'Attending', ButtonStyle.Success),
 			button(event, 'tentative', 'Tentative'),
-			button(event, 'absence', 'Absence'),
+			button(event, 'absence', 'Absent'),
 		];
-	const withdrawButton = button(event, 'withdraw', 'Withdraw');
-	for (const b of [...answers, withdrawButton]) {
+	const second = [button(event, 'withdraw', 'Withdraw')];
+	if (event.kind === 'raid') {
+		second.push(button(event, 'mine', 'My sign-up'));
+	}
+	for (const b of [...answers, ...second]) {
 		b.setDisabled(event.closed);
 	}
-	const manage = button(event, 'manage', 'Manage').setEmoji('⚙️');
+	second.push(button(event, 'manage', 'Manage').setEmoji('⚙️'));
 	return [
 		new ActionRowBuilder<ButtonBuilder>().addComponents(...answers),
-		new ActionRowBuilder<ButtonBuilder>().addComponents(withdrawButton, manage),
+		new ActionRowBuilder<ButtonBuilder>().addComponents(...second),
 	];
 }
 

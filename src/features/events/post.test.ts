@@ -13,10 +13,10 @@ const start = Date.UTC(2026, 10, 18, 18, 30);
 const stamp = start / 1000;
 
 function raid(game: 'retail' | 'forever' = 'retail', description = 'Bring flasks.'): RaidEvent {
-	return createEvent({ game, kind: 'raid', title: 'Mythic night', description, start, leaderId: 'lead', leaderName: 'Leesha', channelId: 'c', targets: { Tank: 2, Healer: 4 } }, 0, 'e1');
+	return createEvent({ game, kind: 'raid', title: 'Mythic night', description, start, leaderId: 'lead', leaderName: 'Leesha', channelId: 'c' }, 0, 'e1');
 }
 
-function signUp(event: RaidEvent, userId: string, name: string, classId: string, specId: string, status: 'signed' | 'late' | 'tentative' | 'bench' = 'signed', offSpecId?: string, realm = 'Aggramar') {
+function signUp(event: RaidEvent, userId: string, name: string, classId: string, specId: string, status: 'signed' | 'late' | 'tentative' = 'signed', offSpecId?: string, realm = 'Aggramar') {
 	const store: CharacterStore = {};
 	addCharacter(store, userId, { game: event.game, name, realm: event.game === 'retail' ? realm : '', classId, specId, offSpecId }, `${userId}-c`);
 	respond(event, userId, `${name}Discord`, status, signupChoices(store[userId])[0]);
@@ -38,18 +38,17 @@ function fieldsOf(event: RaidEvent, ctx = context) {
 }
 
 describe('buildPostEmbed', () => {
-	it('should give the details on top, then a section per role with its target, then the rest', () => {
+	it('should give the details on top, then a section per role with its count, then the rest', () => {
 		const embed = buildPostEmbed(filledRaid(), context).toJSON();
 		assert.equal(embed.title, 'Mythic night');
 		assert.equal(embed.footer!.text, 'WoW Retail raid');
 		assert.equal(embed.description, `Bring flasks.\n\n📅 <t:${stamp}:F> (<t:${stamp}:R>)\n👑 Leesha\n✅ 4 signed up`);
 		assert.deepEqual(fieldsOf(filledRaid()), [
-			['🛡️ Tanks 1/2', ':deathknight: `1` **Thorvik** Blood ThorvikDiscord'],
-			['💚 Healers 1/4', ':shaman: `3` **Seru-TwistingNether** Restoration (🏹) SeruDiscord'],
-			['⚔️ Melee 2', ':rogue: `2` **Kapi** Subtlety (late) KapiDiscord\n:warrior: `6` **Aidan** Fury (🛡️) AidanDiscord'],
-			['🏹 Ranged 0', '​'],
+			['🛡️ Tanks 1', ':deathknight: `1` **Thorvik** Blood ThorvikDiscord'],
+			['💚 Healers 1', ':shaman: `3` **Seru-TwistingNether** Restoration (⚔️) SeruDiscord'],
+			['⚔️ DPS 2', ':rogue: `2` **Kapi** Subtlety (late) KapiDiscord\n:warrior: `6` **Aidan** Fury (🛡️) AidanDiscord'],
 			['❔ Tentative 1', '`4` :mage: Nel'],
-			['🚫 Absence 1', '`5` Stylz'],
+			['🚫 Absent 1', '`5` Stylz'],
 		]);
 	});
 
@@ -62,7 +61,7 @@ describe('buildPostEmbed', () => {
 	});
 
 	it('should show an event as one attending list, without a second count on top', () => {
-		const event = createEvent({ game: 'forever', kind: 'event', title: 'Guild meeting', description: '', start, leaderId: 'lead', leaderName: 'Leesha', channelId: 'c', targets: {} }, 0, 'e2');
+		const event = createEvent({ game: 'forever', kind: 'event', title: 'Guild meeting', description: '', start, leaderId: 'lead', leaderName: 'Leesha', channelId: 'c' }, 0, 'e2');
 		respond(event, 'u1', 'Seru', 'signed');
 		respond(event, 'u2', 'Kapi', 'tentative');
 		assert.equal(buildPostEmbed(event, context).toJSON().description, `📅 <t:${stamp}:F> (<t:${stamp}:R>)\n👑 Leesha`);
@@ -75,7 +74,7 @@ describe('buildPostEmbed', () => {
 		const classes = [['WARRIOR', 'fury'], ['MAGE', 'frost'], ['PRIEST', 'holy'], ['WARLOCK', 'affliction'], ['ROGUE', 'combat']];
 		for (let i = 0; i < 55; i++) {
 			const [classId, specId] = classes[i % classes.length];
-			const status = i < 40 ? 'signed' : i < 45 ? 'tentative' : i < 48 ? 'bench' : 'signed';
+			const status = i < 40 ? 'signed' : 'tentative';
 			const name = `Abcdefghij${String.fromCharCode(97 + Math.floor(i / 26))}${String.fromCharCode(97 + (i % 26))}`;
 			if (i >= 48) {
 				respond(event, `1234567890123456${String(i).padStart(3, '0')}`, 'Discordname1234', 'absence');
@@ -110,16 +109,17 @@ describe('buildPostEmbed', () => {
 });
 
 describe('buildPostButtons', () => {
-	it('should offer every answer for a raid, and Withdraw and Manage below', () => {
+	it('should offer every answer for a raid, and Withdraw, My sign-up and Manage below', () => {
 		const rows = buildPostButtons(raid()).map(r => r.toJSON().components as any[]);
-		assert.deepEqual(rows.map(r => r.map(b => b.label)), [['Sign up', 'Late', 'Tentative', 'Bench', 'Absence'], ['Withdraw', 'Manage']]);
+		assert.deepEqual(rows.map(r => r.map(b => b.label)), [['Sign up', 'Late', 'Tentative', 'Absent'], ['Withdraw', 'My sign-up', 'Manage']]);
 		assert.equal(rows[0][0].custom_id, 'event:e1:signed');
 	});
 
-	it('should offer Attending, Tentative and Absence for an event', () => {
+	it('should offer Attending, Tentative and Absent for an event, with nothing to switch', () => {
 		const event = raid();
 		event.kind = 'event';
-		assert.deepEqual(buildPostButtons(event)[0].toJSON().components.map((b: any) => b.label), ['Attending', 'Tentative', 'Absence']);
+		const rows = buildPostButtons(event).map(r => r.toJSON().components.map((b: any) => b.label));
+		assert.deepEqual(rows, [['Attending', 'Tentative', 'Absent'], ['Withdraw', 'Manage']]);
 	});
 
 	it('should disable answers once closed, keep Manage, and drop all buttons once cancelled', () => {
@@ -127,7 +127,7 @@ describe('buildPostButtons', () => {
 		event.closed = true;
 		const rows = buildPostButtons(event).map(r => r.toJSON().components as any[]);
 		assert.ok(rows[0].every(b => b.disabled));
-		assert.deepEqual(rows[1].map(b => [b.label, !!b.disabled]), [['Withdraw', true], ['Manage', false]]);
+		assert.deepEqual(rows[1].map(b => [b.label, !!b.disabled]), [['Withdraw', true], ['My sign-up', true], ['Manage', false]]);
 		event.cancelled = true;
 		assert.deepEqual(buildPostButtons(event), []);
 	});
@@ -142,10 +142,19 @@ describe('signupReply', () => {
 		const reply = signupReply(event, signup, store.u1, 'u1');
 		assert.equal(reply.content, 'Signed up: **Thorvik**, Blood Death Knight (Tank)');
 		const menu = reply.components[0].toJSON().components[0] as any;
-		assert.deepEqual(menu.options.map((o: any) => [o.label, !!o.default]), [['Thorvik: Blood (Tank)', true], ['Thorvik: Frost (Melee)', false], ['Thorvik: Unholy (Melee)', false]]);
+		assert.deepEqual(menu.options.map((o: any) => [o.label, !!o.default]), [['Thorvik: Blood (Tank)', true], ['Thorvik: Frost (DPS)', false], ['Thorvik: Unholy (DPS)', false]]);
 		assert.equal((reply.components[1].toJSON().components[0] as any).custom_id, 'characters:u1:home');
-		respond(event, 'u1', 'Thor', 'bench');
-		assert.equal(signupReply(event, signup, store.u1, 'u1').content, 'Bench: **Thorvik**, Blood Death Knight (Tank)');
+		respond(event, 'u1', 'Thor', 'late');
+		assert.equal(signupReply(event, signup, store.u1, 'u1').content, 'Late: **Thorvik**, Blood Death Knight (Tank)');
+	});
+
+	it('should offer to sign up with a character when not signed up yet', () => {
+		const store: CharacterStore = {};
+		addCharacter(store, 'u1', { game: 'retail', name: 'Thorvik', realm: 'Aggramar', classId: 'DEATHKNIGHT', specId: 'blood' }, 'c1');
+		const reply = signupReply(raid(), undefined, store.u1, 'u1');
+		assert.equal(reply.content, 'Not signed up. Pick a character to sign up with.');
+		assert.equal((reply.components[0].toJSON().components[0] as any).options.length, 3);
+		assert.equal(signupReply(raid(), undefined, [], 'u1').content, 'Not signed up, and no Retail character saved yet.');
 	});
 });
 
@@ -154,30 +163,43 @@ describe('roleQuestion', () => {
 		const event = raid('forever');
 		const store: CharacterStore = {};
 		addCharacter(store, 'u1', { game: 'forever', name: 'Thorvik', realm: '', classId: 'DRUID', specId: 'feral' }, 'c1');
-		const question = roleQuestion(event, 'late', store.u1[0], 'feral', ['Melee', 'Tank']);
+		const question = roleQuestion(event, 'late', store.u1[0], 'feral', ['DPS', 'Tank']);
 		assert.equal(question.content, '**Thorvik**, Feral Druid: which role?');
 		assert.deepEqual(question.components[0].toJSON().components.map((b: any) => [b.label, b.custom_id]), [
-			['Melee', 'event:e1:role:late:c1:feral:Melee'],
+			['DPS', 'event:e1:role:late:c1:feral:DPS'],
 			['Tank', 'event:e1:role:late:c1:feral:Tank'],
 		]);
 	});
 });
 
 describe('buildEventModal', () => {
-	it('should ask a raid for title, start, description and role targets', () => {
+	it('should ask for title, start and description', () => {
 		const modal = buildEventModal('retail', 'raid').toJSON() as any;
 		assert.equal(modal.title, 'New Retail raid');
 		assert.equal(modal.custom_id, 'event:new:retail:raid');
-		assert.deepEqual(modal.components.map((c: any) => c.label), ['Title', 'Start', 'Description', 'Tanks needed', 'Healers needed']);
+		assert.deepEqual(modal.components.map((c: any) => c.label), ['Title', 'Start', 'Description']);
 		assert.equal(modal.components[1].description, 'Server time (Central European)');
 	});
 
-	it('should leave targets out of an event, and fill in a saved one when editing', () => {
-		assert.deepEqual((buildEventModal('forever', 'event').toJSON() as any).components.map((c: any) => c.label), ['Title', 'Start', 'Description']);
+	it('should fill in a saved event when editing', () => {
 		const modal = buildEventModal('retail', 'raid', { existing: raid() }).toJSON() as any;
 		assert.equal(modal.custom_id, 'event:e1:save');
 		assert.equal(modal.components[0].component.value, 'Mythic night');
 		assert.equal(modal.components[1].component.value, '18/11/2026 19:30');
-		assert.deepEqual(modal.components[3].component.options.filter((o: any) => o.default).map((o: any) => o.label), ['2']);
+		assert.equal(modal.components[2].component.value, 'Bring flasks.');
+	});
+});
+
+describe('off-spec icon', () => {
+	it('should show a Forever DPS whose off-spec can tank, and nothing for an off-spec in the same role', () => {
+		const event = raid('forever');
+		signUp(event, 'u1', 'Moonkin', 'DRUID', 'balance', 'signed', 'feral');
+		signUp(event, 'u2', 'Shocky', 'SHAMAN', 'elemental', 'signed', 'enhancement');
+		signUp(event, 'u3', 'Furyboy', 'WARRIOR', 'fury', 'signed', 'arms');
+		assert.deepEqual(fieldsOf(event)[2], ['⚔️ DPS 3', [
+			':druid: `1` **Moonkin** Balance (🛡️) MoonkinDiscord',
+			':shaman: `2` **Shocky** Elemental (🛡️) ShockyDiscord',
+			':warrior: `3` **Furyboy** Fury FuryboyDiscord',
+		].join('\n')]);
 	});
 });

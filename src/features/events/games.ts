@@ -7,6 +7,21 @@ export type Role = 'Tank' | 'Healer' | 'Melee' | 'Ranged';
 
 export const roles: Role[] = ['Tank', 'Healer', 'Melee', 'Ranged'];
 
+// What a raid signs up as: melee and ranged are one DPS role on the post (decided 2026-11-16).
+// The spec's own melee or ranged stays for the addon export
+export type SignupRole = 'Tank' | 'Healer' | 'DPS';
+export const signupRoles: SignupRole[] = ['Tank', 'Healer', 'DPS'];
+
+// Also takes Melee or Ranged saved before DPS was one role
+export function signupRoleOf(role: Role | SignupRole): SignupRole {
+	return role === 'Tank' || role === 'Healer' ? role : 'DPS';
+}
+
+// A spec's sign-up roles, the usual one first: Survival (melee or ranged) is just DPS
+export function signupRolesOf(spec: Spec): SignupRole[] {
+	return [...new Set(spec.roles.map(signupRoleOf))];
+}
+
 export interface Spec {
 	id: string;
 	name: string;

@@ -1,12 +1,12 @@
 import { randomUUID } from 'crypto';
 import { load, save } from '../../core/storage.js';
-import { findSpec, games } from './games.js';
-import type { GameId, Role } from './games.js';
+import { findSpec, games, signupRoleOf, signupRolesOf } from './games.js';
+import type { GameId, SignupRole } from './games.js';
 import type { Character } from './characters.js';
 
 export type EventKind = 'raid' | 'event';
-// Signed up and Late are in the roster. The rest are listed under it
-export type SignupStatus = 'signed' | 'late' | 'tentative' | 'bench' | 'absence';
+// Signed up and Late are in the roster. Tentative and Absent are listed under it
+export type SignupStatus = 'signed' | 'late' | 'tentative' | 'absence';
 
 export interface Signup {
 	userId: string;
@@ -25,7 +25,7 @@ export interface Signup {
 		classId: string;
 		specId: string;
 		offSpecId?: string;
-		role: Role;
+		role: SignupRole;
 	};
 	changedAt: number;
 }
@@ -41,8 +41,6 @@ export interface RaidEvent {
 	leaderName: string;
 	channelId: string;
 	messageId?: string;
-	// Raids: how many tanks and healers the leader wants, shown as 2/2
-	targets: Partial<Record<Role, number>>;
 	closed: boolean;
 	// Who closed sign-ups: the start passing, or an officer. Moving the start later only undoes the first
 	closedBy?: 'start' | 'officer';
@@ -62,7 +60,7 @@ const storeFile = 'events';
 export interface SignupChoice {
 	character: Character;
 	specId: string;
-	role: Role;
+	role: SignupRole;
 }
 
 export function choiceValue(choice: SignupChoice): string {
@@ -75,7 +73,8 @@ export function choiceValue(choice: SignupChoice): string {
 export function signupChoices(characters: Character[]): SignupChoice[] {
 	const ordered = [...characters].sort((a, b) => Number(b.main) - Number(a.main));
 	const add = (list: SignupChoice[], character: Character, specId: string) => {
-		for (const role of findSpec(character.game, character.classId, specId)?.roles ?? []) {
+		const spec = findSpec(character.game, character.classId, specId);
+		for (const role of spec ? signupRolesOf(spec) : []) {
 			list.push({ character, specId, role });
 		}
 	};
@@ -97,7 +96,7 @@ export function signupChoices(characters: Character[]): SignupChoice[] {
 }
 
 // The role a character last signed up as with a spec, in any event, for specs that fill two roles
-export function lastRole(store: EventStore, userId: string, characterId: string, specId: string): Role | undefined {
+export function lastRole(store: EventStore, userId: string, characterId: string, specId: string): SignupRole | undefined {
 	let latest: Signup | undefined;
 	for (const event of Object.values(store)) {
 		for (const signup of event.signups) {
@@ -107,7 +106,7 @@ export function lastRole(store: EventStore, userId: string, characterId: string,
 			}
 		}
 	}
-	return latest?.character?.role;
+	return latest?.character ? signupRoleOf(latest.character.role) : undefined;
 }
 
 export function findChoice(characters: Character[], value: string): SignupChoice | undefined {
@@ -137,7 +136,7 @@ export function respond(event: RaidEvent, userId: string, displayName: string, s
 		};
 		// The off-spec shows on the line only when it adds a role they didn't sign up as
 		const offSpec = character.offSpecId ? findSpec(character.game, character.classId, character.offSpecId) : undefined;
-		if (offSpec && character.offSpecId !== choice.specId && !offSpec.roles.includes(choice.role)) {
+		if (offSpec && character.offSpecId !== choice.specId && signupRolesOf(offSpec).some(role => role !== choice.role)) {
 			signup.character.offSpecId = character.offSpecId;
 		}
 	}
@@ -150,7 +149,7 @@ export function withdraw(event: RaidEvent, userId: string): boolean {
 	return event.signups.length < before;
 }
 
-export function createEvent(fields: Pick<RaidEvent, 'game' | 'kind' | 'title' | 'description' | 'start' | 'leaderId' | 'leaderName' | 'channelId' | 'targets'>, now = Date.now(), id = randomUUID().slice(0, 8)): RaidEvent {
+export function createEvent(fields: Pick<RaidEvent, 'game' | 'kind' | 'title' | 'description' | 'start' | 'leaderId' | 'leaderName' | 'channelId'>, now = Date.now(), id = randomUUID().slice(0, 8)): RaidEvent {
 	return {
 		id,
 		...fields,
@@ -163,9 +162,19 @@ export function createEvent(fields: Pick<RaidEvent, 'game' | 'kind' | 'title' | 
 	};
 }
 
-// Saved in the git-ignored config/events.json
+// Saved in the git-ignored config/events.json. Events saved by the first version are read in
+// today's terms: Bench became Tentative, and role targets are gone
 export function loadEvents(): EventStore {
-	return load<EventStore>(storeFile);
+	const store = load<EventStore>(storeFile);
+	for (const event of Object.values(store)) {
+		delete (event as { targets?: unknown }).targets;
+		for (const signup of event.signups) {
+			if ((signup.status as string) === 'bench') {
+				signup.status = 'tentative';
+			}
+		}
+	}
+	return store;
 }
 
 export function saveEvents(store: EventStore): void {
