@@ -1,10 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildEventModal } from './event-actions.js';
+import { applyToLaterWeeks, buildEventModal } from './event-actions.js';
 import { eventForLog, logUrl } from './logs.js';
 import { overlap } from './logs.js';
 import { reminderDue, reminderMessages, reminderPings, reminderText } from './reminders.js';
-import { createSeries, dueStarts, passedWeek, seriesEvent, weekAfter } from './series.js';
+import { createSeries, dueStarts, passedWeek, seriesEvent, shiftLike, weekAfter } from './series.js';
 import { createEvent, respond } from './store.js';
 import type { RaidEvent } from './store.js';
 import { fromWallClock } from './when.js';
@@ -136,6 +136,79 @@ describe('eventForLog', () => {
 		const store = { early: raid({ id: 'early', start: wednesday - 2 * hour }), late: raid({ id: 'late' }) };
 		assert.equal(eventForLog(store, night(wednesday + 5 * 60 * 1000))?.id, 'late');
 		assert.equal(logUrl('abc'), 'https://www.warcraftlogs.com/reports/abc/');
+	});
+});
+
+describe('shiftLike', () => {
+	it('should put a later week as many weeks after the new start as it was after the old one', () => {
+		// This week was moved to Tuesday on its own earlier, now to Thursday for all: later weeks go to Thursday
+		const tuesday = fromWallClock(2026, 11, 17, 19, 30);
+		const thursday = fromWallClock(2026, 11, 19, 19, 0);
+		assert.equal(shiftLike(weekAfter(wednesday), tuesday, thursday), fromWallClock(2026, 11, 26, 19, 0));
+		assert.equal(shiftLike(wednesday, wednesday, thursday), thursday);
+	});
+
+	it('should move a later week the same days, to the same new time of day', () => {
+		const nextWednesday = weekAfter(wednesday);
+		// Wed 19:30 to Thu 20:00
+		const thursday = fromWallClock(2026, 11, 19, 20, 0);
+		assert.equal(shiftLike(nextWednesday, wednesday, thursday), fromWallClock(2026, 11, 26, 20, 0));
+		// Only the time
+		assert.equal(shiftLike(nextWednesday, wednesday, fromWallClock(2026, 11, 18, 20, 0)), fromWallClock(2026, 11, 25, 20, 0));
+	});
+
+	it('should keep the server time for a later week across a daylight saving change', () => {
+		const before = fromWallClock(2027, 3, 24, 19, 30);
+		const after = fromWallClock(2027, 3, 31, 19, 30);
+		assert.equal(shiftLike(after, before, fromWallClock(2027, 3, 24, 20, 0)), fromWallClock(2027, 3, 31, 20, 0));
+	});
+});
+
+describe('applyToLaterWeeks', () => {
+	it('should give later weeks and the series the new title, description and time, and leave earlier weeks', () => {
+		const series = createSeries(raid(), 's1');
+		const earlier = raid({ id: 'w0', seriesId: 's1', start: wednesday - 7 * day });
+		const thisWeek = raid({ id: 'w1', seriesId: 's1' });
+		const nextWeek = raid({ id: 'w2', seriesId: 's1', start: weekAfter(wednesday), reminded: true });
+		series.lastStart = nextWeek.start;
+		const store = { w0: earlier, w1: thisWeek, w2: nextWeek };
+		const oldStart = thisWeek.start;
+		thisWeek.title = 'Heroic night';
+		thisWeek.description = 'New plan';
+		thisWeek.start = fromWallClock(2026, 11, 18, 20, 0);
+		const changed = applyToLaterWeeks(store, thisWeek, oldStart, series, wednesday - day);
+		assert.deepEqual(changed.map(e => e.id), ['w2']);
+		assert.deepEqual([nextWeek.title, nextWeek.description, nextWeek.start, nextWeek.reminded], ['Heroic night', 'New plan', fromWallClock(2026, 11, 25, 20, 0), false]);
+		assert.deepEqual([earlier.title, earlier.start], ['Mythic night', wednesday - 7 * day]);
+		assert.deepEqual([series.title, series.description, series.lastStart], ['Heroic night', 'New plan', fromWallClock(2026, 11, 25, 20, 0)]);
+	});
+
+	it('should keep the time of a later week that has already begun', () => {
+		const thisWeek = raid({ id: 'w1', seriesId: 's1' });
+		const started = raid({ id: 'w2', seriesId: 's1', start: weekAfter(wednesday) });
+		const oldStart = thisWeek.start;
+		thisWeek.start = fromWallClock(2026, 11, 18, 20, 0);
+		applyToLaterWeeks({ w1: thisWeek, w2: started }, thisWeek, oldStart, undefined, weekAfter(wednesday) + hour);
+		assert.equal(started.start, weekAfter(wednesday));
+	});
+
+	it('should leave the times alone when only the title changes', () => {
+		const series = createSeries(raid(), 's1');
+		const thisWeek = raid({ id: 'w1', seriesId: 's1' });
+		const nextWeek = raid({ id: 'w2', seriesId: 's1', start: weekAfter(wednesday), reminded: true });
+		thisWeek.title = 'Renamed';
+		applyToLaterWeeks({ w1: thisWeek, w2: nextWeek }, thisWeek, thisWeek.start, series);
+		assert.deepEqual([nextWeek.title, nextWeek.start, nextWeek.reminded, series.lastStart], ['Renamed', weekAfter(wednesday), true, wednesday]);
+	});
+});
+
+describe('the Apply to choice', () => {
+	it('should be in the edit form only for a week of a repeating raid', () => {
+		const repeating = buildEventModal('retail', 'raid', { existing: raid({ seriesId: 's1' }), repeating: true }).toJSON() as any;
+		assert.deepEqual(repeating.components.map((c: any) => c.label), ['Title', 'Start', 'Apply to', 'Description']);
+		assert.deepEqual(repeating.components[2].component.options.map((o: any) => [o.label, !!o.default]), [['This event', true], ['This and repeating events', false]]);
+		const single = buildEventModal('retail', 'raid', { existing: raid() }).toJSON() as any;
+		assert.deepEqual(single.components.map((c: any) => c.label), ['Title', 'Start', 'Description']);
 	});
 });
 

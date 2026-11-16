@@ -147,8 +147,10 @@ without fixing a single name.
    - **Repeating:** the create form has Repeat: Doesn't repeat or Every week, above the description
      so it's in sight without scrolling. A weekly series posts
      each week's raid a week before it starts, at the same server time (daylight saving doesn't
-     move it), so the Wednesday and Sunday raids are both always open. Each week's post is its own:
-     an edit changes that week only. Manage on a week of a series has Stop repeating (asks first),
+     move it), so the Wednesday and Sunday raids are both always open. Each week's post is its own.
+     Edit on a week has Apply to: This event, or This and repeating events (decided 2026-11-16),
+     which gives the later weeks, posted or not, the new title and description and moves them the
+     way this week moved (same days, same new time). Earlier weeks stay. Manage on a week of a series has Stop repeating (asks first),
      which leaves the posts already up. A week counts as posted only once its post is up: a failed
      post is tried again each minute until its start, and a week with a post is never posted twice.
      Weeks whose start passed while Botty was offline are skipped. A series posts in the game's

@@ -26,7 +26,8 @@ import { characterName, charactersOf, gameName, loadCharacters } from './charact
 import type { Character } from './characters.js';
 import { addMissingEntries, syncCalendar } from './calendar.js';
 import { reminderLead, sendReminders } from './reminders.js';
-import { createSeries, loadSeries, postDueWeeks, saveSeries } from './series.js';
+import { createSeries, loadSeries, postDueWeeks, saveSeries, shiftLike } from './series.js';
+import type { Series } from './series.js';
 import { catchUpInterest } from './interest.js';
 import { getClassEmoji } from './emoji.js';
 import { exportText, rosterSize } from './export.js';
@@ -104,6 +105,8 @@ export interface EventFormValues {
 	// Only when creating: post it again every week, and whether to remind
 	weekly?: boolean;
 	noReminder?: boolean;
+	// Only when editing a week of a repeating raid: also change the later weeks
+	allWeeks?: boolean;
 }
 
 // The last turned-down event form per officer, one for creating and one per event edited, so Try
@@ -111,7 +114,8 @@ export interface EventFormValues {
 const drafts = new Map<string, { game: GameId; kind: EventKind; editId?: string; values: EventFormValues }>();
 const draftKey = (userId: string, editId?: string) => `${userId}:${editId ?? 'new'}`;
 
-export function buildEventModal(game: GameId, kind: EventKind, { existing, values }: { existing?: RaidEvent; values?: EventFormValues } = {}): ModalBuilder {
+// repeating: editing a week of a repeating raid, which can also change the later weeks
+export function buildEventModal(game: GameId, kind: EventKind, { existing, values, repeating }: { existing?: RaidEvent; values?: EventFormValues; repeating?: boolean } = {}): ModalBuilder {
 	const filled: Partial<EventFormValues> = values ?? (existing
 		? {
 			title: existing.title,
@@ -147,6 +151,14 @@ export function buildEventModal(game: GameId, kind: EventKind, { existing, value
 				{ label: 'Every week', description: "Each week's post goes up a week before it starts", value: 'weekly', default: !!filled.weekly },
 			)));
 	}
+	if (existing && repeating) {
+		fields.push(new LabelBuilder().setLabel('Apply to').setStringSelectMenuComponent(new StringSelectMenuBuilder()
+			.setCustomId('apply-to')
+			.addOptions(
+				{ label: 'This event', value: 'this', default: !filled.allWeeks },
+				{ label: 'This and repeating events', description: 'Later weeks too, posted or not', value: 'all', default: !!filled.allWeeks },
+			)));
+	}
 	// Switched later in Manage
 	if (!existing) {
 		fields.push(new LabelBuilder().setLabel('Reminder').setStringSelectMenuComponent(new StringSelectMenuBuilder()
@@ -171,6 +183,7 @@ function formValues(interaction: ModalSubmitInteraction): EventFormValues {
 		description: interaction.fields.getTextInputValue('description').trim(),
 		weekly: repeat === 'weekly',
 		noReminder: interaction.fields.fields.has('reminder') && interaction.fields.getStringSelectValues('reminder')[0] === 'off',
+		allWeeks: interaction.fields.fields.has('apply-to') && interaction.fields.getStringSelectValues('apply-to')[0] === 'all',
 	};
 }
 
@@ -377,15 +390,55 @@ async function saveFromForm(interaction: ModalSubmitInteraction, eventId: string
 			event.closedBy = undefined;
 		}
 	}
+	const oldStart = event.start;
 	event.title = values.title;
 	event.description = values.description;
 	event.start = start;
+	let later: RaidEvent[] = [];
+	if (values.allWeeks && event.seriesId) {
+		const all = loadSeries();
+		later = applyToLaterWeeks(store, event, oldStart, all[event.seriesId]);
+		saveSeries(all);
+	}
 	drafts.delete(draftKey(interaction.user.id, event.id));
 	saveEvents(store);
-	log(`${interaction.user.username} edited ${event.title}`);
-	await show(interaction, managePanel(event, 'Saved.'));
+	log(`${interaction.user.username} edited ${event.title}${values.allWeeks ? ' and its later weeks' : ''}`);
+	await show(interaction, managePanel(event, values.allWeeks ? 'Saved for this and later weeks.' : 'Saved.'));
 	await updatePost(interaction.client, event.id);
 	await syncAndReport(interaction, event);
+	let laterProblem: string | undefined;
+	for (const other of later) {
+		await updatePost(interaction.client, other.id);
+		laterProblem ??= await syncCalendar(interaction.client, other);
+	}
+	if (laterProblem) {
+		await interaction.followUp({ content: `Later weeks: ${laterProblem}`, flags: MessageFlags.Ephemeral }).catch(() => {});
+	}
+}
+
+// "This and repeating events": the later weeks already posted and the series, for the weeks still to
+// be posted, take the new title and description, and move the way this week moved. Earlier weeks
+// stay. Changes the store and series given, and returns the later weeks changed
+export function applyToLaterWeeks(store: EventStore, event: RaidEvent, oldStart: number, series: Series | undefined, now = Date.now()): RaidEvent[] {
+	const moved = event.start !== oldStart;
+	const later = Object.values(store).filter(other => other.seriesId === event.seriesId && other.id !== event.id && !other.cancelled && other.start > oldStart);
+	for (const other of later) {
+		other.title = event.title;
+		other.description = event.description;
+		// A week that has already begun keeps its time
+		if (moved && other.start > now) {
+			other.start = shiftLike(other.start, oldStart, event.start);
+			other.reminded = false;
+		}
+	}
+	if (series) {
+		series.title = event.title;
+		series.description = event.description;
+		if (moved) {
+			series.lastStart = shiftLike(series.lastStart, oldStart, event.start);
+		}
+	}
+	return later;
 }
 
 async function show(interaction: AnyInteraction, content: object): Promise<void> {
@@ -578,7 +631,8 @@ export async function handleEventInteraction(interaction: AnyInteraction): Promi
 			await interaction.update({ content: 'That form was lost. Start it again.', components: [] });
 			return;
 		}
-		await interaction.showModal(buildEventModal(draft.game, draft.kind, { existing, values: draft.values }));
+		const repeating = !!existing?.seriesId && !!loadSeries()[existing.seriesId]?.active;
+		await interaction.showModal(buildEventModal(draft.game, draft.kind, { existing, values: draft.values, repeating }));
 		return;
 	}
 
@@ -679,7 +733,7 @@ export async function handleEventInteraction(interaction: AnyInteraction): Promi
 			return;
 		}
 		case 'edit':
-			await interaction.showModal(buildEventModal(event.game, event.kind, { existing: event }));
+			await interaction.showModal(buildEventModal(event.game, event.kind, { existing: event, repeating: !!event.seriesId && !!loadSeries()[event.seriesId]?.active }));
 			return;
 		case 'close':
 		case 'reopen':

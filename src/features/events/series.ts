@@ -10,7 +10,7 @@ import { fromWallClock, wallClock } from './when.js';
 
 // A raid or event that repeats every week at the same server time, such as the Wednesday and Sunday
 // raids. Each week's post goes up a week before it starts, so the next one is always open for
-// sign-ups (decided 2026-11-15). An edit to one week's post changes that week only.
+// sign-ups (decided 2026-11-15). An edit changes one week, or that week and the later ones.
 
 export interface Series {
 	id: string;
@@ -38,6 +38,18 @@ const week = 7 * 24 * 60 * 60 * 1000;
 export function weekAfter(start: number): number {
 	const c = wallClock(start);
 	return fromWallClock(c.year, c.month, c.day + 7, c.hour, c.minute);
+}
+
+// Where a later week goes when one week moved from `from` to `to`: as many weeks after the new start
+// as it was after the old one, so every later week takes the edited week's new day and time (moving
+// Wednesday 19:30 to Thursday 20:00 makes every later week Thursday 20:00)
+export function shiftLike(target: number, from: number, to: number): number {
+	let weeks = Math.round((target - from) / week);
+	let start = to;
+	for (; weeks > 0; weeks--) {
+		start = weekAfter(start);
+	}
+	return start;
 }
 
 // The starts to post now: each whose post-up time (a week before) has come and whose start is still
@@ -109,12 +121,18 @@ export function saveSeries(store: SeriesStore): void {
 // Weeks whose post failed, so the error is logged once rather than every minute
 const failing = new Set<string>();
 
-function moveOn(id: string, lastStart: number): void {
+// Moves lastStart on, but only from the value this pass read: an officer may have moved the series
+// ("This and repeating events") while a post was being sent, and that wins. Returns whether it did
+function moveOn(id: string, from: number, to: number): boolean {
 	const store = loadSeries();
-	if (store[id] && store[id].lastStart < lastStart) {
-		store[id].lastStart = lastStart;
+	if (!store[id] || store[id].lastStart !== from) {
+		return false;
+	}
+	if (to > from) {
+		store[id].lastStart = to;
 		saveSeries(store);
 	}
+	return true;
 }
 
 // On the timer: posts the weeks that are due. A week counts as posted only once its post is up, so a
@@ -127,13 +145,18 @@ export async function postDueWeeks(client: Client, postEvent: (client: Client, e
 			continue;
 		}
 		// Weeks that passed without a post (Botty offline the whole week) are left behind
-		moveOn(id, passedWeek(series, now));
-		for (const start of dueStarts(loadSeries()[id], now)) {
+		const passed = passedWeek(series, now);
+		if (!moveOn(id, series.lastStart, passed)) {
+			continue;
+		}
+		let from = Math.max(series.lastStart, passed);
+		for (const start of dueStarts({ ...series, lastStart: from }, now)) {
 			const key = `${id}:${start}`;
 			const already = Object.values(loadEvents()).some(e => e.seriesId === id && e.start === start);
 			if (!already) {
 				try {
-					await postEvent(client, seriesEvent(series, start));
+					// Read fresh, so a title just changed for later weeks is used
+					await postEvent(client, seriesEvent(loadSeries()[id] ?? series, start));
 					log(`Posted next week's ${series.title}`);
 					failing.delete(key);
 				} catch (error) {
@@ -144,7 +167,10 @@ export async function postDueWeeks(client: Client, postEvent: (client: Client, e
 					break;
 				}
 			}
-			moveOn(id, start);
+			if (!moveOn(id, from, start)) {
+				break;
+			}
+			from = start;
 		}
 	}
 }
