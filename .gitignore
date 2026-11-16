@@ -8,6 +8,7 @@ votes.json
 warcraft-logs-posts.json
 music-loudness.json
 music-volumes.json
+characters.json
 log.txt
 
 debug_output.pcm
@@ -15,3 +16,6 @@ verify.wav
 /music/
 /eval/
 docs/issues.md
+
+# Left behind if the bot stops halfway through saving
+config/*.tmp

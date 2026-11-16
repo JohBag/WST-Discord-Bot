@@ -53,6 +53,11 @@ export interface Config {
 		autoPost: boolean;
 		pollMinutes: number;
 	};
+	// Raid and event sign-ups (docs/events.md)
+	events: {
+		// The guild's realm in each game, filled in for new characters and left off their names
+		realms: Record<'retail' | 'forever', string>;
+	};
 	prompt: string;
 }
 

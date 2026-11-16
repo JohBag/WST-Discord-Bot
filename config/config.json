@@ -52,5 +52,11 @@
 		],
 		"autoPost": true,
 		"pollMinutes": 5
+	},
+	"events": {
+		"realms": {
+			"retail": "",
+			"forever": ""
+		}
 	}
 }

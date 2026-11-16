@@ -4,6 +4,7 @@ import log from '../core/log.js';
 import getUsername from '../core/get-username.js';
 import { registerVote } from '../features/votes/votes.js';
 import { handlePanelInteraction, panelPrefix } from '../features/music/panel.js';
+import { charactersPrefix, handleCharacterInteraction } from '../features/events/character-panel.js';
 import UserError from '../core/user-error.js';
 import type { BotEvent } from '../types.js';
 
@@ -12,6 +13,18 @@ export default {
 	async execute(interaction: Interaction) {
 		if ((interaction.isButton() || interaction.isStringSelectMenu()) && interaction.customId.startsWith(panelPrefix)) {
 			await handlePanelInteraction(interaction);
+			return;
+		}
+
+		if ((interaction.isButton() || interaction.isStringSelectMenu() || interaction.isModalSubmit()) && interaction.customId.startsWith(charactersPrefix)) {
+			try {
+				await handleCharacterInteraction(interaction);
+			} catch (error) {
+				log.error(`Error in character panel (${interaction.customId}): ${error}`);
+				if (!interaction.replied && !interaction.deferred) {
+					await interaction.reply({ content: 'Something went wrong with your characters.', flags: MessageFlags.Ephemeral }).catch(() => {});
+				}
+			}
 			return;
 		}
 

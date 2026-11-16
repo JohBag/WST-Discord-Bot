@@ -54,6 +54,28 @@ without fixing a single name.
   role still takes sign-ups and its header shows the overflow (Tanks 3/2). Officers sort it out.
 - **Off-specs.** A saved character can have an off-spec, shown as a small extra icon on its line.
 
+## Build steps
+
+1. **Class and spec data, and saving characters.** Built. `/characters` opens a private panel
+   listing a member's characters per game, the main starred. Adding one is a class button, then a
+   form with name, realm (retail only, filled in with the guild's realm from `events.realms` in
+   config), spec and off-spec (None by default). A form that's turned down shows why, with Try
+   again to reopen it as it was filled in. Picking a character opens it with Edit, Make main and
+   Remove (asks first). The first character in a game becomes the main, and removing the main hands
+   it to the next. Up to 10 characters per game.
+   - **Names and realms match what the addon accepts.** Names are capitalised the way the game does
+     it. A retail realm is looked up in the EU realm list (`eu-realms.ts`, from the LibRealmInfo
+     library the addon checks names against), however it was typed, and saved under its official
+     name. A realm the addon wouldn't know is turned down rather than silently failing on raid
+     night. Off-realm names are written the way the game does (`Name-DerRatvonDalaran`).
+   - **WoW Forever characters have no realm field.** Everyone there plays on the guild's realm.
+   - **A character can only be saved once.** If someone else holds it, the message names them.
+     Officers can open any member's characters with `/characters member` to fix or free one.
+2. Creating an event, the sign-up post, the status buttons, and edit, close and cancel.
+3. The Discord scheduled event.
+4. The addon export.
+5. Repeating events, reminders and the Warcraft Logs link.
+
 ## Defaults (not asked, change on request)
 
 - A member's first Sign up click, with no character saved for that game, opens a private form to
