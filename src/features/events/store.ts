@@ -42,6 +42,9 @@ export interface RaidEvent {
 	leaderName: string;
 	channelId: string;
 	messageId?: string;
+	// The server, and the event's entry in its Events tab
+	guildId?: string;
+	calendarId?: string;
 	closed: boolean;
 	// Who closed sign-ups: the start passing, or an officer. Moving the start later only undoes the first
 	closedBy?: 'start' | 'officer';
@@ -150,7 +153,7 @@ export function withdraw(event: RaidEvent, userId: string): boolean {
 	return event.signups.length < before;
 }
 
-export function createEvent(fields: Pick<RaidEvent, 'game' | 'kind' | 'title' | 'description' | 'start' | 'leaderId' | 'leaderName' | 'channelId'>, now = Date.now(), id = randomUUID().slice(0, 8)): RaidEvent {
+export function createEvent(fields: Pick<RaidEvent, 'game' | 'kind' | 'title' | 'description' | 'start' | 'leaderId' | 'leaderName' | 'channelId'> & { guildId?: string }, now = Date.now(), id = randomUUID().slice(0, 8)): RaidEvent {
 	return {
 		id,
 		...fields,

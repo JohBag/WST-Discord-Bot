@@ -23,6 +23,7 @@ import log from '../../core/log.js';
 import { buildCharacterPanel, homeRealm, setSignupHook } from './character-panel.js';
 import { characterName, charactersOf, gameName, loadCharacters } from './characters.js';
 import type { Character } from './characters.js';
+import { addMissingEntries, syncCalendar } from './calendar.js';
 import { getClassEmoji } from './emoji.js';
 import { findClass, findSpec, isGameId } from './games.js';
 import { signupRoleOf, signupRolesOf } from './games.js';
@@ -202,6 +203,7 @@ async function createFromForm(interaction: ModalSubmitInteraction, game: GameId,
 		leaderId: interaction.user.id,
 		leaderName: displayNameOf(interaction),
 		channelId,
+		guildId: interaction.guildId ?? undefined,
 	});
 	let message;
 	try {
@@ -218,7 +220,16 @@ async function createFromForm(interaction: ModalSubmitInteraction, game: GameId,
 	store[event.id] = event;
 	saveEvents(store);
 	log(`${interaction.user.username} created ${gameName(game)} ${kind} ${event.title}`);
-	await interaction.editReply({ content: `Posted: ${message.url}`, components: [] });
+	const problem = await syncCalendar(interaction.client, event);
+	await interaction.editReply({ content: [`Posted: ${message.url}`, problem].filter(Boolean).join('\n'), components: [] });
+}
+
+// Keeps the Events tab entry in step after an officer's change, and tells them if that failed
+async function syncAndReport(interaction: AnyInteraction, event: RaidEvent): Promise<void> {
+	const problem = await syncCalendar(interaction.client, event);
+	if (problem) {
+		await interaction.followUp({ content: problem, flags: MessageFlags.Ephemeral }).catch(() => {});
+	}
 }
 
 // ---- The officers' Manage panel ----
@@ -284,6 +295,7 @@ async function saveFromForm(interaction: ModalSubmitInteraction, eventId: string
 	log(`${interaction.user.username} edited ${event.title}`);
 	await show(interaction, managePanel(event, 'Saved.'));
 	await updatePost(interaction.client, event.id);
+	await syncAndReport(interaction, event);
 }
 
 async function show(interaction: AnyInteraction, content: object): Promise<void> {
@@ -574,6 +586,7 @@ export async function handleEventInteraction(interaction: AnyInteraction): Promi
 			log(`${interaction.user.username} cancelled ${event.title}`);
 			await interaction.update(managePanel(event));
 			await updatePost(interaction.client, event.id);
+			await syncAndReport(interaction, event);
 			return;
 		default:
 			log.warn(`Unknown event action: ${interaction.customId}`);
@@ -599,7 +612,13 @@ export function closeStarted(store: EventStore, now = Date.now()): RaidEvent[] {
 }
 
 export function startEventTimer(client: Client): void {
+	// A tick still waiting on Discord makes the next one skip rather than run alongside it
+	let running = false;
 	const tick = async () => {
+		if (running) {
+			return;
+		}
+		running = true;
 		try {
 			const store = loadEvents();
 			const closed = closeStarted(store);
@@ -612,11 +631,13 @@ export function startEventTimer(client: Client): void {
 			}
 		} catch (error) {
 			log.error(`Event timer failed: ${error}`);
+		} finally {
+			running = false;
 		}
 	};
 	void tick();
 	setInterval(tick, 60 * 1000);
-	void redrawRecent(client);
+	void redrawRecent(client).then(() => addMissingEntries(client));
 }
 
 // After a restart, posts from the last week and ahead are drawn again, so a change to how posts look

@@ -54,6 +54,10 @@
 		"pollMinutes": 5
 	},
 	"events": {
-		"realm": "Aggramar"
+		"realm": "Aggramar",
+		"durationMinutes": {
+			"raid": 120,
+			"event": 120
+		}
 	}
 }

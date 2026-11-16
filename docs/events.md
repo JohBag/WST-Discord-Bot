@@ -109,7 +109,15 @@ without fixing a single name.
      event (asks first). A cancelled post stays, marked cancelled, without buttons. Sign-ups close
      by themselves at the start, once. An officer can open them again after. Moving the start later
      opens sign-ups again only if the start had closed them, not if an officer did.
-3. The Discord scheduled event.
+3. **The Discord scheduled event.** Built. Each post gets an entry in the server's Events tab
+   (title, description, start, end, and the sign-up post as its location link), where members click
+   Interested. An edit updates it, and cancelling cancels it. Discord itself starts the entry at its
+   start, which sends the notification to those interested, and completes it at its end: 2 hours
+   for raids and events (`events.durationMinutes` in config, decided 2026-11-16). Botty asks Discord
+   how the entry stands before each change instead of keeping its own copy. Moving a raid later
+   after its entry went live ends that entry and makes a new one. At startup, upcoming events
+   without an entry get one. Botty needs the Create Events permission (Manage Events on older
+   servers). Without it the post still goes up and the officer is told.
 4. The addon export.
 5. Repeating events, reminders and the Warcraft Logs link.
 
