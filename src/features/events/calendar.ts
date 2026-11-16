@@ -77,7 +77,7 @@ function isGone(error: unknown): boolean {
 }
 
 // The server the post is in
-async function guildOf(client: Client, event: RaidEvent): Promise<Guild | null> {
+export async function guildOf(client: Client, event: RaidEvent): Promise<Guild | null> {
 	if (event.guildId) {
 		return client.guilds.fetch(event.guildId).catch(() => null);
 	}
@@ -90,7 +90,8 @@ async function entryOf(guild: Guild, id: string | undefined) {
 		return null;
 	}
 	try {
-		return await guild.scheduledEvents.fetch(id);
+		// Forced: a cached copy can be out of date, or empty when it only arrived with an Interested click
+		return await guild.scheduledEvents.fetch({ guildScheduledEvent: id, force: true });
 	} catch (error) {
 		if (isGone(error)) {
 			return null;

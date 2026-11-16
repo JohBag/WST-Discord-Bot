@@ -4,5 +4,6 @@ import messageDeleted from './message-deleted.js'
 import clientReady from './client-ready.js'
 import memberAdded from './member-added.js'
 import typingStarted from './typing-started.js'
+import { interested, notInterested } from './interested.js'
 
-export { interaction, messageCreated, messageDeleted, clientReady, memberAdded, typingStarted };
+export { interaction, messageCreated, messageDeleted, clientReady, memberAdded, typingStarted, interested, notInterested };

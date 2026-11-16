@@ -1,6 +1,6 @@
 // Must stay the first import
 import './core/clear-log.js';
-import { Client, Collection, GatewayIntentBits } from 'discord.js';
+import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
 import { secrets } from './core/config.js';
 import * as events from './events/index.js';
 import * as commands from './commands/index.js';
@@ -15,8 +15,13 @@ const client = new Client({
 		GatewayIntentBits.GuildMembers,
 		GatewayIntentBits.GuildPresences,
 		GatewayIntentBits.MessageContent,
-		GatewayIntentBits.GuildVoiceStates
-	]
+		GatewayIntentBits.GuildVoiceStates,
+		// Who clicks Interested in the Events tab
+		GatewayIntentBits.GuildScheduledEvents,
+	],
+	// Without these, an Interested click from a member or entry not in the cache (an offline member,
+	// say) isn't reported at all
+	partials: [Partials.User, Partials.GuildScheduledEvent],
 });
 
 function safeHandler(handler: (...args: any[]) => Promise<void>) {

@@ -28,6 +28,10 @@ export interface Signup {
 		offSpecId?: string;
 		role: SignupRole;
 	};
+	// The Events tab entry whose Interested made this sign-up, while it hasn't been changed on the post
+	// since. Unclicking Interested on that same entry is the only thing that takes it back: a
+	// replacement entry starts with no one interested
+	viaInterest?: string;
 	changedAt: number;
 }
 
@@ -127,6 +131,8 @@ export function respond(event: RaidEvent, userId: string, displayName: string, s
 	}
 	signup.displayName = displayName;
 	signup.status = status;
+	// An answer on the post is the member's own, even if Interested made the sign-up
+	delete signup.viaInterest;
 	signup.changedAt = now;
 	if (choice) {
 		const { character } = choice;

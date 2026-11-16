@@ -24,6 +24,7 @@ import { buildCharacterPanel, homeRealm, setSignupHook } from './character-panel
 import { characterName, charactersOf, gameName, loadCharacters } from './characters.js';
 import type { Character } from './characters.js';
 import { addMissingEntries, syncCalendar } from './calendar.js';
+import { catchUpInterest } from './interest.js';
 import { getClassEmoji } from './emoji.js';
 import { findClass, findSpec, isGameId } from './games.js';
 import { signupRoleOf, signupRolesOf } from './games.js';
@@ -637,7 +638,7 @@ export function startEventTimer(client: Client): void {
 	};
 	void tick();
 	setInterval(tick, 60 * 1000);
-	void redrawRecent(client).then(() => addMissingEntries(client));
+	void redrawRecent(client).then(() => addMissingEntries(client)).then(() => catchUpInterest(client));
 }
 
 // After a restart, posts from the last week and ahead are drawn again, so a change to how posts look

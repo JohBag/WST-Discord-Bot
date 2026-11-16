@@ -118,6 +118,19 @@ without fixing a single name.
    after its entry went live ends that entry and makes a new one. At startup, upcoming events
    without an entry get one. Botty needs the Create Events permission (Manage Events on older
    servers). Without it the post still goes up and the officer is told.
+   - **Interested signs up** (decided 2026-11-16). Clicking Interested on the entry signs the
+     member up on the post with their main, as a full sign-up, if they hadn't answered yet: an
+     answer already given stands. A two-role spec takes the role that character last signed up as,
+     else its usual one, since there's no one to ask. Without a character for that game, they
+     aren't signed up. Unclicking Interested withdraws a sign-up only if Interested made it and it
+     hasn't been changed on the post since. Each time Botty sends the member a direct message
+     saying what happened, with a link to the post, also when an answer they'd already given stands
+     ("You're down as Absent"): a private reply in the channel only works as an answer to a click on
+     Botty's own buttons. Clicks made while Botty was offline are caught up at startup, with the same
+     messages, except "no character saved", which would otherwise come after every restart. A
+     sign-up remembers which entry's Interested made it, so a replaced entry (moved raid, entry
+     deleted by hand) withdraws no one. Bots can't mark anyone Interested, so a sign-up on the post
+     doesn't tick Interested.
 4. The addon export.
 5. Repeating events, reminders and the Warcraft Logs link.
 
