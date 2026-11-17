@@ -11,6 +11,7 @@ music-volumes.json
 characters.json
 events.json
 event-series.json
+reminders.json
 log.txt
 
 debug_output.pcm

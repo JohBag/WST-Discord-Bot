@@ -42,8 +42,8 @@ export interface ReplyRequest {
 	systemPrompt: string;
 	// Oldest first
 	conversation: ChatMessage[];
-	// Whether the model may call the bot's tools (pictures, logs, votes)
-	tools: boolean;
+	// Whether the model may call the bot's tools (pictures, votes, reminders), or which of them
+	tools: boolean | string[];
 	// Whether the model may search the web, which the provider does on its side
 	webSearch?: boolean;
 }

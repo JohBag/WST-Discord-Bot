@@ -7,6 +7,7 @@ import { handlePanelInteraction, panelPrefix } from '../features/music/panel.js'
 import { charactersPrefix, handleCharacterInteraction } from '../features/events/character-panel.js';
 import { handleEventInteraction } from '../features/events/event-actions.js';
 import { eventPrefix } from '../features/events/post.js';
+import { handleReminderInteraction, remindersPrefix } from '../features/reminders/actions.js';
 import UserError from '../core/user-error.js';
 import type { BotEvent } from '../types.js';
 
@@ -47,6 +48,16 @@ export default {
 			} catch (error) {
 				log.error(`Error in event sign-ups (${interaction.customId}): ${error}`);
 				await replyError(interaction, 'Something went wrong with that event.');
+			}
+			return;
+		}
+
+		if (interaction.isStringSelectMenu() && interaction.customId.startsWith(remindersPrefix)) {
+			try {
+				await handleReminderInteraction(interaction);
+			} catch (error) {
+				log.error(`Error in reminders (${interaction.customId}): ${error}`);
+				await replyError(interaction, 'Something went wrong with that reminder.');
 			}
 			return;
 		}

@@ -3,6 +3,46 @@
 What's built, what's parked and why. Newest first. This repo is public: describe situations, never
 quote guild members or name them.
 
+## 2026-11-17: Reminders
+
+Members ask Botty to remind them of something later, with `/remind` or in chat, and list or cancel
+what's set.
+
+- **Who it's for.** Anyone can set a reminder for themselves. Officers can also set one for the
+  channel (no ping) or a role (pings the role). Reminding another member isn't offered.
+- **`/remind me`, `/remind channel` and `/remind role`** take a time and what to remind about.
+  Times are a duration (`2h`, `1d 3h`, `in half an hour`, `1.5h`) or a clock time and day in EU
+  server time (`19:30`, `at 7pm`, `fri 19:30`, `26/11 19:30`), the forms `/event create` takes plus
+  a few more. A clock time already passed today means tomorrow, whole days keep the clock time
+  across a daylight saving change, and a bare number is refused as ambiguous (minutes or a time).
+  The private confirmation shows the time as a Discord timestamp, so a misread time is caught there.
+- **`/remind list`** shows your reminders (with the channel when it's another one) and the channel
+  and role reminders set in this channel, with a menu to cancel. Members cancel their own, officers
+  also anyone's channel and role reminders. Other members' own reminders are never shown.
+- **In chat**, the model has `set_reminder`, `list_reminders` and `cancel_reminder`. Each reminder
+  has a number (#12) shown in the confirmation and the list, so "cancel that" finds it in the
+  channel. The model names who asked, and that person must have spoken to Botty in the recent
+  messages it sees: the reminder is theirs, with their rights, and a name that matches nobody is
+  refused. The tools are off when Botty joins in uninvited. Known limit: which of several people
+  asked is the model's call, so a member could talk it into naming an officer who also spoke to
+  Botty. `/remind` has no such gap. Listing in chat shows only what fires in this channel, since everyone sees it. The
+  system prompt now carries the current date and time in server time, which chat reminders need
+  and which also helps with "what day is it" questions.
+- **When it fires**, Botty posts in the channel it was set in, as a reply to the asking message
+  when it was set in chat. The ping comes first, then the reminder reworded in Botty's voice (one
+  model call). When the model fails or takes over 30 seconds, it's posted as written. Only the
+  member or role it's for can be pinged, whatever the text says.
+- **Storage:** the git-ignored `config/reminders.json`, checked every 30 seconds. One that came due
+  while Botty was offline is posted at startup with when it was due. At most 10 per member, a year
+  ahead and 500 characters.
+
+### Not doing
+
+- **Repeating reminders.** Raid nights already get the sign-up post's ping an hour before, which
+  was the main repeating case. Decided 2026-11-17.
+- **Direct messages.** DMs can be turned off, and a channel post links back to where it was set.
+- **Reminding another member.** Avoids members pinging each other through Botty.
+
 ## 2026-11-16: Raid and event sign-ups
 
 Raid-Helper-style sign-ups for WoW retail and WoW Forever, built into Botty instead of adding a
@@ -91,49 +131,6 @@ answered messages meant for others.
 - **Reading linked web pages.** Only the preview is read. Claude's web fetch tool could open links.
 
 ## Parked
-
-### Reminders
-
-Raised 2026-11-12, not built. Ask Botty to remind you or a channel of something later, through a
-slash command or in chat, and list or cancel what's set.
-
-Proposed shape:
-- **One `/remind` command with subcommands.** `/remind me <when> <what>` and
-  `/remind channel <when> <what>` set one. `/remind list` shows yours and the channel's.
-  `/remind cancel <reminder>` picks from your own with autocomplete, so nobody types an ID.
-  The confirmation is private and shows the time as a Discord timestamp (`<t:…:F>` and `<t:…:R>`),
-  which every reader sees in their own time zone. That is where a misread time gets caught.
-- **When it fires** Botty posts in the channel it was set in: "Reminder for @member: what", or
-  without a ping for a channel reminder, linking the message or command that set it. Only the
-  member who set it gets pinged (`allowedMentions`), so a reminder can't be used to mass-ping
-  `@everyone` or a role.
-- **In chat**, three tools next to `create_vote`: `set_reminder` (time as ISO 8601 with offset,
-  text, for the asker or the channel), `list_reminders` and `cancel_reminder` (by number). A tool
-  call's message replaces the reply today (`features/chat/respond.ts`), so the confirmation and
-  the list are what gets posted. Each reminder gets a short number shown in both, which puts it in
-  the channel history so "cancel that" can find it.
-- **The model needs the current time.** Nothing in the prompt says what time it is, and messages
-  carry no timestamps. Add the current date, time and the guild's time zone to the system prompt,
-  for every reply (a few tokens, and it helps "what day is raid" questions too).
-- **The command parses time itself**: durations (`2h`, `90m`, `1d 3h`) and plain clock times and
-  days (`20:00`, `friday 19:30`, `tomorrow 8`), read in the guild's time zone. `chrono-node` does
-  this, or a small parser for just those forms.
-- **Storage and timing.** Reminders live in a git-ignored `config/reminders.json` so they survive
-  deploys and restarts. A timer checks every 30 seconds. One that came due while Botty was offline
-  is posted on startup, marked late. Fired reminders are removed.
-- **Limits**: 10 active per member, at most a year ahead, text capped at Discord's message length.
-  A member cancels their own, officers can cancel any.
-
-Questions to settle first:
-- Reminding someone else ("remind @member to bring flasks"): allowed with a ping, or only the asker
-  and the channel?
-- Repeating reminders (every Wednesday before raid). Easy to add to the same store, but it's a
-  second feature: who can set them, and how they're seen and stopped.
-- Channel post or DM. Channel is proposed: DMs can be turned off, and others see it too.
-- The guild's time zone (realm server time is the likely choice), set as `timezone` in
-  `config.json`.
-- Whether the reminder is posted as written or reworded by Botty in his own voice when it fires.
-  As written is proposed: predictable, free, and works when the model is down.
 
 ### Memory
 

@@ -99,7 +99,7 @@ const jobs = conversations.flatMap(conversation => setup.variants.flatMap((varia
 		try {
 			const reply = await generateReply({
 				model: variant.model,
-				systemPrompt: buildSystemPrompt(prompts.get(variant.prompt)!, conversation.reason ?? 'direct', variant.webSearch ?? false),
+				systemPrompt: buildSystemPrompt(prompts.get(variant.prompt)!, conversation.reason ?? 'direct', variant.webSearch ?? false, conversation.date ? Date.parse(conversation.date) : undefined),
 				conversation: conversation.messages,
 				tools: true,
 				webSearch: variant.webSearch,

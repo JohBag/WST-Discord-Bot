@@ -18,17 +18,14 @@ export default function shouldRespond(interaction: Message | ChatInputCommandInt
 		return null;
 	}
 
-	const botId = secrets.discord.appId!;
-	// Replying to one of the bot's messages is talking to it, whether or not the reply pings
-	if (hasBotMention(interaction.mentions) || isMentionedByName(interaction.content) || interaction.mentions.repliedUser?.id === botId) {
+	if (isAddressed(interaction)) {
 		log('Responding to mention');
 		return 'direct';
 	}
 
 	// In channels where the bot answers everything, every message is meant for it unless it's aimed at someone else
 	if (reactChance === 1) {
-		const others = [...interaction.mentions.users.keys(), interaction.mentions.repliedUser?.id];
-		if (isForSomeoneElse(interaction.author.id, others, botId)) {
+		if (isForSomeoneElseThanBot(interaction)) {
 			log('Not responding: the message is for someone else');
 			return null;
 		}
@@ -41,6 +38,24 @@ export default function shouldRespond(interaction: Message | ChatInputCommandInt
 	}
 
 	return null;
+}
+
+// Pinged, named, or replied to. Replying to one of the bot's messages is talking to it, whether or not the reply pings
+function isAddressed(message: Message): boolean {
+	return hasBotMention(message.mentions) || isMentionedByName(message.content) || message.mentions.repliedUser?.id === secrets.discord.appId;
+}
+
+function isForSomeoneElseThanBot(message: Message): boolean {
+	const others = [...message.mentions.users.keys(), message.mentions.repliedUser?.id];
+	return isForSomeoneElse(message.author.id, others, secrets.discord.appId!);
+}
+
+// Whether a message is meant for the bot, the way a direct reply decides it, without the random chance
+export function isToBot(message: Message, reactChance: number): boolean {
+	if (message.author.bot) {
+		return false;
+	}
+	return isAddressed(message) || (reactChance === 1 && !isForSomeoneElseThanBot(message));
 }
 
 // Whether a message replies to or pings someone other than its author and the bot

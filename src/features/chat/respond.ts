@@ -10,6 +10,8 @@ import { isAnyoneTyping } from './typing.js';
 import { generateReply } from '../../ai/chat.js';
 import { generateImage } from '../../ai/gemini.js';
 import { createVote } from '../votes/votes.js';
+import { askersFor, reminderTools } from '../reminders/chat-tools.js';
+import { reminderTools as reminderToolNames, selectTools } from '../../ai/tools.js';
 import Message from '../../core/message.js';
 import type { Message as DiscordMessage, ChatInputCommandInteraction, SendableChannels } from 'discord.js';
 
@@ -46,7 +48,9 @@ async function reply(trigger: Trigger, reason: ReplyReason): Promise<number> {
 		const model = config.models.text;
 		const webSearch = config.chat.webSearch;
 		const systemPrompt = buildSystemPrompt(config.prompt, reason, webSearch);
-		const response = await generateReply({ model, systemPrompt, conversation, tools: true, webSearch });
+		// Joining in uninvited, Botty could act on an earlier request with the rights of whoever spoke last
+		const tools = reason === 'random' ? selectTools(true).map(t => t.name).filter(name => !reminderToolNames.includes(name)) : true;
+		const response = await generateReply({ model, systemPrompt, conversation, tools, webSearch });
 		if (response.usage.searches > 0) {
 			log(`Searched the web ${response.usage.searches} time(s)`);
 		}
@@ -69,6 +73,13 @@ async function reply(trigger: Trigger, reason: ReplyReason): Promise<number> {
 					if (!args.title || !args.options) throw new Error('create_vote requires title and options');
 					message = await createVote(trigger as DiscordMessage, args.title, args.options, args.anonymity);
 					break;
+				case 'set_reminder':
+				case 'list_reminders':
+				case 'cancel_reminder': {
+					const calls = response.toolCalls.filter(call => reminderToolNames.includes(call.name));
+					message = reminderTools(calls, await askersFor(trigger, seenUntil), trigger);
+					break;
+				}
 				default:
 					log.warn(`Unknown function: ${functionCall.name}`);
 					break;

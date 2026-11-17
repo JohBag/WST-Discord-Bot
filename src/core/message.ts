@@ -1,5 +1,5 @@
 import log from './log.js';
-import type { TextBasedChannel, SendableChannels, EmbedBuilder, ActionRowBuilder, Message as DiscordMessage } from 'discord.js';
+import type { TextBasedChannel, SendableChannels, EmbedBuilder, ActionRowBuilder, Message as DiscordMessage, MessageMentionOptions } from 'discord.js';
 
 interface FileAttachment {
 	attachment: string;
@@ -8,6 +8,7 @@ interface FileAttachment {
 
 interface MessageChunk {
 	content: string;
+	allowedMentions?: MessageMentionOptions;
 	files?: FileAttachment[];
 	embeds?: EmbedBuilder[];
 	components?: ActionRowBuilder[];
@@ -21,6 +22,8 @@ export default class Message {
 	embeds: EmbedBuilder[] = [];
 	components: ActionRowBuilder[] = [];
 	onSend: ((sentMessage: DiscordMessage, message: Message) => Promise<void>) | null = null;
+	// Who may be pinged. Left out, Discord's default: everyone mentioned
+	allowedMentions?: MessageMentionOptions;
 	channel: SendableChannels | null = null;
 	success: boolean = true;
 
@@ -60,6 +63,7 @@ export default class Message {
 
 		let chunks: MessageChunk[] = splitResponse(this.text).map(chunk => ({
 			content: chunk,
+			allowedMentions: this.allowedMentions,
 		}));
 
 		// Filter out chunks with only empty content (unless it's the only chunk with embeds/components)

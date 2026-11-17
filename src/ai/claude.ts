@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { secrets } from '../core/config.js';
 import { formatMessage } from './conversation.js';
 import type { ChatMessage, ChatReply, ReplyRequest } from './conversation.js';
-import { tools } from './tools.js';
+import { selectTools } from './tools.js';
 
 // Replies are kept short by the prompt; this only stops a runaway answer
 const maxTokens = 1024;
@@ -68,8 +68,8 @@ export async function generateClaudeReply(request: ReplyRequest): Promise<ChatRe
 	}
 
 	const allowedTools: Anthropic.Messages.ToolUnion[] = [];
-	if (request.tools) {
-		allowedTools.push(...tools.map(tool => ({ name: tool.name, description: tool.description, input_schema: tool.parameters })));
+	if (selectTools(request.tools).length > 0) {
+		allowedTools.push(...selectTools(request.tools).map(tool => ({ name: tool.name, description: tool.description, input_schema: tool.parameters })));
 	}
 	if (request.webSearch) {
 		allowedTools.push({ type: 'web_search_20250305', name: 'web_search', max_uses: maxSearches });

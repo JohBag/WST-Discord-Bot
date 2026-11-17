@@ -3,6 +3,7 @@ import { config } from '../core/config.js';
 import { startAutoPost } from '../features/warcraft-logs/auto-post.js';
 import { syncClassEmoji } from '../features/events/emoji.js';
 import { startEventTimer } from '../features/events/event-actions.js';
+import { startReminderTimer } from '../features/reminders/deliver.js';
 import type { Client } from 'discord.js';
 import type { BotEvent } from '../types.js';
 
@@ -18,5 +19,6 @@ export default {
 
 		await syncClassEmoji(client);
 		startEventTimer(client);
+		startReminderTimer(client);
 	},
 } satisfies BotEvent;

@@ -7,7 +7,7 @@ import { config } from '../core/config.js';
 import Message from '../core/message.js';
 import { formatMessage } from './conversation.js';
 import type { ChatMessage, ChatReply, ReplyRequest } from './conversation.js';
-import { tools } from './tools.js';
+import { selectTools } from './tools.js';
 
 let client: GoogleGenAI | undefined;
 
@@ -32,8 +32,8 @@ export function toGeminiContents(conversation: ChatMessage[]): Content[] {
 
 export async function generateGeminiReply(request: ReplyRequest): Promise<ChatReply> {
 	const allowedTools: Tool[] = [];
-	if (request.tools) {
-		allowedTools.push({ functionDeclarations: tools.map(tool => ({ name: tool.name, description: tool.description, parametersJsonSchema: tool.parameters })) });
+	if (selectTools(request.tools).length > 0) {
+		allowedTools.push({ functionDeclarations: selectTools(request.tools).map(tool => ({ name: tool.name, description: tool.description, parametersJsonSchema: tool.parameters })) });
 	}
 	if (request.webSearch) {
 		allowedTools.push({ googleSearch: {} });
@@ -46,7 +46,7 @@ export async function generateGeminiReply(request: ReplyRequest): Promise<ChatRe
 			systemInstruction: request.systemPrompt,
 			tools: allowedTools.length > 0 ? allowedTools : undefined,
 			// Required to use Google Search together with the bot's own tools
-			toolConfig: request.webSearch && request.tools ? { includeServerSideToolInvocations: true } : undefined,
+			toolConfig: request.webSearch && selectTools(request.tools).length > 0 ? { includeServerSideToolInvocations: true } : undefined,
 		},
 	});
 
