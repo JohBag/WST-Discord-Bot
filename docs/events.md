@@ -196,6 +196,15 @@ in.
 
 The addon declares retail interface versions only, so it does not load in WoW Forever.
 
+## Known issues
+
+- **Changes made in the server's Events tab don't reach the post** (2026-11-17, left as is).
+  Cancelling an entry there leaves the post open for sign-ups, and the startup pass makes a new
+  entry for every upcoming post that isn't cancelled, so the cancelled one comes back on the next
+  restart or edit. An edit there (time, title) is overwritten the next time the post changes.
+  Cancel and edit events from the post's Manage panel. The fix, if wanted: listen for the entry
+  being cancelled or deleted and cancel the post the same way Manage does.
+
 ## Not doing
 
 - **Picking the roster and raid groups.** Left out of the first version (2026-11-15). The export
