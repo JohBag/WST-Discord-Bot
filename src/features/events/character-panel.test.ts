@@ -9,7 +9,7 @@ function storeWithCharacters(): CharacterStore {
 	const store: CharacterStore = {};
 	addCharacter(store, 'u1', { game: 'retail', name: 'Thorvik', realm: 'Argent Dawn', classId: 'DEATHKNIGHT', specId: 'blood', offSpecId: 'frost' }, 'a');
 	addCharacter(store, 'u1', { game: 'retail', name: 'Kapi', realm: 'Twisting Nether', classId: 'ROGUE', specId: 'subtlety' }, 'b');
-	addCharacter(store, 'u1', { game: 'forever', name: 'Thorvik', realm: '', classId: 'WARRIOR', specId: 'protection' }, 'c');
+	addCharacter(store, 'u1', { game: 'forever', name: 'Thorvik Stonefist', realm: '', classId: 'WARRIOR', specId: 'protection' }, 'c');
 	return store;
 }
 
@@ -31,7 +31,7 @@ describe('buildCharacterPanel', () => {
 		assert.equal(lines[0], '**Retail**');
 		assert.equal(lines[1], '⭐ Thorvik-ArgentDawn: Blood Death Knight (off-spec Frost)');
 		assert.equal(lines[2], 'Kapi-TwistingNether: Subtlety Rogue');
-		assert.deepEqual(lines.slice(4), ['**Forever**', '⭐ Thorvik: Protection Warrior']);
+		assert.deepEqual(lines.slice(4), ['**Forever**', '⭐ Thorvik Stonefist: Protection Warrior']);
 		assert.equal(embed!.footer!.text, '⭐ Main, used for raid sign-ups');
 		assert.deepEqual(rows[0].map(b => b.label), ['Add Retail character', 'Add Forever character']);
 		assert.equal(rows[0][0].custom_id, 'characters:u1:add:retail');
@@ -114,7 +114,13 @@ describe('buildCharacterModal', () => {
 	it('should leave the realm out for Forever', () => {
 		const modal = buildCharacterModal('u1', 'forever', 'DRUID').toJSON() as any;
 		assert.equal(modal.title, 'New Forever Druid');
-		assert.deepEqual(modal.components.map((c: any) => c.label), ['Character name', 'Spec', 'Off-spec']);
+		assert.deepEqual(modal.components.map((c: any) => c.label), ['First and last name', 'Spec', 'Off-spec']);
+		assert.equal(modal.components[0].component.max_length, 25);
+	});
+
+	it('should take a 12-letter name for retail', () => {
+		const modal = buildCharacterModal('u1', 'retail', 'DRUID').toJSON() as any;
+		assert.equal(modal.components[0].component.max_length, 12);
 	});
 
 	it('should fill in a saved character when editing', () => {

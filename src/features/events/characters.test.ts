@@ -16,7 +16,7 @@ import { games } from './games.js';
 
 const blood: CharacterInput = { game: 'retail', name: 'thorvik', realm: 'argent dawn', classId: 'DEATHKNIGHT', specId: 'blood', offSpecId: 'frost' };
 const rogue: CharacterInput = { game: 'retail', name: 'Kapi', realm: 'Argent Dawn', classId: 'ROGUE', specId: 'subtlety' };
-const foreverWarrior: CharacterInput = { game: 'forever', name: 'Thorvik', realm: 'Argent Dawn', classId: 'WARRIOR', specId: 'protection' };
+const foreverWarrior: CharacterInput = { game: 'forever', name: 'Thorvik Stonefist', realm: 'Argent Dawn', classId: 'WARRIOR', specId: 'protection' };
 
 function added(store: CharacterStore, userId: string, input: CharacterInput, id: string) {
 	const result = addCharacter(store, userId, input, id);
@@ -90,6 +90,18 @@ describe('normalizeName', () => {
 	it('should refuse names that the game would refuse', () => {
 		for (const bad of ['T', 'Thorvikthorvik', 'Thor vik', 'Thor1']) {
 			assert.deepEqual(normalizeName(bad), { error: 'Character names are 2 to 12 letters, with no spaces.' });
+		}
+	});
+
+	it('should take a Forever first and last name of up to 12 letters each, capitalising both', () => {
+		assert.equal(normalizeName('  thorvik   STONEFIST ', 'forever'), 'Thorvik Stonefist');
+		assert.equal(normalizeName('abcdefghijkl abcdefghijkl', 'forever'), 'Abcdefghijkl Abcdefghijkl');
+		assert.equal(normalizeName('élune ñandú', 'forever'), 'Élune Ñandú');
+	});
+
+	it('should refuse a Forever name without a last name, or with a part the game would refuse', () => {
+		for (const bad of ['Thorvik', 'Thorvik S', 'Thorvik Stonefistabcd', 'Thorvik Stone Fist', "Zul'jin Troll", 'Thorvik Stone-fist']) {
+			assert.deepEqual(normalizeName(bad, 'forever'), { error: 'Forever names are a first and a last name, 2 to 12 letters each.' });
 		}
 	});
 });
@@ -191,7 +203,7 @@ describe('charactersOf', () => {
 		added(store, 'u1', foreverWarrior, 'f');
 		added(store, 'u1', { ...rogue, name: 'Zed' }, 'z');
 		added(store, 'u1', rogue, 'k');
-		assert.deepEqual(charactersOf(store, 'u1').map(c => c.name), ['Zed', 'Kapi', 'Thorvik']);
+		assert.deepEqual(charactersOf(store, 'u1').map(c => c.name), ['Zed', 'Kapi', 'Thorvik Stonefist']);
 		assert.deepEqual(charactersOf(store, 'u2'), []);
 	});
 });

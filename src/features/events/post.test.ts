@@ -19,7 +19,7 @@ function raid(game: 'retail' | 'forever' = 'retail', description = 'Bring flasks
 function signUp(event: RaidEvent, userId: string, name: string, classId: string, specId: string, status: 'signed' | 'late' | 'tentative' = 'signed', offSpecId?: string, realm = 'Aggramar') {
 	const store: CharacterStore = {};
 	addCharacter(store, userId, { game: event.game, name, realm: event.game === 'retail' ? realm : '', classId, specId, offSpecId }, `${userId}-c`);
-	respond(event, userId, `${name}Discord`, status, signupChoices(store[userId])[0]);
+	respond(event, userId, `${name.split(' ')[0]}Discord`, status, signupChoices(store[userId])[0]);
 }
 
 function filledRaid(): RaidEvent {
@@ -75,7 +75,7 @@ describe('buildPostEmbed', () => {
 		for (let i = 0; i < 55; i++) {
 			const [classId, specId] = classes[i % classes.length];
 			const status = i < 40 ? 'signed' : 'tentative';
-			const name = `Abcdefghij${String.fromCharCode(97 + Math.floor(i / 26))}${String.fromCharCode(97 + (i % 26))}`;
+			const name = `Abcdefghijkl Abcdefghij${String.fromCharCode(97 + Math.floor(i / 26))}${String.fromCharCode(97 + (i % 26))}`;
 			if (i >= 48) {
 				respond(event, `1234567890123456${String(i).padStart(3, '0')}`, 'Discordname1234', 'absence');
 			} else {
@@ -162,9 +162,9 @@ describe('roleQuestion', () => {
 	it('should ask which role a two-role spec signs up as', () => {
 		const event = raid('forever');
 		const store: CharacterStore = {};
-		addCharacter(store, 'u1', { game: 'forever', name: 'Thorvik', realm: '', classId: 'DRUID', specId: 'feral' }, 'c1');
+		addCharacter(store, 'u1', { game: 'forever', name: 'Thorvik Stonefist', realm: '', classId: 'DRUID', specId: 'feral' }, 'c1');
 		const question = roleQuestion(event, 'late', store.u1[0], 'feral', ['DPS', 'Tank']);
-		assert.equal(question.content, '**Thorvik**, Feral Druid: which role?');
+		assert.equal(question.content, '**Thorvik Stonefist**, Feral Druid: which role?');
 		assert.deepEqual(question.components[0].toJSON().components.map((b: any) => [b.label, b.custom_id]), [
 			['DPS', 'event:e1:role:late:c1:feral:DPS'],
 			['Tank', 'event:e1:role:late:c1:feral:Tank'],
@@ -193,13 +193,13 @@ describe('buildEventModal', () => {
 describe('off-spec icon', () => {
 	it('should show a Forever DPS whose off-spec can tank, and nothing for an off-spec in the same role', () => {
 		const event = raid('forever');
-		signUp(event, 'u1', 'Moonkin', 'DRUID', 'balance', 'signed', 'feral');
-		signUp(event, 'u2', 'Shocky', 'SHAMAN', 'elemental', 'signed', 'enhancement');
-		signUp(event, 'u3', 'Furyboy', 'WARRIOR', 'fury', 'signed', 'arms');
+		signUp(event, 'u1', 'Moonkin Starfall', 'DRUID', 'balance', 'signed', 'feral');
+		signUp(event, 'u2', 'Shocky Stormcall', 'SHAMAN', 'elemental', 'signed', 'enhancement');
+		signUp(event, 'u3', 'Furyboy Ironfist', 'WARRIOR', 'fury', 'signed', 'arms');
 		assert.deepEqual(fieldsOf(event)[2], ['⚔️ DPS 3', [
-			':druid: `1` **Moonkin** Balance (🛡️) MoonkinDiscord',
-			':shaman: `2` **Shocky** Elemental (🛡️) ShockyDiscord',
-			':warrior: `3` **Furyboy** Fury FuryboyDiscord',
+			':druid: `1` **Moonkin Starfall** Balance (🛡️) MoonkinDiscord',
+			':shaman: `2` **Shocky Stormcall** Elemental (🛡️) ShockyDiscord',
+			':warrior: `3` **Furyboy Ironfist** Fury FuryboyDiscord',
 		].join('\n')]);
 	});
 });
@@ -207,22 +207,22 @@ describe('off-spec icon', () => {
 describe('numbers on the post', () => {
 	it('should count only the answers on the post, so withdrawing leaves no gap', () => {
 		const event = raid('forever');
-		signUp(event, 'u1', 'Elto', 'WARRIOR', 'arms');
+		signUp(event, 'u1', 'Elto Blackhammer', 'WARRIOR', 'arms');
 		withdraw(event, 'u1');
-		signUp(event, 'u1', 'Elto', 'WARRIOR', 'arms');
-		assert.equal(fieldsOf(event)[2][1], ':warrior: `1` **Elto** Arms EltoDiscord');
+		signUp(event, 'u1', 'Elto Blackhammer', 'WARRIOR', 'arms');
+		assert.equal(fieldsOf(event)[2][1], ':warrior: `1` **Elto Blackhammer** Arms EltoDiscord');
 	});
 
 	it('should keep answering order across the roster and the lists below, and move a returning member to the end', () => {
 		const event = raid('forever');
-		signUp(event, 'u1', 'Elto', 'WARRIOR', 'arms');
+		signUp(event, 'u1', 'Elto Blackhammer', 'WARRIOR', 'arms');
 		respond(event, 'u2', 'Stylz', 'absence');
-		signUp(event, 'u3', 'Nel', 'MAGE', 'frost', 'tentative');
+		signUp(event, 'u3', 'Nel Frostweave', 'MAGE', 'frost', 'tentative');
 		withdraw(event, 'u1');
-		signUp(event, 'u1', 'Elto', 'WARRIOR', 'arms');
+		signUp(event, 'u1', 'Elto Blackhammer', 'WARRIOR', 'arms');
 		assert.deepEqual(fieldsOf(event).slice(2), [
-			['⚔️ DPS 1', ':warrior: `3` **Elto** Arms EltoDiscord'],
-			['❔ Tentative 1', '`2` :mage: Nel'],
+			['⚔️ DPS 1', ':warrior: `3` **Elto Blackhammer** Arms EltoDiscord'],
+			['❔ Tentative 1', '`2` :mage: Nel Frostweave'],
 			['🚫 Absent 1', '`1` Stylz'],
 		]);
 	});

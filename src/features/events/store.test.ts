@@ -7,8 +7,8 @@ import { closeStarted } from './event-actions.js';
 
 function characters(): Character[] {
 	const store: CharacterStore = {};
-	addCharacter(store, 'u1', { game: 'forever', name: 'Kapi', realm: '', classId: 'ROGUE', specId: 'combat' }, 'alt');
-	addCharacter(store, 'u1', { game: 'forever', name: 'Thorvik', realm: '', classId: 'DRUID', specId: 'feral', offSpecId: 'restoration' }, 'main');
+	addCharacter(store, 'u1', { game: 'forever', name: 'Kapi Swiftblade', realm: '', classId: 'ROGUE', specId: 'combat' }, 'alt');
+	addCharacter(store, 'u1', { game: 'forever', name: 'Thorvik Stonefist', realm: '', classId: 'DRUID', specId: 'feral', offSpecId: 'restoration' }, 'main');
 	store.u1.find(c => c.id === 'main')!.main = true;
 	store.u1.find(c => c.id === 'alt')!.main = false;
 	return store.u1;
@@ -22,19 +22,19 @@ describe('signupChoices', () => {
 	it("should offer every character's spec and off-spec first, the main first, then their other specs, once per role", () => {
 		const labels = signupChoices(characters()).map(c => `${c.character.name} ${c.specId} ${c.role}`);
 		assert.deepEqual(labels, [
-			'Thorvik feral DPS',
-			'Thorvik feral Tank',
-			'Thorvik restoration Healer',
-			'Kapi combat DPS',
-			'Thorvik balance DPS',
-			'Kapi assassination DPS',
-			'Kapi subtlety DPS',
+			'Thorvik Stonefist feral DPS',
+			'Thorvik Stonefist feral Tank',
+			'Thorvik Stonefist restoration Healer',
+			'Kapi Swiftblade combat DPS',
+			'Thorvik Stonefist balance DPS',
+			'Kapi Swiftblade assassination DPS',
+			'Kapi Swiftblade subtlety DPS',
 		]);
 	});
 
 	it('should treat melee and ranged as one DPS role, so Survival signs up as DPS only', () => {
 		const store: CharacterStore = {};
-		addCharacter(store, 'u1', { game: 'forever', name: 'Hunta', realm: '', classId: 'HUNTER', specId: 'survival' }, 'h');
+		addCharacter(store, 'u1', { game: 'forever', name: 'Hunta Longbow', realm: '', classId: 'HUNTER', specId: 'survival' }, 'h');
 		assert.deepEqual(signupChoices(store.u1).filter(c => c.specId === 'survival').map(c => c.role), ['DPS']);
 	});
 
@@ -63,14 +63,14 @@ describe('respond and withdraw', () => {
 		respond(event, 'u2', 'Seru', 'absence', undefined, 2);
 		respond(event, 'u1', 'Thor', 'late', undefined, 3);
 		assert.deepEqual(event.signups.map(s => [s.userId, s.displayName, s.status, s.number]), [['u1', 'Thor', 'late', 1], ['u2', 'Seru', 'absence', 2]]);
-		assert.equal(event.signups[0].character?.name, 'Thorvik');
+		assert.equal(event.signups[0].character?.name, 'Thorvik Stonefist');
 	});
 
 	it('should copy the character, with the off-spec only when it adds a role', () => {
 		const event = newEvent();
 		const chars = characters();
 		const asFeral = respond(event, 'u1', 'Thor', 'signed', signupChoices(chars)[1]);
-		assert.deepEqual(asFeral.character, { id: 'main', name: 'Thorvik', realm: '', classId: 'DRUID', specId: 'feral', role: 'Tank', offSpecId: 'restoration' });
+		assert.deepEqual(asFeral.character, { id: 'main', name: 'Thorvik Stonefist', realm: '', classId: 'DRUID', specId: 'feral', role: 'Tank', offSpecId: 'restoration' });
 		const asResto = respond(event, 'u1', 'Thor', 'signed', signupChoices(chars)[2]);
 		assert.equal(asResto.character?.offSpecId, undefined);
 	});

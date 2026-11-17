@@ -36,13 +36,23 @@ const storeFile = 'characters';
 
 type Result<T> = T | { error: string };
 
-// WoW names are 2 to 12 letters, capitalised, with the rest in lower case
-export function normalizeName(raw: string): Result<string> {
-	const name = raw.trim();
-	if (!/^\p{L}{2,12}$/u.test(name)) {
+// Longest name the form takes: Forever's first and last name of 12 letters each, and the space
+export function maxNameLength(game: GameId): number {
+	return game === 'forever' ? 25 : 12;
+}
+
+// WoW names are 2 to 12 letters, capitalised, with the rest in lower case. Forever characters have a
+// first and a last name, each following that rule (Thorvik Stonefist)
+export function normalizeName(raw: string, game: GameId = 'retail'): Result<string> {
+	const parts = raw.trim().split(/\s+/);
+	const valid = parts.every(part => /^\p{L}{2,12}$/u.test(part));
+	if (game === 'forever' && (parts.length !== 2 || !valid)) {
+		return { error: 'Forever names are a first and a last name, 2 to 12 letters each.' };
+	}
+	if (game === 'retail' && (parts.length !== 1 || !valid)) {
 		return { error: 'Character names are 2 to 12 letters, with no spaces.' };
 	}
-	return name[0].toUpperCase() + name.slice(1).toLowerCase();
+	return parts.map(part => part[0].toUpperCase() + part.slice(1).toLowerCase()).join(' ');
 }
 
 // Realms compare without case, accents, spaces or punctuation (festung der sturme finds Festung der Stürme)
@@ -109,7 +119,7 @@ function findOwner(store: CharacterStore, character: { game: GameId; name: strin
 
 // Checks and tidies what was typed, and finds out whether it clashes with a saved character
 function validate(store: CharacterStore, userId: string, input: CharacterInput, exceptId?: string): Result<CharacterInput> {
-	const name = normalizeName(input.name);
+	const name = normalizeName(input.name, input.game);
 	if (typeof name !== 'string') {
 		return name;
 	}

@@ -47,9 +47,9 @@ describe('exportEntries', () => {
 
 	it("should give a Forever Feral signed up as DPS the addon's Melee, and as tank Tank", () => {
 		const event = raid('forever');
-		signUp(event, 'u1', 'Kitty', 'DRUID', 'feral', 'signed', '', 'DPS');
-		signUp(event, 'u2', 'Bear', 'DRUID', 'feral', 'signed', '', 'Tank');
-		assert.deepEqual(exportEntries(event).map(e => [e.name, e.className]), [['Kitty', 'Melee'], ['Bear', 'Tank']]);
+		signUp(event, 'u1', 'Kitty Moonpaw', 'DRUID', 'feral', 'signed', '', 'DPS');
+		signUp(event, 'u2', 'Bear Oakhide', 'DRUID', 'feral', 'signed', '', 'Tank');
+		assert.deepEqual(exportEntries(event).map(e => [e.name, e.className]), [['Kitty Moonpaw', 'Melee'], ['Bear Oakhide', 'Tank']]);
 	});
 
 	// The addon splits the name on its first hyphen, removes spaces and hyphens from the realm and
@@ -95,11 +95,11 @@ describe('buildExportModal', () => {
 describe('Forever export', () => {
 	it('should give the names to invite, one per line, since the retail addon does not load there', () => {
 		const event = raid('forever');
-		signUp(event, 'u1', 'Kitty', 'DRUID', 'feral');
-		signUp(event, 'u2', 'Stabby', 'ROGUE', 'combat', 'late');
-		signUp(event, 'u3', 'Maybe', 'MAGE', 'frost', 'tentative');
-		assert.equal(exportNames(event), 'Kitty\nStabby');
-		assert.equal(exportText(event), 'Kitty\nStabby');
+		signUp(event, 'u1', 'Kitty Moonpaw', 'DRUID', 'feral');
+		signUp(event, 'u2', 'Stabby Shadowstep', 'ROGUE', 'combat', 'late');
+		signUp(event, 'u3', 'Maybe Later', 'MAGE', 'frost', 'tentative');
+		assert.equal(exportNames(event), 'Kitty Moonpaw\nStabby Shadowstep');
+		assert.equal(exportText(event), 'Kitty Moonpaw\nStabby Shadowstep');
 		const modal = buildExportModal(event, exportText(event)).toJSON() as any;
 		assert.equal(modal.title, 'Names to invite');
 		assert.equal(modal.components[0].label, '2 to invite');

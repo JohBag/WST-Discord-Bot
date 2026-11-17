@@ -20,7 +20,7 @@ describe('interestChoice', () => {
 
 	it('should take the role a two-role spec last signed up as, without asking', () => {
 		const store: CharacterStore = {};
-		addCharacter(store, 'u1', { game: 'forever', name: 'Thorvik', realm: '', classId: 'DRUID', specId: 'feral' }, 'main');
+		addCharacter(store, 'u1', { game: 'forever', name: 'Thorvik Stonefist', realm: '', classId: 'DRUID', specId: 'feral' }, 'main');
 		assert.equal(interestChoice({}, 'u1', store.u1)!.role, 'DPS');
 		const earlier = forever();
 		respond(earlier, 'u1', 'Thor', 'signed', signupChoices(store.u1).find(c => c.role === 'Tank'));

@@ -75,6 +75,10 @@ without fixing a single name.
      night. Off-realm names are written the way the game does (`Name-DerRatvonDalaran`).
    - **WoW Forever characters have no realm.** Forever has no realms (2026-11-16), so its
      characters are a name only, in the panel and in the export.
+   - **WoW Forever names have a first and a last name** (2026-11-17), each 2 to 12 letters like a
+     retail name, and only the pair is unique, so both are required and saved as one name
+     (`Thorvik Stonefist`). Retail names stay one word of up to 12 letters. Unverified: how the
+     game's invite takes a two-part name, so the Forever export lists the full names as saved.
    - **A character can only be saved once.** If someone else holds it, the message names them.
      Officers can open any member's characters with `/characters member` to fix or free one.
 2. **Creating an event, the sign-up post, answering, and edit, close and cancel.** Built.
@@ -89,7 +93,9 @@ without fixing a single name.
      since officers need to know who. Members are named in plain text, saved when they answer: a
      mention in a post can read as "unknown user" on phones and takes three times the room.
    - **Room:** Discord allows 6000 characters per post. A full 40-player Forever raid with 15 more
-     answers takes about 3500, or 4500 with the longest description. Should it ever run out, the
+     answers and the longest names (25 letters, 32 for server names) takes about 5200, or 5800 with
+     a 600-letter description. Only the longest names with a 1000-letter description drop the
+     server names (measured 2026-11-17). Should it ever run out, the
      member names go first, then the last lines of each list, replaced by "+N more". An event post
      is one Attending list plus Tentative and Absent.
    - **Answering:** a click only updates the post, with no private reply (2026-11-16). Sign up uses

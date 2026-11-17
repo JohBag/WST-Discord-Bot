@@ -26,6 +26,7 @@ import {
 	gameName,
 	loadCharacters,
 	maxCharactersPerGame,
+	maxNameLength,
 	removeCharacter,
 	saveCharacters,
 	setMain,
@@ -238,11 +239,12 @@ export function buildCharacterModal(ownerId: string, game: GameId, classId: stri
 		? { name: existing.name, realm: existing.realm, specId: existing.specId, offSpecId: existing.offSpecId }
 		: { realm: homeRealm(game) });
 
-	const nameInput = new TextInputBuilder().setCustomId('name').setStyle(TextInputStyle.Short).setMinLength(2).setMaxLength(12).setRequired(true);
+	const nameInput = new TextInputBuilder().setCustomId('name').setStyle(TextInputStyle.Short).setMinLength(game === 'forever' ? 5 : 2).setMaxLength(maxNameLength(game)).setRequired(true);
 	if (filled.name) {
 		nameInput.setValue(filled.name);
 	}
-	const fields = [new LabelBuilder().setLabel('Character name').setTextInputComponent(nameInput)];
+	const nameLabel = game === 'forever' ? 'First and last name' : 'Character name';
+	const fields = [new LabelBuilder().setLabel(nameLabel).setTextInputComponent(nameInput)];
 
 	if (game === 'retail') {
 		const realmInput = new TextInputBuilder().setCustomId('realm').setStyle(TextInputStyle.Short).setMaxLength(30).setRequired(true);
