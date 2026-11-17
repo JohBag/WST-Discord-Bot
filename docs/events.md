@@ -35,8 +35,8 @@ without fixing a single name.
 - **Also in the first version:** reminders, repeating events, and a link to that night's Warcraft
   Logs post once Botty finds it.
 
-- **The post:** one list per role (Tanks, Healers, DPS), each line a class icon, sign-up
-  number, character, spec and the member's Discord name. Late people stay in their role with a mark.
+- **The post:** one list per role (Tanks, Healers, DPS), each line a sign-up number, class
+  icon, character, spec and the member's Discord name. Late people stay in their role with a mark.
   Tentative and Absent underneath, with their count and names (the picked mockup showed
   counts only, names added in step 2 so officers can see who). Taller than Raid-Helper's columns,
   but reads the same on phones, where Discord stacks columns anyway.
@@ -87,7 +87,7 @@ without fixing a single name.
      ("wed 19:30", "26/11 19:30", "tomorrow 20:00") and shown to everyone in their own time zone.
      The post goes in the channel where the command was used.
    - **The post:** title, description, start with a countdown, leader and how many signed up, then
-     a section each for Tanks, Healers and DPS, each line a class icon, sign-up number,
+     a section each for Tanks, Healers and DPS, each line a sign-up number, class icon,
      character, spec, the off-spec's role as a small icon (only when it adds a role), "(late)" when
      late, and the member's server name. Tentative and Absent are listed under it with names,
      since officers need to know who. Members are named in plain text, saved when they answer: a

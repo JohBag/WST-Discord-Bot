@@ -48,9 +48,10 @@ function rosterLine(event: RaidEvent, signup: Signup, position: number, context:
 	const character = signup.character!;
 	const spec = findSpec(event.game, character.classId, character.specId);
 	const offSpec = character.offSpecId ? findSpec(event.game, character.classId, character.offSpecId) : undefined;
+	// Number first on every line, as below the roster, so the numbers stay in one column
 	const parts = [
-		context.classEmoji(character.classId),
 		`\`${position}\``,
+		context.classEmoji(character.classId),
 		`**${characterName(character, context.homeRealm)}**`,
 		spec?.name ?? '?',
 	];

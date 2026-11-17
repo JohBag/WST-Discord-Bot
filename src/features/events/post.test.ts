@@ -44,9 +44,9 @@ describe('buildPostEmbed', () => {
 		assert.equal(embed.footer!.text, 'WoW Retail raid');
 		assert.equal(embed.description, `Bring flasks.\n\n📅 <t:${stamp}:F> (<t:${stamp}:R>)\n👑 Leesha\n✅ 4 signed up`);
 		assert.deepEqual(fieldsOf(filledRaid()), [
-			['🛡️ Tanks 1', ':deathknight: `1` **Thorvik** Blood ThorvikDiscord'],
-			['💚 Healers 1', ':shaman: `3` **Seru-TwistingNether** Restoration (⚔️) SeruDiscord'],
-			['⚔️ DPS 2', ':rogue: `2` **Kapi** Subtlety (late) KapiDiscord\n:warrior: `6` **Aidan** Fury (🛡️) AidanDiscord'],
+			['🛡️ Tanks 1', '`1` :deathknight: **Thorvik** Blood ThorvikDiscord'],
+			['💚 Healers 1', '`3` :shaman: **Seru-TwistingNether** Restoration (⚔️) SeruDiscord'],
+			['⚔️ DPS 2', '`2` :rogue: **Kapi** Subtlety (late) KapiDiscord\n`6` :warrior: **Aidan** Fury (🛡️) AidanDiscord'],
 			['❔ Tentative 1', '`4` :mage: Nel'],
 			['🚫 Absent 1', '`5` Stylz'],
 		]);
@@ -103,7 +103,7 @@ describe('buildPostEmbed', () => {
 		assert.ok(total <= 6000, `${total}`);
 		assert.ok(embed.fields!.length <= 25);
 		for (const line of embed.fields!.flatMap(f => f.value.split(/\n|, /))) {
-			assert.match(line, /^(<:war:\d+> )?`\d+` |^\+\d+ more$|^​$/, line);
+			assert.match(line, /^`\d+` |^\+\d+ more$|^​$/, line);
 		}
 	});
 });
@@ -197,9 +197,9 @@ describe('off-spec icon', () => {
 		signUp(event, 'u2', 'Shocky Stormcall', 'SHAMAN', 'elemental', 'signed', 'enhancement');
 		signUp(event, 'u3', 'Furyboy Ironfist', 'WARRIOR', 'fury', 'signed', 'arms');
 		assert.deepEqual(fieldsOf(event)[2], ['⚔️ DPS 3', [
-			':druid: `1` **Moonkin Starfall** Balance (🛡️) MoonkinDiscord',
-			':shaman: `2` **Shocky Stormcall** Elemental (🛡️) ShockyDiscord',
-			':warrior: `3` **Furyboy Ironfist** Fury FuryboyDiscord',
+			'`1` :druid: **Moonkin Starfall** Balance (🛡️) MoonkinDiscord',
+			'`2` :shaman: **Shocky Stormcall** Elemental (🛡️) ShockyDiscord',
+			'`3` :warrior: **Furyboy Ironfist** Fury FuryboyDiscord',
 		].join('\n')]);
 	});
 });
@@ -210,7 +210,7 @@ describe('numbers on the post', () => {
 		signUp(event, 'u1', 'Elto Blackhammer', 'WARRIOR', 'arms');
 		withdraw(event, 'u1');
 		signUp(event, 'u1', 'Elto Blackhammer', 'WARRIOR', 'arms');
-		assert.equal(fieldsOf(event)[2][1], ':warrior: `1` **Elto Blackhammer** Arms EltoDiscord');
+		assert.equal(fieldsOf(event)[2][1], '`1` :warrior: **Elto Blackhammer** Arms EltoDiscord');
 	});
 
 	it('should keep answering order across the roster and the lists below, and move a returning member to the end', () => {
@@ -221,7 +221,7 @@ describe('numbers on the post', () => {
 		withdraw(event, 'u1');
 		signUp(event, 'u1', 'Elto Blackhammer', 'WARRIOR', 'arms');
 		assert.deepEqual(fieldsOf(event).slice(2), [
-			['⚔️ DPS 1', ':warrior: `3` **Elto Blackhammer** Arms EltoDiscord'],
+			['⚔️ DPS 1', '`3` :warrior: **Elto Blackhammer** Arms EltoDiscord'],
 			['❔ Tentative 1', '`2` :mage: Nel Frostweave'],
 			['🚫 Absent 1', '`1` Stylz'],
 		]);
