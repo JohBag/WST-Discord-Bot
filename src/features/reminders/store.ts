@@ -21,6 +21,8 @@ export interface Reminder {
 	text: string;
 	due: number;
 	createdAt: number;
+	// The card that confirmed it in chat, updated once it's sent or cancelled
+	confirmationId?: string;
 }
 
 export interface ReminderStore {
@@ -52,7 +54,7 @@ export function addReminder(store: ReminderStore, reminder: Omit<Reminder, 'numb
 		throw new UserError('What should I remind about?');
 	}
 	if (store.reminders.filter(r => r.userId === reminder.userId).length >= maxPerMember) {
-		throw new UserError(`You already have ${maxPerMember} reminders set. Cancel one with /remind list first.`);
+		throw new UserError(`You already have ${maxPerMember} reminders set. Cancel one with /reminders first.`);
 	}
 	const added = { ...reminder, text: text.slice(0, maxTextLength), number: store.next };
 	store.next += 1;
@@ -88,6 +90,15 @@ export function cancelReminder(store: ReminderStore, number: number, userId: str
 	}
 	store.reminders.splice(index, 1);
 	return reminder;
+}
+
+// Remembers the card that confirmed it, when it's still waiting
+export function setConfirmation(store: ReminderStore, number: number, messageId: string): boolean {
+	const reminder = store.reminders.find(r => r.number === number);
+	if (reminder) {
+		reminder.confirmationId = messageId;
+	}
+	return !!reminder;
 }
 
 // Takes out the reminders that are due, oldest first

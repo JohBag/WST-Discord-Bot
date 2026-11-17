@@ -3,6 +3,7 @@ import { config } from '../../core/config.js';
 import log from '../../core/log.js';
 import { generateReply } from '../../ai/chat.js';
 import { firedContent, voiceInstructions } from './format.js';
+import { updateCard } from './actions.js';
 import { loadReminders, saveReminders, takeDue } from './store.js';
 import type { Reminder } from './store.js';
 
@@ -57,8 +58,9 @@ async function deliver(client: Client, reminder: Reminder): Promise<void> {
 	}
 	const roleName = reminder.roleId && 'guild' in channel ? channel.guild.roles.cache.get(reminder.roleId)?.name : undefined;
 	const body = await inVoice(reminder, roleName);
-	await channel.send(firedMessage(reminder, body));
+	const sent = await channel.send(firedMessage(reminder, body));
 	log(`Reminder #${reminder.number} from ${reminder.userName} posted`);
+	await updateCard(client, reminder, 'sent', { url: sent.url, at: sent.createdTimestamp });
 }
 
 // Only the one it's for gets pinged, whatever the model writes

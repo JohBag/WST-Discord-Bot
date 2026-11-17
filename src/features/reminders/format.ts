@@ -1,12 +1,12 @@
+import { EmbedBuilder } from 'discord.js';
 import type { Reminder } from './store.js';
 
 // The text of confirmations, lists and the reminder itself
 
 const lateAfterMs = 2 * 60 * 1000;
-// Lines in the list are cut so ten long reminders still fit one Discord message, with room left
-// for the headings and a line saying what was just cancelled
+// Lines in the list are cut so ten long reminders and the channel's still fit one embed (4096)
 const listTextLength = 80;
-const maxListLength = 1700;
+const maxListLength = 3800;
 
 function stamp(ms: number, style: 'f' | 'F' | 'R'): string {
 	return `<t:${Math.floor(ms / 1000)}:${style}>`;
@@ -25,20 +25,46 @@ function forWhom(reminder: Reminder, channelId: string): string {
 	return reminder.target === 'channel' || reminder.channelId !== channelId ? `<#${reminder.channelId}>: ` : '';
 }
 
-// "Reminder #12 set for <date> (in 2 hours): bring flasks", the date in each reader's own time
-// In chat, a member's reminder names them, since several people may have asked at once
-export function confirmation(reminder: Reminder, inChat = false): string {
-	const who = reminder.target === 'role' ? ` for <@&${reminder.roleId}>`
-		: reminder.target === 'channel' ? ' for this channel'
-		: inChat ? ` for ${reminder.userName}` : '';
-	return `⏰ Reminder #${reminder.number}${who} set for ${stamp(reminder.due, 'F')} (${stamp(reminder.due, 'R')}): ${reminder.text}`;
+export type CardState = 'set' | 'sent' | 'cancelled';
+
+const cardColors: Record<CardState, number> = { set: 0x0099FF, sent: 0x95A5A6, cancelled: 0x95A5A6 };
+const cardIcons: Record<CardState, string> = { set: '⏰', sent: '✅', cancelled: '❌' };
+const cardSuffix: Record<CardState, string> = { set: '', sent: ' sent', cancelled: ' cancelled' };
+
+// Who it's for, as Discord shows a mention inside an embed (no ping)
+function recipient(reminder: Reminder): string {
+	return reminder.target === 'role' ? `<@&${reminder.roleId}>` : reminder.target === 'channel' ? `<#${reminder.channelId}>` : `<@${reminder.userId}>`;
+}
+
+// The card that confirms a reminder, updated once it's sent or cancelled. Times show in each
+// reader's own time zone
+export function confirmationCard(reminder: Reminder, state: CardState = 'set', sent?: { url: string; at: number }): EmbedBuilder {
+	const card = new EmbedBuilder()
+		.setColor(cardColors[state])
+		.setTitle(`${cardIcons[state]} Reminder #${reminder.number}${cardSuffix[state]}`)
+		.setDescription(state === 'cancelled' ? `~~${reminder.text}~~` : reminder.text);
+	const when = state === 'set' ? `${stamp(reminder.due, 'f')}\n${stamp(reminder.due, 'R')}`
+		: state === 'sent' && sent ? `${stamp(sent.at, 'f')}\n[Jump to message](${sent.url})`
+		: state === 'sent' ? stamp(reminder.due, 'f')
+		: `~~${stamp(reminder.due, 'f')}~~`;
+	card.addFields({ name: 'When', value: when, inline: true }, { name: 'For', value: recipient(reminder), inline: true });
+	// A channel or role card isn't a reply to whoever asked, so it says who set it
+	if (reminder.target !== 'member') {
+		card.setFooter({ text: `Set by ${reminder.userName}` });
+	}
+	return card;
 }
 
 export function listLine(reminder: Reminder, channelId: string): string {
 	return `\`#${reminder.number}\` ${stamp(reminder.due, 'f')} (${stamp(reminder.due, 'R')}) ${forWhom(reminder, channelId)}${shorten(reminder.text, listTextLength)}`;
 }
 
-export function listText(own: Reminder[], channel: Reminder[], channelId: string, empty = 'No reminders set. Set one with /remind me, or ask me in chat.'): string {
+// The list as a card: yours and the channel's under their headings
+export function listCard(own: Reminder[], channel: Reminder[], channelId: string, empty?: string): EmbedBuilder {
+	return new EmbedBuilder().setColor(cardColors.set).setTitle('⏰ Reminders').setDescription(listText(own, channel, channelId, empty));
+}
+
+export function listText(own: Reminder[], channel: Reminder[], channelId: string, empty = 'No reminders set. Set one with /remind, or ask me in chat.'): string {
 	if (own.length === 0 && channel.length === 0) {
 		return empty;
 	}

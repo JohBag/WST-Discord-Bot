@@ -2,9 +2,9 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import UserError from '../../core/user-error.js';
 import { parseDuration, parseReminderTime } from './time.js';
-import { addReminder, cancelReminder, takeDue, visibleTo } from './store.js';
+import { addReminder, cancelReminder, setConfirmation, takeDue, visibleTo } from './store.js';
 import type { Reminder, ReminderStore } from './store.js';
-import { confirmation, describeAgo, firedContent, listText, menuLabel, voiceInstructions } from './format.js';
+import { confirmationCard, describeAgo, firedContent, listCard, listText, menuLabel, voiceInstructions } from './format.js';
 import { firedMessage } from './deliver.js';
 import { timeNote } from '../chat/situation.js';
 import { pickAsker } from './chat-tools.js';
@@ -100,7 +100,7 @@ describe('reminder store', () => {
 		for (let i = 0; i < 10; i++) {
 			addReminder(store, base(), false);
 		}
-		assert.throws(() => addReminder(store, base(), false), new UserError('You already have 10 reminders set. Cancel one with /remind list first.'));
+		assert.throws(() => addReminder(store, base(), false), new UserError('You already have 10 reminders set. Cancel one with /reminders first.'));
 		assert.equal(addReminder(store, base({ userId: 'u2' }), false).number, 11);
 	});
 
@@ -141,10 +141,40 @@ describe('reminder text', () => {
 	const reminder: Reminder = { ...base(), number: 12 };
 	const due = Math.floor(reminder.due / 1000);
 
-	it('should confirm with the number and the time in each reader\'s own time zone', () => {
-		assert.equal(confirmation(reminder), `⏰ Reminder #12 set for <t:${due}:F> (<t:${due}:R>): bring flasks`);
-		assert.equal(confirmation({ ...reminder, target: 'role', roleId: 'r1' }), `⏰ Reminder #12 for <@&r1> set for <t:${due}:F> (<t:${due}:R>): bring flasks`);
-		assert.equal(confirmation(reminder, true), `⏰ Reminder #12 for Kapi set for <t:${due}:F> (<t:${due}:R>): bring flasks`);
+	it('should confirm on a card: what, when in each reader\'s own time zone, and who it pings', () => {
+		const card = confirmationCard(reminder).toJSON();
+		assert.equal(card.title, '⏰ Reminder #12');
+		assert.equal(card.description, 'bring flasks');
+		assert.equal(card.color, 0x0099FF);
+		assert.deepEqual(card.fields, [
+			{ name: 'When', value: `<t:${due}:f>\n<t:${due}:R>`, inline: true },
+			{ name: 'For', value: '<@u1>', inline: true },
+		]);
+		assert.equal(card.footer, undefined);
+		const role = confirmationCard({ ...reminder, target: 'role', roleId: 'r1' }).toJSON();
+		assert.deepEqual(role.fields![1], { name: 'For', value: '<@&r1>', inline: true });
+		assert.equal(role.footer?.text, 'Set by Kapi');
+		assert.deepEqual(confirmationCard({ ...reminder, target: 'channel' }).toJSON().fields![1], { name: 'For', value: '<#c1>', inline: true });
+	});
+
+	it('should turn the card grey once sent, with when it went out and a link, or cancelled, struck out', () => {
+		const at = reminder.due + 3 * hour;
+		const sent = confirmationCard(reminder, 'sent', { url: 'https://discord.com/channels/g/c1/m9', at }).toJSON();
+		assert.equal(sent.title, '✅ Reminder #12 sent');
+		assert.equal(sent.color, 0x95A5A6);
+		assert.deepEqual(sent.fields![0], { name: 'When', value: `<t:${Math.floor(at / 1000)}:f>\n[Jump to message](https://discord.com/channels/g/c1/m9)`, inline: true });
+		const cancelled = confirmationCard(reminder, 'cancelled').toJSON();
+		assert.equal(cancelled.title, '❌ Reminder #12 cancelled');
+		assert.equal(cancelled.description, '~~bring flasks~~');
+		assert.deepEqual(cancelled.fields, [{ name: 'When', value: `~~<t:${due}:f>~~`, inline: true }, { name: 'For', value: '<@u1>', inline: true }]);
+	});
+
+	it('should remember the card of a waiting reminder only', () => {
+		const store = emptyStore();
+		addReminder(store, base(), false);
+		assert.equal(setConfirmation(store, 1, 'm5'), true);
+		assert.equal(store.reminders[0].confirmationId, 'm5');
+		assert.equal(setConfirmation(store, 2, 'm6'), false);
 	});
 
 	it('should list yours and the channel\'s under headings, with the channel of yours set elsewhere', () => {
@@ -158,14 +188,15 @@ describe('reminder text', () => {
 			'**This channel**',
 			`\`#13\` <t:${due}:f> (<t:${due}:R>) <#c1>: reset tonight`,
 		].join('\n'));
-		assert.equal(listText([], [], 'c1'), 'No reminders set. Set one with /remind me, or ask me in chat.');
+		assert.equal(listText([], [], 'c1'), 'No reminders set. Set one with /remind, or ask me in chat.');
+		assert.equal(listCard([], [], 'c1').toJSON().title, '⏰ Reminders');
 	});
 
-	it('should keep a list of long reminders within one Discord message', () => {
+	it('should keep a list of long reminders within one card', () => {
 		const long = Array.from({ length: 10 }, (_, i) => ({ ...base({ text: 'x'.repeat(500) }), number: i + 1 }));
-		const others = Array.from({ length: 20 }, (_, i) => ({ ...base({ target: 'channel', userId: 'u2', text: 'y'.repeat(500) }), number: i + 11 }));
+		const others = Array.from({ length: 30 }, (_, i) => ({ ...base({ target: 'channel', userId: 'u2', text: 'y'.repeat(500) }), number: i + 11 }));
 		const text = listText(long, others, 'c1');
-		assert.ok(text.length <= 2000, `${text.length}`);
+		assert.ok(text.length <= 4096, `${text.length}`);
 		assert.match(text, /\n\+\d+ more$/);
 		assert.ok(text.includes('x'.repeat(79) + '…'));
 	});

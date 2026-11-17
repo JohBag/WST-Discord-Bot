@@ -10,13 +10,16 @@ what's set.
 
 - **Who it's for.** Anyone can set a reminder for themselves. Officers can also set one for the
   channel (no ping) or a role (pings the role). Reminding another member isn't offered.
-- **`/remind me`, `/remind channel` and `/remind role`** take a time and what to remind about.
-  Times are a duration (`2h`, `1d 3h`, `in half an hour`, `1.5h`) or a clock time and day in EU
+- **`/remind`** takes a time and what to remind about, with an optional For (Me, or This channel
+  for officers) and Role (officers: pings that role). One command with a dropdown, not one per
+  target (changed after the first local test, 2026-11-17). Times are a duration (`2h`, `1d 3h`, `in half an hour`, `1.5h`) or a clock time and day in EU
   server time (`19:30`, `at 7pm`, `fri 19:30`, `26/11 19:30`), the forms `/event create` takes plus
   a few more. A clock time already passed today means tomorrow, whole days keep the clock time
   across a daylight saving change, and a bare number is refused as ambiguous (minutes or a time).
-  The private confirmation shows the time as a Discord timestamp, so a misread time is caught there.
-- **`/remind list`** shows your reminders (with the channel when it's another one) and the channel
+  The confirmation is a card (what, When as a Discord timestamp, For), so a misread time is caught
+  there. In chat the card is public and turns grey once the reminder is sent (with a link to it) or
+  cancelled.
+- **`/reminders`** shows your reminders (with the channel when it's another one) and the channel
   and role reminders set in this channel, with a menu to cancel. Members cancel their own, officers
   also anyone's channel and role reminders. Other members' own reminders are never shown.
 - **In chat**, the model has `set_reminder`, `list_reminders` and `cancel_reminder`. Each reminder
@@ -25,9 +28,11 @@ what's set.
   messages it sees: the reminder is theirs, with their rights, and a name that matches nobody is
   refused. The tools are off when Botty joins in uninvited. Known limit: which of several people
   asked is the model's call, so a member could talk it into naming an officer who also spoke to
-  Botty. `/remind` has no such gap. Listing in chat shows only what fires in this channel, since everyone sees it. The
-  system prompt now carries the current date and time in server time, which chat reminders need
-  and which also helps with "what day is it" questions.
+  Botty. `/remind` has no such gap. Listing in chat shows only what fires in this channel, since
+  everyone sees it. The system prompt now carries the current date and time in server time, which
+  chat reminders need and which also helps with "what day is it" questions.
+- **The reminder itself stays plain text**, so it reads like Botty talking and the ping sits in the
+  line (decided 2026-11-17).
 - **When it fires**, Botty posts in the channel it was set in, as a reply to the asking message
   when it was set in chat. The ping comes first, then the reminder reworded in Botty's voice (one
   model call). When the model fails or takes over 30 seconds, it's posted as written. Only the

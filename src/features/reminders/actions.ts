@@ -1,9 +1,10 @@
 import { ActionRowBuilder, PermissionFlagsBits, StringSelectMenuBuilder } from 'discord.js';
-import type { Guild, InteractionEditReplyOptions, MessageActionRowComponentBuilder, Role, StringSelectMenuInteraction } from 'discord.js';
+import type { Client, EmbedBuilder, Guild, InteractionEditReplyOptions, MessageActionRowComponentBuilder, Role, StringSelectMenuInteraction } from 'discord.js';
 import { config } from '../../core/config.js';
 import log from '../../core/log.js';
 import UserError from '../../core/user-error.js';
-import { listText, menuLabel, shorten } from './format.js';
+import { confirmationCard, listCard, menuLabel, shorten } from './format.js';
+import type { CardState } from './format.js';
 import { addReminder, canCancel, cancelReminder, loadReminders, saveReminders, visibleTo } from './store.js';
 import type { Reminder, ReminderTarget } from './store.js';
 import { parseReminderTime } from './time.js';
@@ -73,16 +74,37 @@ export function setReminder(request: SetRequest, now = Date.now()): Reminder {
 // The private list, with a menu to cancel the ones this member may cancel
 export function listView(userId: string, channelId: string, isOfficer: boolean, notice?: string): InteractionEditReplyOptions {
 	const { own, channel } = visibleTo(loadReminders(), userId, channelId);
-	const content = [notice, listText(own, channel, channelId)].filter(Boolean).join('\n\n');
+	const reply = { content: notice ?? '', embeds: [listCard(own, channel, channelId)] };
 	const cancellable = [...own, ...channel].filter(r => canCancel(r, userId, isOfficer)).slice(0, 25);
 	if (cancellable.length === 0) {
-		return { content, components: [] };
+		return { ...reply, components: [] };
 	}
 	const menu = new StringSelectMenuBuilder()
 		.setCustomId(`${remindersPrefix}cancel:${channelId}`)
 		.setPlaceholder('Cancel a reminder')
 		.addOptions(cancellable.map(r => ({ label: menuLabel(r), value: String(r.number) })));
-	return { content, components: [new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(menu)] };
+	return { ...reply, components: [new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(menu)] };
+}
+
+// Turns the card that confirmed a reminder grey, saying it was sent or cancelled. A card that's
+// gone or can't be edited is left alone
+export async function updateCard(client: Client, reminder: Reminder, state: CardState, sent?: { url: string; at: number }): Promise<void> {
+	if (!reminder.confirmationId) {
+		return;
+	}
+	try {
+		const channel = await client.channels.fetch(reminder.channelId);
+		if (!channel?.isTextBased()) {
+			return;
+		}
+		// One reply can confirm several reminders: only this one's card changes
+		const message = await channel.messages.fetch(reminder.confirmationId);
+		const title = `Reminder #${reminder.number}`;
+		const embeds = message.embeds.map(embed => embed.title?.endsWith(title) ? confirmationCard(reminder, state, sent) : embed);
+		await message.edit({ embeds });
+	} catch (error) {
+		log.warn(`Couldn't update the card for reminder #${reminder.number}: ${error}`);
+	}
 }
 
 // The cancel menu under the list
@@ -96,6 +118,7 @@ export async function handleReminderInteraction(interaction: StringSelectMenuInt
 		saveReminders(store);
 		log(`Reminder #${cancelled.number} cancelled by ${interaction.user.username}`);
 		notice = `Cancelled reminder #${cancelled.number}: ${shorten(cancelled.text, 80)}`;
+		updateCard(interaction.client, cancelled, 'cancelled');
 	} catch (error) {
 		if (!(error instanceof UserError)) {
 			throw error;
@@ -106,15 +129,16 @@ export async function handleReminderInteraction(interaction: StringSelectMenuInt
 }
 
 // For chat: the asker's reminders and the channel's, as a message everyone sees, so only those that
-// fire in this channel. /remind list shows the rest privately
-export function chatList(userId: string, userName: string, channelId: string): string {
+// fire in this channel. /reminders shows the rest privately
+export function chatList(userId: string, userName: string, channelId: string): EmbedBuilder {
 	const { own, channel } = visibleTo(loadReminders(), userId, channelId);
 	const here = own.filter(r => r.channelId === channelId);
-	const text = listText(here, channel, channelId, `${userName} has no reminders in this channel. /remind list shows all of yours.`);
-	return text.replace('**Your reminders**', () => `**${userName}'s reminders**`);
+	const card = listCard(here, channel, channelId, `${userName} has no reminders in this channel. /reminders shows all of yours.`);
+	return card.setDescription(card.data.description!.replace('**Your reminders**', () => `**${userName}'s reminders**`));
 }
 
-export function chatCancel(number: string | number, userId: string, isOfficer: boolean): string {
+// Cancels by the number the model gives ("12" or "#12") and returns the reminder
+export function chatCancel(number: string | number, userId: string, isOfficer: boolean): Reminder {
 	const parsed = Number(String(number).replace(/\D/g, ''));
 	if (!parsed) {
 		throw new UserError('Which reminder? Give its number, like #12.');
@@ -123,5 +147,5 @@ export function chatCancel(number: string | number, userId: string, isOfficer: b
 	const cancelled = cancelReminder(store, parsed, userId, isOfficer);
 	saveReminders(store);
 	log(`Reminder #${cancelled.number} cancelled in chat by ${userId}`);
-	return `Cancelled reminder #${cancelled.number}: ${cancelled.text}`;
+	return cancelled;
 }

@@ -1,16 +1,19 @@
-import type { ChatInputCommandInteraction, GuildMember, Message as DiscordMessage } from 'discord.js';
+import type { ChatInputCommandInteraction, EmbedBuilder, GuildMember, Message as DiscordMessage } from 'discord.js';
 import Message from '../../core/message.js';
 import UserError from '../../core/user-error.js';
 import type { ToolCall } from '../../ai/conversation.js';
-import { chatCancel, chatList, isOfficerMember, setReminder } from './actions.js';
-import { confirmation } from './format.js';
-import type { ReminderTarget } from './store.js';
+import { chatCancel, chatList, isOfficerMember, setReminder, updateCard } from './actions.js';
+import { confirmationCard, shorten } from './format.js';
+import { loadReminders, saveReminders, setConfirmation } from './store.js';
+import type { Reminder, ReminderTarget } from './store.js';
 import { config } from '../../core/config.js';
 import getChannelSettings from '../chat/channel-settings.js';
 import { isToBot } from '../chat/should-respond.js';
 
 // The reminder tools the chat model calls. Their message replaces Botty's reply, and nobody gets
 // pinged by it
+
+const maxCallsPerReply = 5;
 
 const targets: Record<string, ReminderTarget> = { asker: 'member', channel: 'channel', role: 'role' };
 
@@ -59,7 +62,14 @@ export function pickAsker(askers: Asker[], name: unknown): Asker | undefined {
 	return askers.find(a => a.displayName.trim().toLowerCase() === wanted || a.username.toLowerCase() === wanted);
 }
 
-function runTool(call: ToolCall, askers: Asker[], trigger: DiscordMessage | ChatInputCommandInteraction): string {
+interface ToolResult {
+	text?: string;
+	card?: EmbedBuilder;
+	// A reminder just set, whose card's message is remembered once it's sent
+	set?: Reminder;
+}
+
+function runTool(call: ToolCall, askers: Asker[], trigger: DiscordMessage | ChatInputCommandInteraction): ToolResult {
 	const args = call.args;
 	const asker = pickAsker(askers, args.asker);
 	if (!asker) {
@@ -88,27 +98,47 @@ function runTool(call: ToolCall, askers: Asker[], trigger: DiscordMessage | Chat
 			messageId: asker.messageId,
 			isOfficer,
 		});
-		return confirmation(reminder, true);
+		return { card: confirmationCard(reminder), set: reminder };
 	}
 	if (call.name === 'list_reminders') {
-		return chatList(asker.userId, asker.displayName, trigger.channelId!);
+		return { card: chatList(asker.userId, asker.displayName, trigger.channelId!) };
 	}
-	return chatCancel(args.number, asker.userId, isOfficer);
+	const cancelled = chatCancel(args.number, asker.userId, isOfficer);
+	updateCard(trigger.client, cancelled, 'cancelled');
+	return { text: `Cancelled reminder #${cancelled.number}: ${shorten(cancelled.text, 80)}` };
 }
 
 // Every reminder call in the reply, so "remind me at 19 and at 20" sets both
 export function reminderTools(calls: ToolCall[], askers: Asker[], trigger: DiscordMessage | ChatInputCommandInteraction): Message {
-	const lines = calls.map(call => {
+	// Each card is an embed, and a message holds at most 10 and 6000 characters of them
+	const results: ToolResult[] = calls.slice(0, maxCallsPerReply).map(call => {
 		try {
 			return runTool(call, askers, trigger);
 		} catch (error) {
 			if (error instanceof UserError) {
-				return error.message;
+				return { text: error.message } as ToolResult;
 			}
 			throw error;
 		}
 	});
-	const message = new Message().setText(lines.join('\n'));
+	if (calls.length > maxCallsPerReply) {
+		results.push({ text: `I can only handle ${maxCallsPerReply} reminders at once. Ask me again for the rest.` });
+	}
+	const message = new Message().setText(results.map(r => r.text).filter(Boolean).join('\n'));
+	for (const result of results) {
+		if (result.card) {
+			message.addEmbed(result.card);
+		}
+	}
 	message.allowedMentions = { parse: [] };
+	const set = results.flatMap(r => r.set ?? []);
+	if (set.length > 0) {
+		message.onSend = async sent => {
+			const store = loadReminders();
+			if (set.map(r => setConfirmation(store, r.number, sent.id)).some(Boolean)) {
+				saveReminders(store);
+			}
+		};
+	}
 	return message;
 }
