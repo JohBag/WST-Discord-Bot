@@ -4,16 +4,16 @@ import { gameName, realmKey } from './characters.js';
 import { findSpec, signupRoleOf, signupRoles, signupRolesOf } from './games.js';
 import type { SignupRole } from './games.js';
 import { iconSpecId } from './emoji.js';
-import type { WowIcon } from './emoji.js';
+import type { MarkIcon } from './emoji.js';
 import type { RaidEvent, Signup, SignupStatus } from './store.js';
 
 // IDs are event:<event ID>:<action>
 export const eventPrefix = 'event:';
 
-// WoW's own icons where they're uploaded (the group finder's roles, the ready check's marks), the
-// standard emoji while they aren't
+// The role icons and the ready check's marks where they're uploaded, the standard emoji while they
+// aren't
 interface Mark {
-	icon: WowIcon;
+	icon: MarkIcon;
 	emoji: string;
 }
 
@@ -41,12 +41,12 @@ const blank = '​';
 export interface PostContext {
 	// The spec's icon as a Discord emoji, or '' while it isn't uploaded
 	specEmoji: (classId: string, specId: string) => string;
-	// A WoW interface icon as a Discord emoji, or undefined while it isn't uploaded
-	wowIcon: (icon: WowIcon) => string | undefined;
+	// A role icon or ready check mark as a Discord emoji, or undefined while it isn't uploaded
+	markIcon: (icon: MarkIcon) => string | undefined;
 }
 
 function mark(context: PostContext, { icon, emoji }: Mark): string {
-	return context.wowIcon(icon) ?? emoji;
+	return context.markIcon(icon) ?? emoji;
 }
 
 function specIcon(context: PostContext, character: NonNullable<Signup['character']>): string {

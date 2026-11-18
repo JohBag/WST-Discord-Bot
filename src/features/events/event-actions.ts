@@ -29,7 +29,7 @@ import { reminderLead, sendReminders } from './reminders.js';
 import { createSeries, loadSeries, postDueWeeks, saveSeries, shiftLike } from './series.js';
 import type { Series } from './series.js';
 import { catchUpInterest } from './interest.js';
-import { getSpecEmoji, getWowIcon } from './emoji.js';
+import { getSpecEmoji, getMarkIcon } from './emoji.js';
 import { exportText, rosterSize } from './export.js';
 import { findClass, findSpec, isGameId } from './games.js';
 import { signupRoleOf, signupRolesOf } from './games.js';
@@ -65,7 +65,7 @@ function displayNameOf(interaction: AnyInteraction | ChatInputCommandInteraction
 }
 
 function render(event: RaidEvent) {
-	return buildPost(event, { specEmoji: getSpecEmoji, wowIcon: getWowIcon });
+	return buildPost(event, { specEmoji: getSpecEmoji, markIcon: getMarkIcon });
 }
 
 // Edits the post as a message, in turn with every other redraw (post-queue.ts)

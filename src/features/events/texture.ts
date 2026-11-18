@@ -1,7 +1,7 @@
 import { deflateSync } from 'node:zlib';
 
-// WoW's own interface textures (role icons, ready check marks) come as BLP files, which Discord
-// can't take. This reads the two kinds those use and writes PNG, so no image package is needed.
+// WoW's own interface textures (the ready check marks) come as BLP files, which Discord can't take.
+// This reads the DXT5-compressed kind those use and writes PNG, so no image package is needed.
 
 export interface Rgba {
 	width: number;
@@ -22,24 +22,10 @@ export function decodeBlp(file: Uint8Array): Rgba {
 	const width = view.getUint32(12, true);
 	const height = view.getUint32(16, true);
 	const offset = view.getUint32(20, true);
-	if (encoding === 3) {
-		return { width, height, data: fromBgra(file.subarray(offset, offset + width * height * 4)) };
-	}
 	if (encoding === 2 && alphaEncoding === 7) {
 		return { width, height, data: decodeDxt5(file.subarray(offset), width, height) };
 	}
 	throw new Error(`Unsupported BLP encoding ${encoding}/${alphaEncoding}`);
-}
-
-function fromBgra(bgra: Uint8Array): Uint8Array {
-	const out = new Uint8Array(bgra.length);
-	for (let i = 0; i < bgra.length; i += 4) {
-		out[i] = bgra[i + 2];
-		out[i + 1] = bgra[i + 1];
-		out[i + 2] = bgra[i];
-		out[i + 3] = bgra[i + 3];
-	}
-	return out;
 }
 
 function rgb565(value: number): [number, number, number] {
@@ -98,18 +84,6 @@ export function decodeDxt5(blocks: Uint8Array, width: number, height: number): U
 		}
 	}
 	return out;
-}
-
-export function crop(image: Rgba, x: number, y: number, width: number, height: number): Rgba {
-	if (x < 0 || y < 0 || x + width > image.width || y + height > image.height) {
-		throw new Error(`Cut ${width}x${height} at ${x},${y} is outside the ${image.width}x${image.height} texture`);
-	}
-	const data = new Uint8Array(width * height * 4);
-	for (let row = 0; row < height; row++) {
-		const from = ((y + row) * image.width + x) * 4;
-		data.set(image.data.subarray(from, from + width * 4), row * width * 4);
-	}
-	return { width, height, data };
 }
 
 // Cut to what's clearly visible (soft shadows don't count) plus a margin, centred in a square, so a

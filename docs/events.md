@@ -103,17 +103,23 @@ without fixing a single name.
    - **WoW's own icons** (2026-11-18, overturning the class icon on each line). Each line shows the
      spec's icon instead of the class icon, as Raid-Helper does: the spec at a glance, for about the same
      room, at the cost of telling the class apart less quickly (Shadow and Affliction are both
-     skulls). The role headings and the off-spec mark use the group finder's role icons, Tentative
-     and Absent the ready check's question mark and cross, and an event's Attending its tick. A
-     Forever feral druid signed up as tank shows the bear. When an upload failed, a spec falls back
+     skulls). Tentative and Absent use the ready check's question mark and cross, and an event's
+     Attending its tick. A Forever feral druid signed up as tank shows the bear. When an upload failed, a spec falls back
      to the class icon from before (production only: a new test application has none), and the
      role icons, and Tentative and Absent, fall back to the standard emoji as a set, so neither
-     mixes the two. Unverified: that Discord shows
-     custom emoji in embed field names on every client.
+     mixes the two. Unverified: that Discord shows custom emoji in embed field names on every
+     client.
+   - **Our own role icons** (2026-11-18, replacing the group finder's role icons the same day). The
+     role headings and the off-spec mark use a blue shield, a green cross and a steel sword with a
+     red hilt, drawn by `scripts/role-icons.py` into `assets/role-icons/`. WoW's ringed icons were
+     too small at Discord's 22px emoji size, with the symbol about 8 pixels inside the ring. These
+     are bold shapes filling the whole emoji, shaded and outlined like the ready check marks next
+     to them. The sword is steel so it doesn't read as Absent's red cross. Picked from three drafts
+     (flat, glossy, glossy with a steel sword).
    - **Room:** Discord allows 6000 characters per post. A full 40-player Forever raid with 15 more
      answers and the longest names (25 letters, 32 for server names) takes about 4900 with spec and
      role icons, or 5500 with a 600-letter description (measured 2026-11-18). An off-spec role icon
-     adds about 25 on its line, so with off-specs on most lines the member names drop from about a
+     adds about 30 on its line, so with off-specs on most lines the member names drop from about a
      600-letter description, or sooner with long server names. Should it ever run out, the
      member names go first, then the last lines of each list, replaced by "+N more". An event post
      is one Attending list plus Tentative and Absent.
@@ -202,14 +208,16 @@ without fixing a single name.
 - Sign-ups stay open until the start. Officers can still edit afterwards.
 - Officers type times in the EU realms' server time (Central European). Every reader sees them in
   their own time zone.
-- Icons are uploaded to Botty's Discord application as emoji, not committed to the repo. Spec icons
-  come from Blizzard's icon server, the role and ready check icons from the game files through
-  wago.tools (BLP textures, decoded in `texture.ts`). They sync in the background at startup. The
+- Icons are uploaded to Botty's Discord application as emoji. WoW's are fetched, never committed:
+  spec icons from Blizzard's icon server, the ready check marks from the game files through
+  wago.tools (BLP textures, decoded in `texture.ts`). Our own role icons are PNGs in
+  `assets/role-icons/`. They sync in the background at startup. The
   event timer (closing sign-ups, the hour-before ping, weekly posts), the redraw of recent posts,
   the calendar entries and the Interested catch-up wait for them, up to a minute, and recent posts
   are drawn again if they took longer. `/remind` doesn't wait. An icon whose name is already on the application is
   never replaced: to change one, delete it in the Developer Portal (the application's Emojis) and
-  restart. The 13 class icons from before stay on the application, so older posts keep theirs and
+  restart, or give the icon a new name in `emoji.ts`. The 13 class icons and the group finder
+  role icons from before stay on the application, so older posts keep theirs and
   a spec icon that failed to upload falls back to them.
 
 ## The addon's import format

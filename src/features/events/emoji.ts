@@ -1,10 +1,11 @@
+import { readFile } from 'node:fs/promises';
 import type { Client } from 'discord.js';
 import log from '../../core/log.js';
-import { crop, decodeBlp, encodePng, squareToContent } from './texture.js';
+import { decodeBlp, encodePng, squareToContent } from './texture.js';
 
-// WoW's icons as emoji on Botty's own Discord application, so posts can show them in any server.
-// Uploaded once and found by name after that. Each bot (test and production) uploads to its own
-// application. Nothing is committed to the repo.
+// The post's icons as emoji on Botty's own Discord application, so posts can show them in any
+// server. Uploaded once and found by name after that. Each bot (test and production) uploads to its
+// own application. WoW's icons are fetched, never committed; only our own role icons are in the repo.
 
 // Each spec's icon, as retail's own spec table (ChrSpecialization) gives it. Forever uses the same
 // (unverified whether its own client shows these or vanilla's talent tab icons), and its Combat rogue
@@ -46,34 +47,35 @@ export function specEmojiName(classId: string, specId: string): string {
 	return `${classNames[classId]}_${specId.slice(0, 3)}`;
 }
 
-// The interface's own icons: the group finder's role icons and the ready check's marks. These are
-// game textures rather than icons, so they come from the game files (wago.tools serves them by
-// file ID), cut from the sheet where WoW's UI cuts them
-export type WowIcon = 'tank' | 'healer' | 'dps' | 'tentative' | 'absent' | 'ready';
+// The marks on the post: role icons of our own, drawn to read at emoji size by
+// scripts/role-icons.py (WoW's group finder icons were too small inside their rings, 2026-11-18),
+// and the ready check's marks from the game. Those are game textures rather than icons, so they come
+// from the game files (wago.tools serves them by file ID)
+export type MarkIcon = 'tank' | 'healer' | 'dps' | 'tentative' | 'absent' | 'ready';
 
-interface Texture {
-	name: string;
-	fileId: number;
-	// x, y and size of the square to cut, or the whole texture
-	cell?: [number, number, number];
-	// Transparent room around the visible part, in pixels of the cut: the ready check marks fill
-	// their square edge to edge, so they get more to sit as large as the round role icons
-	margin: number;
-}
+type IconSource =
+	// A PNG in the repo, from its top folder
+	| { file: string }
+	// A game texture, with transparent room around its visible part in pixels: the ready check marks
+	// fill their square edge to edge, so they get some to sit as large as the role icons
+	| { fileId: number; margin: number };
 
-const roleSheet = 337499; // interface/lfgframe/ui-lfg-icon-roles.blp, 67px cells
-export const wowIcons: Record<WowIcon, Texture> = {
-	tank: { name: 'tank', fileId: roleSheet, cell: [0, 67, 67], margin: 3 },
-	healer: { name: 'heal', fileId: roleSheet, cell: [67, 0, 67], margin: 3 },
-	dps: { name: 'dps', fileId: roleSheet, cell: [67, 67, 67], margin: 3 },
+// A new drawing needs a new name, since an icon already uploaded under its name is kept
+export const markIcons: Record<MarkIcon, { name: string } & IconSource> = {
+	tank: { name: 'r_tank', file: 'assets/role-icons/tank.png' },
+	healer: { name: 'r_heal', file: 'assets/role-icons/heal.png' },
+	dps: { name: 'r_dps', file: 'assets/role-icons/dps.png' },
 	tentative: { name: 'tentative', fileId: 136815, margin: 7 }, // interface/raidframe/readycheck-waiting.blp
 	absent: { name: 'absent', fileId: 136813, margin: 7 }, // readycheck-notready.blp
 	ready: { name: 'ready', fileId: 136814, margin: 7 }, // readycheck-ready.blp
 };
 
-// Shown as a set or not at all, so the role headings never mix WoW's icons with the standard emoji,
+// The repo's top folder, from dist/features/events/ where this runs
+const repoRoot = new URL('../../../', import.meta.url);
+
+// Shown as a set or not at all, so the role headings never mix our icons with the standard emoji,
 // nor do Tentative and Absent. The tick is only on event posts, so it stands alone
-const iconSets: WowIcon[][] = [['tank', 'healer', 'dps'], ['tentative', 'absent'], ['ready']];
+const iconSets: MarkIcon[][] = [['tank', 'healer', 'dps'], ['tentative', 'absent'], ['ready']];
 
 const iconUrl = (icon: string) => `https://render.worldofwarcraft.com/eu/icons/56/${icon}.jpg`;
 
@@ -88,13 +90,12 @@ async function download(url: string): Promise<Buffer> {
 	return Buffer.from(await response.arrayBuffer());
 }
 
-export async function texturePng(texture: Texture): Promise<Buffer> {
-	let image = decodeBlp(await download(`https://wago.tools/api/casc/${texture.fileId}`));
-	if (texture.cell) {
-		const [x, y, size] = texture.cell;
-		image = crop(image, x, y, size, size);
+export async function iconPng(source: IconSource): Promise<Buffer> {
+	if ('file' in source) {
+		return readFile(new URL(source.file, repoRoot));
 	}
-	return encodePng(squareToContent(image, texture.margin));
+	const image = decodeBlp(await download(`https://wago.tools/api/casc/${source.fileId}`));
+	return encodePng(squareToContent(image, source.margin));
 }
 
 const uploaded = new Map<string, string>();
@@ -109,10 +110,10 @@ export function getSpecEmoji(classId: string, specId: string): string {
 	return uploaded.get(specEmojiName(classId, specId)) ?? uploaded.get(classNames[classId]) ?? '';
 }
 
-// A WoW interface icon, or undefined while any of its set isn't uploaded
-export function getWowIcon(icon: WowIcon): string | undefined {
+// A role icon or ready check mark, or undefined while any of its set isn't uploaded
+export function getMarkIcon(icon: MarkIcon): string | undefined {
 	const set = iconSets.find(s => s.includes(icon))!;
-	return set.every(i => uploaded.has(wowIcons[i].name)) ? uploaded.get(wowIcons[icon].name) : undefined;
+	return set.every(i => uploaded.has(markIcons[i].name)) ? uploaded.get(markIcons[icon].name) : undefined;
 }
 
 async function fetchExisting(client: Client) {
@@ -129,7 +130,8 @@ async function fetchExisting(client: Client) {
 }
 
 // Finds the icons by name and uploads the missing ones. An icon whose name is already there is
-// never replaced: to change one, delete it on the application (Developer Portal > Emojis) and restart
+// never replaced: to change one, give it a new name here, or delete it on the application (Developer
+// Portal > Emojis) and restart
 export async function syncEmoji(client: Client): Promise<void> {
 	let existing;
 	try {
@@ -149,9 +151,9 @@ export async function syncEmoji(client: Client): Promise<void> {
 		...Object.entries(specIcons).flatMap(([classId, specs]) => Object.entries(specs).map(([specId, icon]) => (
 			{ name: specEmojiName(classId, specId), attachment: () => download(iconUrl(icon)) }))),
 		// As a data URL, since discord.js labels any other image buffer as JPEG
-		...Object.values(wowIcons).map(texture => ({
-			name: texture.name,
-			attachment: async () => `data:image/png;base64,${(await texturePng(texture)).toString('base64')}`,
+		...Object.values(markIcons).map(icon => ({
+			name: icon.name,
+			attachment: async () => `data:image/png;base64,${(await iconPng(icon)).toString('base64')}`,
 		})),
 	];
 	for (const { name, attachment } of wanted) {

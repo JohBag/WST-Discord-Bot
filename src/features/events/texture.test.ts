@@ -35,17 +35,21 @@ describe('decodeDxt5', () => {
 });
 
 describe('decodeBlp', () => {
-	it('should read an uncompressed BLP2 as RGBA', () => {
-		const file = new Uint8Array(148 + 1024 + 4);
+	it('should read a DXT5 BLP2 from its first mip, and turn down other kinds', () => {
+		const file = new Uint8Array(148 + 1024 + 16);
 		file.set([...'BLP2'].map(c => c.charCodeAt(0)));
 		const view = new DataView(file.buffer);
 		view.setUint32(4, 1, true);
-		file[8] = 3;
-		view.setUint32(12, 1, true);
-		view.setUint32(16, 1, true);
+		file[8] = 2;
+		file[10] = 7;
+		view.setUint32(12, 4, true);
+		view.setUint32(16, 4, true);
 		view.setUint32(20, 1172, true);
-		file.set([10, 20, 30, 40], 1172); // blue, green, red, alpha
-		assert.deepEqual(decodeBlp(file), { width: 1, height: 1, data: new Uint8Array([30, 20, 10, 40]) });
+		file.set(block(0, 1), 1172);
+		const image = decodeBlp(file);
+		assert.deepEqual([image.width, image.height, ...image.data.subarray(0, 4)], [4, 4, 0, 0, 255, 255]);
+		file[8] = 3;
+		assert.throws(() => decodeBlp(file), /Unsupported BLP encoding 3\/7/);
 		assert.throws(() => decodeBlp(new Uint8Array(200)), /Not a BLP2/);
 	});
 });

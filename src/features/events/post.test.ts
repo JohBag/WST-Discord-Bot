@@ -4,12 +4,13 @@ import { addCharacter } from './characters.js';
 import type { CharacterStore } from './characters.js';
 import { buildPostButtons, buildPostEmbed } from './post.js';
 import type { PostContext } from './post.js';
+import { markIcons } from './emoji.js';
 import { createEvent, respond, signupChoices, withdraw } from './store.js';
 import type { RaidEvent } from './store.js';
 import { buildEventModal, clickedStatus, roleQuestion, signupReply } from './event-actions.js';
 
-// Spec icons as :spec:, and WoW's icons not uploaded, so the standard emoji show
-const context: PostContext = { specEmoji: (_classId, specId) => `:${specId}:`, wowIcon: () => undefined };
+// Spec icons as :spec:, and the role and ready check icons not uploaded, so the standard emoji show
+const context: PostContext = { specEmoji: (_classId, specId) => `:${specId}:`, markIcon: () => undefined };
 const start = Date.UTC(2026, 10, 18, 18, 30);
 const stamp = start / 1000;
 
@@ -87,7 +88,7 @@ describe('buildPostEmbed', () => {
 		}
 		return event;
 	}
-	const realIcons: PostContext = { specEmoji: () => '<:pri_hol:1439123456789012345>', wowIcon: icon => `<:${icon}:1439123456789012345>` };
+	const realIcons: PostContext = { specEmoji: () => '<:pri_hol:1439123456789012345>', markIcon: icon => `<:${markIcons[icon].name}:1439123456789012345>` };
 
 	it('should fit a full 40-player Forever raid with every name, member and answer', () => {
 		const embed = buildPostEmbed(fullForeverRaid('Bring consumables.'), realIcons).toJSON();
@@ -284,8 +285,8 @@ describe('member names on roster lines', () => {
 	});
 });
 
-describe('WoW icons', () => {
-	const wow: PostContext = { specEmoji: (_classId, specId) => `:${specId}:`, wowIcon: icon => `<:${icon}:1>` };
+describe('role and ready check icons', () => {
+	const wow: PostContext = { specEmoji: (_classId, specId) => `:${specId}:`, markIcon: icon => `<:${icon}:1>` };
 
 	it('should head the roles and lists with the role and ready check icons once uploaded, and mark off-spec roles with them', () => {
 		assert.deepEqual(fieldsOf(filledRaid(), wow), [
