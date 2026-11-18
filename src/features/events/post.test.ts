@@ -6,7 +6,7 @@ import { buildPostButtons, buildPostEmbed } from './post.js';
 import type { PostContext } from './post.js';
 import { createEvent, respond, signupChoices, withdraw } from './store.js';
 import type { RaidEvent } from './store.js';
-import { buildEventModal, roleQuestion, signupReply } from './event-actions.js';
+import { buildEventModal, clickedStatus, roleQuestion, signupReply } from './event-actions.js';
 
 const context: PostContext = { classEmoji: classId => `:${classId.toLowerCase()}:` };
 const start = Date.UTC(2026, 10, 18, 18, 30);
@@ -157,6 +157,18 @@ describe('signupReply', () => {
 		assert.equal(reply.content, 'Not signed up. Pick a character to sign up with.');
 		assert.equal((reply.components[0].toJSON().components[0] as any).options.length, 3);
 		assert.equal(signupReply(raid(), undefined, [], 'u1').content, 'Not signed up, and no Retail character saved yet.');
+	});
+});
+
+describe('Late button', () => {
+	it('should turn Late off when clicked again, and leave every other click as it is', () => {
+		const event = raid();
+		signUp(event, 'u1', 'Thorvik', 'DEATHKNIGHT', 'blood', 'late');
+		signUp(event, 'u2', 'Kapi', 'ROGUE', 'subtlety', 'tentative');
+		assert.equal(clickedStatus(event, 'u1', 'late'), 'signed');
+		assert.equal(clickedStatus(event, 'u1', 'tentative'), 'tentative');
+		assert.equal(clickedStatus(event, 'u2', 'late'), 'late');
+		assert.equal(clickedStatus(event, 'u3', 'late'), 'late');
 	});
 });
 

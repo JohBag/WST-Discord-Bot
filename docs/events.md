@@ -25,9 +25,9 @@ without fixing a single name.
   vanilla classes with 3 specs each, and some specs fill two roles, like Feral and Enhancement).
 - **Saved characters.** Members save their characters per game (name, realm for retail, class,
   spec) and mark a main. Signing up uses the main in one click, or picks an alt or another spec.
-- **Statuses:** signed up, Late (stays in the roster with a mark), Tentative and Absent. Bench was
-  in the first version and dropped on 2026-11-16, and "Absence" became "Absent". The addon skips
-  Absent when inviting.
+- **Statuses:** signed up, Late (stays in the roster with a mark, and clicking Late again takes
+  the mark off, 2026-11-18), Tentative and Absent. Bench was in the first version and dropped on
+  2026-11-16, and "Absence" became "Absent". The addon skips Absent when inviting.
 - **Officers only** create, edit, close and cancel events, with the same check as `/promote`.
 - **Core:** creating events, the sign-up post, changing or withdrawing a sign-up, a Discord
   scheduled event (the server's Events tab) created and kept in step with the post, a JSON export in

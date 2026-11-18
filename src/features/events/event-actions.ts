@@ -537,9 +537,16 @@ function pickFor(store: EventStore, userId: string, characters: Character[], cha
 	return { choice: { character, specId: spec.id, role: roles[0] } };
 }
 
-async function answer(interaction: ButtonInteraction, store: EventStore, event: RaidEvent, status: SignupStatus): Promise<void> {
+// Late is a toggle: clicking it again while late signs them up on time, keeping their number
+export function clickedStatus(event: RaidEvent, userId: string, clicked: SignupStatus): SignupStatus {
+	const current = event.signups.find(s => s.userId === userId)?.status;
+	return clicked === 'late' && current === 'late' ? 'signed' : clicked;
+}
+
+async function answer(interaction: ButtonInteraction, store: EventStore, event: RaidEvent, clicked: SignupStatus): Promise<void> {
 	const userId = interaction.user.id;
 	const name = displayNameOf(interaction);
+	const status = clickedStatus(event, userId, clicked);
 
 	// No character needed: the post itself shows the answer, updated through the click
 	if (event.kind === 'event' || !characterStatuses.includes(status)) {
