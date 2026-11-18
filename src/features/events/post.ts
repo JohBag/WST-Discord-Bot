@@ -65,7 +65,7 @@ function positions(event: RaidEvent): (signup: Signup) => number {
 }
 
 // The number in a monospace code span, padded with non-breaking spaces (Discord drops a plain
-// leading space) to the widest number on the post, so the icons after it line up
+// leading space) to the widest number on the post, so the names after it line up
 function numberTag(position: number, width: number): string {
 	return `\`${String(position).padStart(width, ' ')}\``;
 }
@@ -90,9 +90,9 @@ function memberAddsToName(characterName: string, displayName: string): boolean {
 function rosterLine(event: RaidEvent, signup: Signup, number: string, context: PostContext, withMember: boolean): string {
 	const character = signup.character!;
 	const offSpec = character.offSpecId ? findSpec(event.game, character.classId, character.offSpecId) : undefined;
-	// Number first on every line, as below the roster, so the numbers stay in one column. No realm
-	// and no spec name: the spec icon and the role heading say enough, and My sign-up has the rest
-	const parts = [number, specIcon(context, character), `**${character.name}**`];
+	// Spec icon, then number, on every line, as below the roster (2026-11-18). No realm and no spec
+	// name: the spec icon and the role heading say enough, and My sign-up has the rest
+	const parts = [specIcon(context, character), number, `**${character.name}**`];
 	// Only the roles the off-spec adds: a Balance druid with Feral off-spec shows the tank shield
 	const extra = offSpec ? signupRolesOf(offSpec).filter(role => role !== signupRoleOf(character.role)) : [];
 	if (extra.length > 0) {
@@ -107,10 +107,11 @@ function rosterLine(event: RaidEvent, signup: Signup, number: string, context: P
 	return parts.filter(Boolean).join(' ');
 }
 
-// Under the roster: number, spec icon and character, or the member when there's no character
+// Under the roster: spec icon, number and character, or number and member when there's no character
 function listedName(signup: Signup, number: string, context: PostContext): string {
-	const who = signup.character ? [specIcon(context, signup.character), signup.character.name] : [signup.displayName];
-	return [number, ...who].filter(Boolean).join(' ');
+	return signup.character
+		? [specIcon(context, signup.character), number, signup.character.name].filter(Boolean).join(' ')
+		: `${number} ${signup.displayName}`;
 }
 
 // Lines into as many fields as they need, the first under the heading, the rest untitled

@@ -35,8 +35,8 @@ without fixing a single name.
 - **Also in the first version:** reminders, repeating events, and a link to that night's Warcraft
   Logs post once Botty finds it.
 
-- **The post:** one list per role (Tanks, Healers, DPS), each line a sign-up number, spec
-  icon, character and the member's Discord name when it isn't the character's name again. Late
+- **The post:** one list per role (Tanks, Healers, DPS), each line a spec icon, sign-up
+  number, character and the member's Discord name when it isn't the character's name again. Late
   people stay in their role with a mark.
   Tentative and Absent underneath, with their count and names (the picked mockup showed
   counts only, names added in step 2 so officers can see who). Taller than Raid-Helper's columns,
@@ -88,8 +88,8 @@ without fixing a single name.
      ("wed 19:30", "26/11 19:30", "tomorrow 20:00") and shown to everyone in their own time zone.
      The post goes in the channel where the command was used.
    - **The post:** title, description, start with a countdown and how many signed up (plain lines,
-     no icons), then a section each for Tanks, Healers and DPS, each line a sign-up number, spec
-     icon, character, the off-spec's role as a small icon (only when it adds a role), "(late)" when
+     no icons), then a section each for Tanks, Healers and DPS, each line a spec icon, sign-up
+     number, character, the off-spec's role as a small icon (only when it adds a role), "(late)" when
      late, and the member's server name. The footer names the game, the kind and the leader
      ("Retail raid led by ..."). Tentative and Absent are listed under it with names,
      since officers need to know who. Members are named in plain text, saved when they answer: a
@@ -99,7 +99,12 @@ without fixing a single name.
      out when its first word is the character's name, or one is short for the other at 4 letters
      or more (Lath for Laththuzad, but Art still shows on Arthas), so it only shows for alts and
      other names. Numbers on the stacked lines are padded with non-breaking spaces to the widest
-     one, so the spec icons line up in one column. Unverified: that Discord keeps the padding.
+     one, so the names line up. Unverified: that Discord keeps the padding.
+   - **Icon before the number** (2026-11-18, overturning number first on every line, built
+     2026-11-17 so the roster and the lists under it read the same). Every line with a character
+     reads spec icon, number, name, on the roster and under it alike. A member who answered
+     without a character, or whose icon isn't uploaded, has no icon, so their number starts the
+     line.
    - **WoW's own icons** (2026-11-18, overturning the class icon on each line). Each line shows the
      spec's icon instead of the class icon, as Raid-Helper does: the spec at a glance, for about the same
      room, at the cost of telling the class apart less quickly (Shadow and Affliction are both
