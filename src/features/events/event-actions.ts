@@ -35,6 +35,7 @@ import { findClass, findSpec, isGameId } from './games.js';
 import { signupRoleOf, signupRolesOf } from './games.js';
 import type { GameId, SignupRole } from './games.js';
 import { buildPost, eventPrefix } from './post.js';
+import { answerClickWithin, queueClick, queueEdit } from './post-queue.js';
 import { choiceValue, createEvent, findChoice, lastRole, loadEvents, respond, saveEvents, signupChoices, withdraw } from './store.js';
 import type { EventKind, EventStore, RaidEvent, Signup, SignupChoice, SignupStatus } from './store.js';
 import { formatWhen, parseWhen } from './when.js';
@@ -67,18 +68,9 @@ function render(event: RaidEvent) {
 	return buildPost(event, { classEmoji: getClassEmoji });
 }
 
-// Edits to one post run one at a time and each draws the latest saved state. While one is waiting
-// to start, more clicks don't queue more: the waiting one will show them all
-const postQueues = new Map<string, { running: Promise<void>; waiting: boolean }>();
-
+// Edits the post as a message, in turn with every other redraw (post-queue.ts)
 export function updatePost(client: Client, eventId: string): Promise<void> {
-	const queue = postQueues.get(eventId);
-	if (queue?.waiting) {
-		return queue.running;
-	}
-	const entry = { running: Promise.resolve(), waiting: true };
-	entry.running = (queue?.running ?? Promise.resolve()).then(async () => {
-		entry.waiting = false;
+	return queueEdit(eventId, async () => {
 		try {
 			const event = loadEvents()[eventId];
 			if (!event?.messageId) {
@@ -92,8 +84,37 @@ export function updatePost(client: Client, eventId: string): Promise<void> {
 			log.error(`Failed to update the post for event ${eventId}: ${error}`);
 		}
 	});
-	postQueues.set(eventId, entry);
-	return entry.running;
+}
+
+// A click on the post redraws it through its own reply, in turn with every other redraw, from the
+// state saved when its turn comes. The answer is saved by then, so if the reply fails the post is
+// edited as a message instead. The error isn't passed on: after an early answer, an error reply
+// would replace the post itself
+async function redrawAfterClick(interaction: ButtonInteraction, eventId: string): Promise<void> {
+	const latest = () => {
+		const event = loadEvents()[eventId];
+		return event ? render(event) : undefined;
+	};
+	// Discord's deadline counts from the click, not from when it reached the bot
+	const elapsed = Math.max(0, Date.now() - interaction.createdTimestamp);
+	try {
+		await queueClick(eventId, {
+			update: () => {
+				const post = latest();
+				return post ? interaction.update(post) : interaction.deferUpdate();
+			},
+			answer: () => interaction.deferUpdate(),
+			redrawAnswered: async () => {
+				const post = latest();
+				if (post) {
+					await interaction.editReply(post);
+				}
+			},
+		}, Math.max(0, answerClickWithin - elapsed));
+	} catch (error) {
+		log.error(`Failed to redraw the post for event ${eventId} through a click: ${error}`);
+		await updatePost(interaction.client, eventId);
+	}
 }
 
 // ---- Creating and editing ----
@@ -543,14 +564,6 @@ export function clickedStatus(event: RaidEvent, userId: string, clicked: SignupS
 	return clicked === 'late' && current === 'late' ? 'signed' : clicked;
 }
 
-// A click on the post is acknowledged without redrawing it, and the post is drawn only through the
-// queue. A redraw sent with the click travels apart from the queue, so a queued edit from an earlier
-// click could land after it and show the older roster for a few seconds
-async function redrawAfterClick(interaction: ButtonInteraction, event: RaidEvent): Promise<void> {
-	await interaction.deferUpdate();
-	await updatePost(interaction.client, event.id);
-}
-
 async function answer(interaction: ButtonInteraction, store: EventStore, event: RaidEvent, clicked: SignupStatus): Promise<void> {
 	const userId = interaction.user.id;
 	const name = displayNameOf(interaction);
@@ -560,7 +573,7 @@ async function answer(interaction: ButtonInteraction, store: EventStore, event: 
 	if (event.kind === 'event' || !characterStatuses.includes(status)) {
 		respond(event, userId, name, status);
 		saveEvents(store);
-		await redrawAfterClick(interaction, event);
+		await redrawAfterClick(interaction, event.id);
 		return;
 	}
 
@@ -569,7 +582,7 @@ async function answer(interaction: ButtonInteraction, store: EventStore, event: 
 	if (existing?.character) {
 		respond(event, userId, name, status);
 		saveEvents(store);
-		await redrawAfterClick(interaction, event);
+		await redrawAfterClick(interaction, event.id);
 		return;
 	}
 
@@ -586,7 +599,7 @@ async function answer(interaction: ButtonInteraction, store: EventStore, event: 
 	// The post shows the answer. My sign-up switches character, spec or role
 	respond(event, userId, name, status, pick.choice);
 	saveEvents(store);
-	await redrawAfterClick(interaction, event);
+	await redrawAfterClick(interaction, event.id);
 }
 
 // After a character was added from a sign-up: sign up with it and answer in the same private message
@@ -676,7 +689,7 @@ export async function handleEventInteraction(interaction: AnyInteraction): Promi
 				return;
 			}
 			saveEvents(store);
-			await redrawAfterClick(interaction as ButtonInteraction, event);
+			await redrawAfterClick(interaction as ButtonInteraction, event.id);
 			return;
 		}
 		if (action === 'choose' || action === 'role') {
