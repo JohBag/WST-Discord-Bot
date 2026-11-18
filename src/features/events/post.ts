@@ -3,21 +3,32 @@ import type { APIEmbedField } from 'discord.js';
 import { gameName, realmKey } from './characters.js';
 import { findSpec, signupRoleOf, signupRoles, signupRolesOf } from './games.js';
 import type { SignupRole } from './games.js';
+import { iconSpecId } from './emoji.js';
+import type { WowIcon } from './emoji.js';
 import type { RaidEvent, Signup, SignupStatus } from './store.js';
 
 // IDs are event:<event ID>:<action>
 export const eventPrefix = 'event:';
 
-export const roleHeadings: Record<SignupRole, { emoji: string; label: string }> = {
-	Tank: { emoji: '🛡️', label: 'Tanks' },
-	Healer: { emoji: '💚', label: 'Healers' },
-	DPS: { emoji: '⚔️', label: 'DPS' },
+// WoW's own icons where they're uploaded (the group finder's roles, the ready check's marks), the
+// standard emoji while they aren't
+interface Mark {
+	icon: WowIcon;
+	emoji: string;
+}
+
+export const roleHeadings: Record<SignupRole, Mark & { label: string }> = {
+	Tank: { icon: 'tank', emoji: '🛡️', label: 'Tanks' },
+	Healer: { icon: 'healer', emoji: '💚', label: 'Healers' },
+	DPS: { icon: 'dps', emoji: '⚔️', label: 'DPS' },
 };
 
-const listedStatuses: { status: SignupStatus; emoji: string; label: string }[] = [
-	{ status: 'tentative', emoji: '❔', label: 'Tentative' },
-	{ status: 'absence', emoji: '🚫', label: 'Absent' },
+const listedStatuses: (Mark & { status: SignupStatus; label: string })[] = [
+	{ status: 'tentative', icon: 'tentative', emoji: '❔', label: 'Tentative' },
+	{ status: 'absence', icon: 'absent', emoji: '🚫', label: 'Absent' },
 ];
+
+const attending: Mark = { icon: 'ready', emoji: '✅' };
 
 const colors = { retail: 0xF1C40F, forever: 0x9B59B6, closed: 0x95A5A6, cancelled: 0x992D22 };
 
@@ -28,8 +39,18 @@ const maxFields = 25;
 const blank = '​';
 
 export interface PostContext {
-	// The class icon as a Discord emoji, or '' while it isn't uploaded
-	classEmoji: (classId: string) => string;
+	// The spec's icon as a Discord emoji, or '' while it isn't uploaded
+	specEmoji: (classId: string, specId: string) => string;
+	// A WoW interface icon as a Discord emoji, or undefined while it isn't uploaded
+	wowIcon: (icon: WowIcon) => string | undefined;
+}
+
+function mark(context: PostContext, { icon, emoji }: Mark): string {
+	return context.wowIcon(icon) ?? emoji;
+}
+
+function specIcon(context: PostContext, character: NonNullable<Signup['character']>): string {
+	return context.specEmoji(character.classId, iconSpecId(character.classId, character.specId, character.role));
 }
 
 function byNumber(a: Signup, b: Signup): number {
@@ -70,12 +91,12 @@ function rosterLine(event: RaidEvent, signup: Signup, number: string, context: P
 	const character = signup.character!;
 	const offSpec = character.offSpecId ? findSpec(event.game, character.classId, character.offSpecId) : undefined;
 	// Number first on every line, as below the roster, so the numbers stay in one column. No realm
-	// and no spec: the class icon and the role heading say enough, and My sign-up has the rest
-	const parts = [number, context.classEmoji(character.classId), `**${character.name}**`];
+	// and no spec name: the spec icon and the role heading say enough, and My sign-up has the rest
+	const parts = [number, specIcon(context, character), `**${character.name}**`];
 	// Only the roles the off-spec adds: a Balance druid with Feral off-spec shows the tank shield
 	const extra = offSpec ? signupRolesOf(offSpec).filter(role => role !== signupRoleOf(character.role)) : [];
 	if (extra.length > 0) {
-		parts.push(`(${extra.map(role => roleHeadings[role].emoji).join('')})`);
+		parts.push(`(${extra.map(role => mark(context, roleHeadings[role])).join('')})`);
 	}
 	if (signup.status === 'late') {
 		parts.push('(late)');
@@ -86,9 +107,9 @@ function rosterLine(event: RaidEvent, signup: Signup, number: string, context: P
 	return parts.filter(Boolean).join(' ');
 }
 
-// Under the roster: number, class icon and character, or the member when there's no character
+// Under the roster: number, spec icon and character, or the member when there's no character
 function listedName(signup: Signup, number: string, context: PostContext): string {
-	const who = signup.character ? [context.classEmoji(signup.character.classId), signup.character.name] : [signup.displayName];
+	const who = signup.character ? [specIcon(context, signup.character), signup.character.name] : [signup.displayName];
 	return [number, ...who].filter(Boolean).join(' ');
 }
 
@@ -124,20 +145,20 @@ function sections(event: RaidEvent, context: PostContext, withMember: boolean): 
 	if (event.kind === 'raid') {
 		for (const role of signupRoles) {
 			const members = inRoster.filter(s => s.character && signupRoleOf(s.character.role) === role);
-			const { emoji, label } = roleHeadings[role];
+			const heading = roleHeadings[role];
 			result.push({
-				heading: `${emoji} ${label} ${members.length}`,
+				heading: `${mark(context, heading)} ${heading.label} ${members.length}`,
 				lines: members.map(s => rosterLine(event, s, number(s), context, withMember)),
 				separator: '\n',
 			});
 		}
 	} else {
-		result.push({ heading: `✅ Attending ${inRoster.length}`, lines: inRoster.map(s => `${number(s)} ${s.displayName}`), separator: '\n' });
+		result.push({ heading: `${mark(context, attending)} Attending ${inRoster.length}`, lines: inRoster.map(s => `${number(s)} ${s.displayName}`), separator: '\n' });
 	}
-	for (const { status, emoji, label } of listedStatuses) {
-		const members = event.signups.filter(s => s.status === status).sort(byNumber);
+	for (const listed of listedStatuses) {
+		const members = event.signups.filter(s => s.status === listed.status).sort(byNumber);
 		if (members.length > 0) {
-			result.push({ heading: `${emoji} ${label} ${members.length}`, lines: members.map(s => listedName(s, plainNumber(s), context)), separator: ', ' });
+			result.push({ heading: `${mark(context, listed)} ${listed.label} ${members.length}`, lines: members.map(s => listedName(s, plainNumber(s), context)), separator: ', ' });
 		}
 	}
 	return result;

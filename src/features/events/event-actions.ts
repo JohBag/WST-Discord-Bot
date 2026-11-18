@@ -29,7 +29,7 @@ import { reminderLead, sendReminders } from './reminders.js';
 import { createSeries, loadSeries, postDueWeeks, saveSeries, shiftLike } from './series.js';
 import type { Series } from './series.js';
 import { catchUpInterest } from './interest.js';
-import { getClassEmoji } from './emoji.js';
+import { getSpecEmoji, getWowIcon } from './emoji.js';
 import { exportText, rosterSize } from './export.js';
 import { findClass, findSpec, isGameId } from './games.js';
 import { signupRoleOf, signupRolesOf } from './games.js';
@@ -65,7 +65,7 @@ function displayNameOf(interaction: AnyInteraction | ChatInputCommandInteraction
 }
 
 function render(event: RaidEvent) {
-	return buildPost(event, { classEmoji: getClassEmoji });
+	return buildPost(event, { specEmoji: getSpecEmoji, wowIcon: getWowIcon });
 }
 
 // Edits the post as a message, in turn with every other redraw (post-queue.ts)
@@ -847,7 +847,27 @@ export function closeStarted(store: EventStore, now = Date.now()): RaidEvent[] {
 	return closed;
 }
 
-export function startEventTimer(client: Client): void {
+// How long startup waits for the icons before drawing posts without the missing ones. Usually they
+// are found in a second; only the first upload of each, one by one, takes longer
+const iconWait = 60 * 1000;
+
+// Starts once the icons are ready (or after iconWait), so posts aren't drawn without them. If they
+// took longer, recent posts are drawn again when they're done
+export function startEventTimer(client: Client, iconsReady: Promise<void>): void {
+	let synced = false;
+	void iconsReady.then(() => {
+		synced = true;
+	});
+	void Promise.race([iconsReady, new Promise(resolve => setTimeout(resolve, iconWait))]).then(() => {
+		if (!synced) {
+			log.warn('Icons still uploading, drawing posts without the missing ones until they are done');
+			void iconsReady.then(() => redrawRecent(client));
+		}
+		runEventTimer(client);
+	});
+}
+
+function runEventTimer(client: Client): void {
 	// A tick still waiting on Discord makes the next one skip rather than run alongside it
 	let running = false;
 	const tick = async () => {

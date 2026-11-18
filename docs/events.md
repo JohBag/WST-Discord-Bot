@@ -8,14 +8,14 @@ guild members or name them.
 
 **Reference:** Raid-Helper (raid-helper.dev), the sign-up bot many WoW guilds use. Its post shows
 the leader, date, time and a countdown, counts per role, then Tank, Healer, Melee and Ranged columns
-with a class icon and sign-up number per person, and the Tentative and Absence lists underneath. Its
+with a spec icon and sign-up number per person, and the Tentative and Absence lists underneath. Its
 JSON export is what the Raid-Helper Helper addon imports to invite and sort the raid in game.
 
 **Where this departs from it:** members save their characters once, so a sign-up is a character,
 not a Discord name. Raid-Helper exports Discord display names, which the addon then needs a hand-kept
 name table to turn into character names.
 
-**Success test:** a raider signs up with one click and shows up in the right column with their class
+**Success test:** a raider signs up with one click and shows up in the right column with their spec
 icon. On raid night an officer pastes Botty's export into the addon and everyone gets an invite,
 without fixing a single name.
 
@@ -35,7 +35,7 @@ without fixing a single name.
 - **Also in the first version:** reminders, repeating events, and a link to that night's Warcraft
   Logs post once Botty finds it.
 
-- **The post:** one list per role (Tanks, Healers, DPS), each line a sign-up number, class
+- **The post:** one list per role (Tanks, Healers, DPS), each line a sign-up number, spec
   icon, character and the member's Discord name when it isn't the character's name again. Late
   people stay in their role with a mark.
   Tentative and Absent underneath, with their count and names (the picked mockup showed
@@ -88,22 +88,33 @@ without fixing a single name.
      ("wed 19:30", "26/11 19:30", "tomorrow 20:00") and shown to everyone in their own time zone.
      The post goes in the channel where the command was used.
    - **The post:** title, description, start with a countdown and how many signed up (plain lines,
-     no icons), then a section each for Tanks, Healers and DPS, each line a sign-up number, class
+     no icons), then a section each for Tanks, Healers and DPS, each line a sign-up number, spec
      icon, character, the off-spec's role as a small icon (only when it adds a role), "(late)" when
      late, and the member's server name. The footer names the game, the kind and the leader
      ("Retail raid led by ..."). Tentative and Absent are listed under it with names,
      since officers need to know who. Members are named in plain text, saved when they answer: a
      mention in a post can read as "unknown user" on phones and takes three times the room.
-   - **Calmer post** (2026-11-18). No realm and no spec on the post: the class icon and the role
+   - **Calmer post** (2026-11-18). No realm and no spec name on the post: the spec icon and the role
      heading say enough, and the addon export still carries both. The member's server name is left
      out when its first word is the character's name, or one is short for the other at 4 letters
      or more (Lath for Laththuzad, but Art still shows on Arthas), so it only shows for alts and
      other names. Numbers on the stacked lines are padded with non-breaking spaces to the widest
-     one, so the class icons line up in one column. Unverified: that Discord keeps the padding.
+     one, so the spec icons line up in one column. Unverified: that Discord keeps the padding.
+   - **WoW's own icons** (2026-11-18, overturning the class icon on each line). Each line shows the
+     spec's icon instead of the class icon, as Raid-Helper does: the spec at a glance, for about the same
+     room, at the cost of telling the class apart less quickly (Shadow and Affliction are both
+     skulls). The role headings and the off-spec mark use the group finder's role icons, Tentative
+     and Absent the ready check's question mark and cross, and an event's Attending its tick. A
+     Forever feral druid signed up as tank shows the bear. When an upload failed, a spec falls back
+     to the class icon from before (production only: a new test application has none), and the
+     role icons, and Tentative and Absent, fall back to the standard emoji as a set, so neither
+     mixes the two. Unverified: that Discord shows
+     custom emoji in embed field names on every client.
    - **Room:** Discord allows 6000 characters per post. A full 40-player Forever raid with 15 more
-     answers and the longest names (25 letters, 32 for server names) takes about 5200, or 5800 with
-     a 600-letter description. Only the longest names with a 1000-letter description drop the
-     server names (measured 2026-11-17). Should it ever run out, the
+     answers and the longest names (25 letters, 32 for server names) takes about 4900 with spec and
+     role icons, or 5500 with a 600-letter description (measured 2026-11-18). An off-spec role icon
+     adds about 25 on its line, so with off-specs on most lines the member names drop from about a
+     600-letter description, or sooner with long server names. Should it ever run out, the
      member names go first, then the last lines of each list, replaced by "+N more". An event post
      is one Attending list plus Tentative and Absent.
    - **Answering:** a click only updates the post, with no private reply (2026-11-16). Sign up uses
@@ -191,7 +202,15 @@ without fixing a single name.
 - Sign-ups stay open until the start. Officers can still edit afterwards.
 - Officers type times in the EU realms' server time (Central European). Every reader sees them in
   their own time zone.
-- Class icons are uploaded to Botty's Discord application as emoji, not committed to the repo.
+- Icons are uploaded to Botty's Discord application as emoji, not committed to the repo. Spec icons
+  come from Blizzard's icon server, the role and ready check icons from the game files through
+  wago.tools (BLP textures, decoded in `texture.ts`). They sync in the background at startup. The
+  event timer (closing sign-ups, the hour-before ping, weekly posts), the redraw of recent posts,
+  the calendar entries and the Interested catch-up wait for them, up to a minute, and recent posts
+  are drawn again if they took longer. `/remind` doesn't wait. An icon whose name is already on the application is
+  never replaced: to change one, delete it in the Developer Portal (the application's Emojis) and
+  restart. The 13 class icons from before stay on the application, so older posts keep theirs and
+  a spec icon that failed to upload falls back to them.
 
 ## The addon's import format
 

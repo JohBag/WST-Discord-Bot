@@ -8,7 +8,8 @@ import { createEvent, respond, signupChoices, withdraw } from './store.js';
 import type { RaidEvent } from './store.js';
 import { buildEventModal, clickedStatus, roleQuestion, signupReply } from './event-actions.js';
 
-const context: PostContext = { classEmoji: classId => `:${classId.toLowerCase()}:` };
+// Spec icons as :spec:, and WoW's icons not uploaded, so the standard emoji show
+const context: PostContext = { specEmoji: (_classId, specId) => `:${specId}:`, wowIcon: () => undefined };
 const start = Date.UTC(2026, 10, 18, 18, 30);
 const stamp = start / 1000;
 
@@ -45,10 +46,10 @@ describe('buildPostEmbed', () => {
 		assert.equal(embed.description, `Bring flasks.\n\n<t:${stamp}:F> (<t:${stamp}:R>)\n4 signed up`);
 		// No realm (Seru is on Twisting Nether) and no spec
 		assert.deepEqual(fieldsOf(filledRaid()), [
-			['🛡️ Tanks 1', '`1` :deathknight: **Thorvik** DiscordThorvik'],
-			['💚 Healers 1', '`3` :shaman: **Seru** (⚔️) DiscordSeru'],
-			['⚔️ DPS 2', '`2` :rogue: **Kapi** (late) DiscordKapi\n`6` :warrior: **Aidan** (🛡️) DiscordAidan'],
-			['❔ Tentative 1', '`4` :mage: Nel'],
+			['🛡️ Tanks 1', '`1` :blood: **Thorvik** DiscordThorvik'],
+			['💚 Healers 1', '`3` :restoration: **Seru** (⚔️) DiscordSeru'],
+			['⚔️ DPS 2', '`2` :subtlety: **Kapi** (late) DiscordKapi\n`6` :fury: **Aidan** (🛡️) DiscordAidan'],
+			['❔ Tentative 1', '`4` :frost: Nel'],
 			['🚫 Absent 1', '`5` Stylz'],
 		]);
 	});
@@ -86,7 +87,7 @@ describe('buildPostEmbed', () => {
 		}
 		return event;
 	}
-	const realIcons: PostContext = { classEmoji: () => '<:war:1439123456789012345>' };
+	const realIcons: PostContext = { specEmoji: () => '<:pri_hol:1439123456789012345>', wowIcon: icon => `<:${icon}:1439123456789012345>` };
 
 	it('should fit a full 40-player Forever raid with every name, member and answer', () => {
 		const embed = buildPostEmbed(fullForeverRaid('Bring consumables.'), realIcons).toJSON();
@@ -211,9 +212,9 @@ describe('off-spec icon', () => {
 		signUp(event, 'u2', 'Shocky Stormcall', 'SHAMAN', 'elemental', 'signed', 'enhancement');
 		signUp(event, 'u3', 'Furyboy Ironfist', 'WARRIOR', 'fury', 'signed', 'arms');
 		assert.deepEqual(fieldsOf(event)[2], ['⚔️ DPS 3', [
-			'`1` :druid: **Moonkin Starfall** (🛡️) DiscordMoonkin',
-			'`2` :shaman: **Shocky Stormcall** (🛡️) DiscordShocky',
-			'`3` :warrior: **Furyboy Ironfist** DiscordFuryboy',
+			'`1` :balance: **Moonkin Starfall** (🛡️) DiscordMoonkin',
+			'`2` :elemental: **Shocky Stormcall** (🛡️) DiscordShocky',
+			'`3` :fury: **Furyboy Ironfist** DiscordFuryboy',
 		].join('\n')]);
 	});
 });
@@ -224,7 +225,7 @@ describe('numbers on the post', () => {
 		signUp(event, 'u1', 'Elto Blackhammer', 'WARRIOR', 'arms');
 		withdraw(event, 'u1');
 		signUp(event, 'u1', 'Elto Blackhammer', 'WARRIOR', 'arms');
-		assert.equal(fieldsOf(event)[2][1], '`1` :warrior: **Elto Blackhammer** DiscordElto');
+		assert.equal(fieldsOf(event)[2][1], '`1` :arms: **Elto Blackhammer** DiscordElto');
 	});
 
 	it('should keep answering order across the roster and the lists below, and move a returning member to the end', () => {
@@ -235,8 +236,8 @@ describe('numbers on the post', () => {
 		withdraw(event, 'u1');
 		signUp(event, 'u1', 'Elto Blackhammer', 'WARRIOR', 'arms');
 		assert.deepEqual(fieldsOf(event).slice(2), [
-			['⚔️ DPS 1', '`3` :warrior: **Elto Blackhammer** DiscordElto'],
-			['❔ Tentative 1', '`2` :mage: Nel Frostweave'],
+			['⚔️ DPS 1', '`3` :arms: **Elto Blackhammer** DiscordElto'],
+			['❔ Tentative 1', '`2` :frost: Nel Frostweave'],
 			['🚫 Absent 1', '`1` Stylz'],
 		]);
 	});
@@ -249,8 +250,8 @@ describe('numbers on the post', () => {
 		signUp(event, 'u1', 'Thorvik', 'DEATHKNIGHT', 'blood');
 		signUp(event, 'u2', 'Kapi', 'ROGUE', 'subtlety', 'tentative');
 		const fields = fieldsOf(event);
-		assert.equal(fields[0][1], '`10` :deathknight: **Thorvik** DiscordThorvik');
-		assert.equal(fields[3][1], '`11` :rogue: Kapi');
+		assert.equal(fields[0][1], '`10` :blood: **Thorvik** DiscordThorvik');
+		assert.equal(fields[3][1], '`11` :subtlety: Kapi');
 		// The comma lists have no column, so no padding there
 		assert.ok(fields[4][1].startsWith('`1` Absent1, `2` Absent2'), fields[4][1]);
 	});
@@ -264,21 +265,55 @@ describe('member names on roster lines', () => {
 	}
 
 	it('should leave out a member name that only repeats the character', () => {
-		assert.equal(line('Goatfan', 'Goatfan | Dave'), '`1` :warlock: **Goatfan**');
-		assert.equal(line('Zhartogar', 'Zhartogar 😈'), '`1` :warlock: **Zhartogar**');
-		assert.equal(line('Slanetz', 'Slanetz I Luís'), '`1` :warlock: **Slanetz**');
-		assert.equal(line('Laththuzad', 'Lath | Paul'), '`1` :warlock: **Laththuzad**');
-		assert.equal(line('Lúthien', 'luthien'), '`1` :warlock: **Lúthien**');
-		assert.equal(line('Laththuzad', 'Lath|Paul'), '`1` :warlock: **Laththuzad**');
-		assert.equal(line('Bo', 'Bo | Bob'), '`1` :warlock: **Bo**');
+		assert.equal(line('Goatfan', 'Goatfan | Dave'), '`1` :demonology: **Goatfan**');
+		assert.equal(line('Zhartogar', 'Zhartogar 😈'), '`1` :demonology: **Zhartogar**');
+		assert.equal(line('Slanetz', 'Slanetz I Luís'), '`1` :demonology: **Slanetz**');
+		assert.equal(line('Laththuzad', 'Lath | Paul'), '`1` :demonology: **Laththuzad**');
+		assert.equal(line('Lúthien', 'luthien'), '`1` :demonology: **Lúthien**');
+		assert.equal(line('Laththuzad', 'Lath|Paul'), '`1` :demonology: **Laththuzad**');
+		assert.equal(line('Bo', 'Bo | Bob'), '`1` :demonology: **Bo**');
 	});
 
 	it('should keep the member name for an alt or any other name', () => {
-		assert.equal(line('Cromantic', 'Cronox | Daniel'), '`1` :warlock: **Cromantic** Cronox | Daniel');
-		assert.equal(line('Mirthalien', 'Mircat | Niels'), '`1` :warlock: **Mirthalien** Mircat | Niels');
-		assert.equal(line('Albe', 'Al'), '`1` :warlock: **Albe** Al');
-		assert.equal(line('Arthas', 'Art | Bob'), '`1` :warlock: **Arthas** Art | Bob');
-		assert.equal(line('Danbearpig', 'Dan | Dan'), '`1` :warlock: **Danbearpig** Dan | Dan');
-		assert.equal(line('Goatfan', '😈'), '`1` :warlock: **Goatfan** 😈');
+		assert.equal(line('Cromantic', 'Cronox | Daniel'), '`1` :demonology: **Cromantic** Cronox | Daniel');
+		assert.equal(line('Mirthalien', 'Mircat | Niels'), '`1` :demonology: **Mirthalien** Mircat | Niels');
+		assert.equal(line('Albe', 'Al'), '`1` :demonology: **Albe** Al');
+		assert.equal(line('Arthas', 'Art | Bob'), '`1` :demonology: **Arthas** Art | Bob');
+		assert.equal(line('Danbearpig', 'Dan | Dan'), '`1` :demonology: **Danbearpig** Dan | Dan');
+		assert.equal(line('Goatfan', '😈'), '`1` :demonology: **Goatfan** 😈');
+	});
+});
+
+describe('WoW icons', () => {
+	const wow: PostContext = { specEmoji: (_classId, specId) => `:${specId}:`, wowIcon: icon => `<:${icon}:1>` };
+
+	it('should head the roles and lists with the role and ready check icons once uploaded, and mark off-spec roles with them', () => {
+		assert.deepEqual(fieldsOf(filledRaid(), wow), [
+			['<:tank:1> Tanks 1', '`1` :blood: **Thorvik** DiscordThorvik'],
+			['<:healer:1> Healers 1', '`3` :restoration: **Seru** (<:dps:1>) DiscordSeru'],
+			['<:dps:1> DPS 2', '`2` :subtlety: **Kapi** (late) DiscordKapi\n`6` :fury: **Aidan** (<:tank:1>) DiscordAidan'],
+			['<:tentative:1> Tentative 1', '`4` :frost: Nel'],
+			['<:absent:1> Absent 1', '`5` Stylz'],
+		]);
+	});
+
+	it('should head an event\'s attending list with the ready check mark', () => {
+		const event = createEvent({ game: 'retail', kind: 'event', title: 'Guild meeting', description: '', start, leaderId: 'lead', leaderName: 'Leesha', channelId: 'c' }, 0, 'e2');
+		respond(event, 'u1', 'Seru', 'signed');
+		assert.deepEqual(fieldsOf(event, wow), [['<:ready:1> Attending 1', '`1` Seru']]);
+	});
+});
+
+describe('spec icon for a feral tank', () => {
+	it('should show the bear for a Forever feral druid signed up as tank, and the cat as DPS', () => {
+		const event = raid('forever');
+		const store: CharacterStore = {};
+		addCharacter(store, 'u1', { game: 'forever', name: 'Bearly Here', realm: '', classId: 'DRUID', specId: 'feral' }, 'c1');
+		const [asDps, asTank] = signupChoices(store.u1).filter(c => c.specId === 'feral');
+		assert.equal(asTank.role, 'Tank');
+		respond(event, 'u1', 'Bearly', 'signed', asTank);
+		assert.equal(fieldsOf(event)[0][1], '`1` :guardian: **Bearly Here**');
+		respond(event, 'u1', 'Bearly', 'signed', asDps);
+		assert.equal(fieldsOf(event)[2][1], '`1` :feral: **Bearly Here**');
 	});
 });
