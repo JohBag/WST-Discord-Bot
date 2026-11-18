@@ -36,7 +36,8 @@ without fixing a single name.
   Logs post once Botty finds it.
 
 - **The post:** one list per role (Tanks, Healers, DPS), each line a sign-up number, class
-  icon, character, spec and the member's Discord name. Late people stay in their role with a mark.
+  icon, character and the member's Discord name when it isn't the character's name again. Late
+  people stay in their role with a mark.
   Tentative and Absent underneath, with their count and names (the picked mockup showed
   counts only, names added in step 2 so officers can see who). Taller than Raid-Helper's columns,
   but reads the same on phones, where Discord stacks columns anyway.
@@ -86,12 +87,19 @@ without fixing a single name.
      description. The start is typed in EU server time
      ("wed 19:30", "26/11 19:30", "tomorrow 20:00") and shown to everyone in their own time zone.
      The post goes in the channel where the command was used.
-   - **The post:** title, description, start with a countdown, leader and how many signed up, then
-     a section each for Tanks, Healers and DPS, each line a sign-up number, class icon,
-     character, spec, the off-spec's role as a small icon (only when it adds a role), "(late)" when
-     late, and the member's server name. Tentative and Absent are listed under it with names,
+   - **The post:** title, description, start with a countdown and how many signed up (plain lines,
+     no icons), then a section each for Tanks, Healers and DPS, each line a sign-up number, class
+     icon, character, the off-spec's role as a small icon (only when it adds a role), "(late)" when
+     late, and the member's server name. The footer names the game, the kind and the leader
+     ("Retail raid led by ..."). Tentative and Absent are listed under it with names,
      since officers need to know who. Members are named in plain text, saved when they answer: a
      mention in a post can read as "unknown user" on phones and takes three times the room.
+   - **Calmer post** (2026-11-18). No realm and no spec on the post: the class icon and the role
+     heading say enough, and the addon export still carries both. The member's server name is left
+     out when its first word is the character's name, or one is short for the other at 4 letters
+     or more (Lath for Laththuzad, but Art still shows on Arthas), so it only shows for alts and
+     other names. Numbers on the stacked lines are padded with non-breaking spaces to the widest
+     one, so the class icons line up in one column. Unverified: that Discord keeps the padding.
    - **Room:** Discord allows 6000 characters per post. A full 40-player Forever raid with 15 more
      answers and the longest names (25 letters, 32 for server names) takes about 5200, or 5800 with
      a 600-letter description. Only the longest names with a 1000-letter description drop the

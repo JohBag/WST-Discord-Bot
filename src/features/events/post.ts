@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
 import type { APIEmbedField } from 'discord.js';
-import { characterName, gameName } from './characters.js';
+import { gameName, realmKey } from './characters.js';
 import { findSpec, signupRoleOf, signupRoles, signupRolesOf } from './games.js';
 import type { SignupRole } from './games.js';
 import type { RaidEvent, Signup, SignupStatus } from './store.js';
@@ -30,7 +30,6 @@ const blank = '​';
 export interface PostContext {
 	// The class icon as a Discord emoji, or '' while it isn't uploaded
 	classEmoji: (classId: string) => string;
-	homeRealm: string;
 }
 
 function byNumber(a: Signup, b: Signup): number {
@@ -44,17 +43,35 @@ function positions(event: RaidEvent): (signup: Signup) => number {
 	return signup => order.get(signup.userId) ?? 0;
 }
 
-function rosterLine(event: RaidEvent, signup: Signup, position: number, context: PostContext, withMember: boolean): string {
+// The number in a monospace code span, padded with non-breaking spaces (Discord drops a plain
+// leading space) to the widest number on the post, so the icons after it line up
+function numberTag(position: number, width: number): string {
+	return `\`${String(position).padStart(width, ' ')}\``;
+}
+
+// The first word, without case or accents, split at anything that isn't a letter: "Goatfan | Dave",
+// "Goatfan|Dave" and "Zhartogar 😈" give goatfan and zhartogar
+function firstWord(name: string): string {
+	return name.split(/[^\p{L}\p{M}]+/u).map(realmKey).find(Boolean) ?? '';
+}
+
+// The member's name only adds something when it isn't the character's name again. One may be
+// short for the other (Lath for Laththuzad) at 4 letters or more, so a 3-letter nickname like Art
+// still shows on an alt called Arthas
+function memberAddsToName(characterName: string, displayName: string): boolean {
+	const [a, b] = [firstWord(characterName), firstWord(displayName)].sort((x, y) => x.length - y.length);
+	if (!a) {
+		return true;
+	}
+	return a !== b && (a.length < 4 || !b.startsWith(a));
+}
+
+function rosterLine(event: RaidEvent, signup: Signup, number: string, context: PostContext, withMember: boolean): string {
 	const character = signup.character!;
-	const spec = findSpec(event.game, character.classId, character.specId);
 	const offSpec = character.offSpecId ? findSpec(event.game, character.classId, character.offSpecId) : undefined;
-	// Number first on every line, as below the roster, so the numbers stay in one column
-	const parts = [
-		`\`${position}\``,
-		context.classEmoji(character.classId),
-		`**${characterName(character, context.homeRealm)}**`,
-		spec?.name ?? '?',
-	];
+	// Number first on every line, as below the roster, so the numbers stay in one column. No realm
+	// and no spec: the class icon and the role heading say enough, and My sign-up has the rest
+	const parts = [number, context.classEmoji(character.classId), `**${character.name}**`];
 	// Only the roles the off-spec adds: a Balance druid with Feral off-spec shows the tank shield
 	const extra = offSpec ? signupRolesOf(offSpec).filter(role => role !== signupRoleOf(character.role)) : [];
 	if (extra.length > 0) {
@@ -63,18 +80,16 @@ function rosterLine(event: RaidEvent, signup: Signup, position: number, context:
 	if (signup.status === 'late') {
 		parts.push('(late)');
 	}
-	if (withMember) {
+	if (withMember && memberAddsToName(character.name, signup.displayName)) {
 		parts.push(signup.displayName);
 	}
 	return parts.filter(Boolean).join(' ');
 }
 
 // Under the roster: number, class icon and character, or the member when there's no character
-function listedName(signup: Signup, position: number, context: PostContext): string {
-	const who = signup.character
-		? [context.classEmoji(signup.character.classId), characterName(signup.character, context.homeRealm)]
-		: [signup.displayName];
-	return [`\`${position}\``, ...who].filter(Boolean).join(' ');
+function listedName(signup: Signup, number: string, context: PostContext): string {
+	const who = signup.character ? [context.classEmoji(signup.character.classId), signup.character.name] : [signup.displayName];
+	return [number, ...who].filter(Boolean).join(' ');
 }
 
 // Lines into as many fields as they need, the first under the heading, the rest untitled
@@ -101,6 +116,10 @@ interface Section {
 function sections(event: RaidEvent, context: PostContext, withMember: boolean): Section[] {
 	const inRoster = event.signups.filter(s => s.status === 'signed' || s.status === 'late').sort(byNumber);
 	const position = positions(event);
+	const width = String(event.signups.length).length;
+	// Padded only where the lines stack: the comma lists below have no column to line up with
+	const number = (signup: Signup) => numberTag(position(signup), width);
+	const plainNumber = (signup: Signup) => numberTag(position(signup), 0);
 	const result: Section[] = [];
 	if (event.kind === 'raid') {
 		for (const role of signupRoles) {
@@ -108,17 +127,17 @@ function sections(event: RaidEvent, context: PostContext, withMember: boolean): 
 			const { emoji, label } = roleHeadings[role];
 			result.push({
 				heading: `${emoji} ${label} ${members.length}`,
-				lines: members.map(s => rosterLine(event, s, position(s), context, withMember)),
+				lines: members.map(s => rosterLine(event, s, number(s), context, withMember)),
 				separator: '\n',
 			});
 		}
 	} else {
-		result.push({ heading: `✅ Attending ${inRoster.length}`, lines: inRoster.map(s => `\`${position(s)}\` ${s.displayName}`), separator: '\n' });
+		result.push({ heading: `✅ Attending ${inRoster.length}`, lines: inRoster.map(s => `${number(s)} ${s.displayName}`), separator: '\n' });
 	}
 	for (const { status, emoji, label } of listedStatuses) {
 		const members = event.signups.filter(s => s.status === status).sort(byNumber);
 		if (members.length > 0) {
-			result.push({ heading: `${emoji} ${label} ${members.length}`, lines: members.map(s => listedName(s, position(s), context)), separator: ', ' });
+			result.push({ heading: `${emoji} ${label} ${members.length}`, lines: members.map(s => listedName(s, plainNumber(s), context)), separator: ', ' });
 		}
 	}
 	return result;
@@ -156,18 +175,19 @@ export function buildPostEmbed(event: RaidEvent, context: PostContext): EmbedBui
 	if (event.cancelled) {
 		header.push('**Cancelled**', '');
 	} else if (event.closed) {
-		header.push('🔒 Sign-ups closed', '');
+		header.push('**Sign-ups closed**', '');
 	}
-	header.push(`📅 <t:${start}:F> (<t:${start}:R>)`, `👑 ${event.leaderName}`);
+	// The leader is in the footer, so the top is only what everyone checks
+	header.push(`<t:${start}:F> (<t:${start}:R>)`);
 	if (event.logUrl) {
-		header.push(`📜 [Warcraft Logs](${event.logUrl})`);
+		header.push(`[Warcraft Logs](${event.logUrl})`);
 	}
 	// An event's Attending list already gives the count
 	if (event.kind === 'raid') {
-		header.push(`✅ ${inRoster} signed up`);
+		header.push(`${inRoster} signed up`);
 	}
 	const description = header.join('\n');
-	const footer = `WoW ${gameName(event.game)} ${event.kind}`;
+	const footer = `${gameName(event.game)} ${event.kind} led by ${event.leaderName}`;
 	const room = maxTotal - event.title.length - description.length - footer.length;
 
 	// The member names go first if a full raid runs out of room, then lines from the end of each list

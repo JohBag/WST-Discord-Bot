@@ -64,7 +64,7 @@ function displayNameOf(interaction: AnyInteraction | ChatInputCommandInteraction
 }
 
 function render(event: RaidEvent) {
-	return buildPost(event, { classEmoji: getClassEmoji, homeRealm: homeRealm(event.game) });
+	return buildPost(event, { classEmoji: getClassEmoji });
 }
 
 // Edits to one post run one at a time and each draws the latest saved state. While one is waiting
