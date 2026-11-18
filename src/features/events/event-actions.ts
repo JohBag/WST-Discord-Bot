@@ -543,6 +543,14 @@ export function clickedStatus(event: RaidEvent, userId: string, clicked: SignupS
 	return clicked === 'late' && current === 'late' ? 'signed' : clicked;
 }
 
+// A click on the post is acknowledged without redrawing it, and the post is drawn only through the
+// queue. A redraw sent with the click travels apart from the queue, so a queued edit from an earlier
+// click could land after it and show the older roster for a few seconds
+async function redrawAfterClick(interaction: ButtonInteraction, event: RaidEvent): Promise<void> {
+	await interaction.deferUpdate();
+	await updatePost(interaction.client, event.id);
+}
+
 async function answer(interaction: ButtonInteraction, store: EventStore, event: RaidEvent, clicked: SignupStatus): Promise<void> {
 	const userId = interaction.user.id;
 	const name = displayNameOf(interaction);
@@ -552,10 +560,7 @@ async function answer(interaction: ButtonInteraction, store: EventStore, event: 
 	if (event.kind === 'event' || !characterStatuses.includes(status)) {
 		respond(event, userId, name, status);
 		saveEvents(store);
-		await interaction.update(render(event));
-		// A queued edit from an earlier click could land after this one with an older roster. One
-		// more queued edit always draws the latest
-		await updatePost(interaction.client, event.id);
+		await redrawAfterClick(interaction, event);
 		return;
 	}
 
@@ -564,8 +569,7 @@ async function answer(interaction: ButtonInteraction, store: EventStore, event: 
 	if (existing?.character) {
 		respond(event, userId, name, status);
 		saveEvents(store);
-		await interaction.update(render(event));
-		await updatePost(interaction.client, event.id);
+		await redrawAfterClick(interaction, event);
 		return;
 	}
 
@@ -582,8 +586,7 @@ async function answer(interaction: ButtonInteraction, store: EventStore, event: 
 	// The post shows the answer. My sign-up switches character, spec or role
 	respond(event, userId, name, status, pick.choice);
 	saveEvents(store);
-	await interaction.update(render(event));
-	await updatePost(interaction.client, event.id);
+	await redrawAfterClick(interaction, event);
 }
 
 // After a character was added from a sign-up: sign up with it and answer in the same private message
@@ -673,8 +676,7 @@ export async function handleEventInteraction(interaction: AnyInteraction): Promi
 				return;
 			}
 			saveEvents(store);
-			await (interaction as ButtonInteraction).update(render(event));
-			await updatePost(interaction.client, event.id);
+			await redrawAfterClick(interaction as ButtonInteraction, event);
 			return;
 		}
 		if (action === 'choose' || action === 'role') {
