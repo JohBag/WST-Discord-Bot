@@ -30,6 +30,13 @@ export function isOfficerMember(member: { roles: { cache: { has(id: string): boo
 	return !!member?.roles.cache.has(config.roles.officer);
 }
 
+// Whether @here pings in the channel. A thread takes its parent's permissions, and a channel not
+// loaded yet counts as no
+export function canPingHere(guild: Guild, channelId: string): boolean {
+	const me = guild.members.me;
+	return !!me && !!guild.channels.cache.get(channelId)?.permissionsFor(me)?.has(PermissionFlagsBits.MentionEveryone);
+}
+
 // A role the reminder can actually ping
 function checkRole(guild: Guild, role: Role | undefined): void {
 	if (!role) {
@@ -48,6 +55,10 @@ function checkRole(guild: Guild, role: Role | undefined): void {
 export function setReminder(request: SetRequest, now = Date.now()): Reminder {
 	if (request.target === 'role' && request.isOfficer) {
 		checkRole(request.guild, request.role);
+	}
+	// Without the permission, @here shows as plain text and pings nobody
+	if (request.target === 'channel' && request.isOfficer && !canPingHere(request.guild, request.channelId)) {
+		throw new UserError("I can't ping @here in this channel. Give me the Mention Everyone permission here first.");
 	}
 	const due = parseReminderTime(request.when, now);
 	if (typeof due !== 'number') {

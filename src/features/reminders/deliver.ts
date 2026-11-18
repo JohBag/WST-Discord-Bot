@@ -3,7 +3,7 @@ import { config } from '../../core/config.js';
 import log from '../../core/log.js';
 import { generateReply } from '../../ai/chat.js';
 import { firedContent, voiceInstructions } from './format.js';
-import { updateCard } from './actions.js';
+import { canPingHere, updateCard } from './actions.js';
 import { loadReminders, saveReminders, takeDue } from './store.js';
 import type { Reminder } from './store.js';
 
@@ -57,6 +57,9 @@ async function deliver(client: Client, reminder: Reminder): Promise<void> {
 		throw new Error(`can't post in channel ${reminder.channelId}`);
 	}
 	const roleName = reminder.roleId && 'guild' in channel ? channel.guild.roles.cache.get(reminder.roleId)?.name : undefined;
+	if (reminder.target === 'channel' && 'guild' in channel && !canPingHere(channel.guild, channel.id)) {
+		log.warn(`Reminder #${reminder.number}: no Mention Everyone in this channel any more, so @here won't ping`);
+	}
 	const body = await inVoice(reminder, roleName);
 	const sent = await channel.send(firedMessage(reminder, body));
 	log(`Reminder #${reminder.number} from ${reminder.userName} posted`);
@@ -69,6 +72,8 @@ export function firedMessage(reminder: Reminder, body: string, now = Date.now())
 		content: firedContent(reminder, body, now),
 		reply: reminder.messageId ? { messageReference: reminder.messageId, failIfNotExists: false } : undefined,
 		allowedMentions: {
+			// "everyone" covers @here, which only a channel reminder carries (the text's are broken up)
+			parse: reminder.target === 'channel' ? ['everyone'] : [],
 			users: reminder.target === 'member' ? [reminder.userId] : [],
 			roles: reminder.target === 'role' ? [reminder.roleId!] : [],
 			repliedUser: false,

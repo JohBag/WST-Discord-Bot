@@ -31,9 +31,9 @@ const cardColors: Record<CardState, number> = { set: 0x0099FF, sent: 0x95A5A6, c
 const cardIcons: Record<CardState, string> = { set: '⏰', sent: '✅', cancelled: '❌' };
 const cardSuffix: Record<CardState, string> = { set: '', sent: ' sent', cancelled: ' cancelled' };
 
-// Who it's for, as Discord shows a mention inside an embed (no ping)
+// Who it's for, as Discord shows a mention inside an embed (no ping there)
 function recipient(reminder: Reminder): string {
-	return reminder.target === 'role' ? `<@&${reminder.roleId}>` : reminder.target === 'channel' ? `<#${reminder.channelId}>` : `<@${reminder.userId}>`;
+	return reminder.target === 'role' ? `<@&${reminder.roleId}>` : reminder.target === 'channel' ? `@here in <#${reminder.channelId}>` : `<@${reminder.userId}>`;
 }
 
 // The card that confirms a reminder, updated once it's sent or cancelled. Times show in each
@@ -126,9 +126,16 @@ export function voiceInstructions(reminder: Reminder, roleName: string | undefin
 	].join(' ');
 }
 
+// Only the ping in front may reach everyone: an @everyone or @here anywhere else (Botty's words, a
+// display name) is broken up so Discord doesn't read it as one
+function defuse(text: string): string {
+	return text.replace(/@(everyone|here)/gi, '@​$1');
+}
+
 // The message that fires: a ping, the reminder in Botty's words, and a small line when it needs one
 export function firedContent(reminder: Reminder, body: string, now = Date.now()): string {
-	const ping = reminder.target === 'member' ? `<@${reminder.userId}> ` : reminder.target === 'role' ? `<@&${reminder.roleId}> ` : '';
+	const ping = reminder.target === 'member' ? `<@${reminder.userId}> ` : reminder.target === 'role' ? `<@&${reminder.roleId}> ` : '@here ';
+	const text = defuse(body.trim());
 	const notes: string[] = [];
 	if (reminder.target !== 'member') {
 		notes.push(`Reminder from ${reminder.userName}`);
@@ -136,6 +143,6 @@ export function firedContent(reminder: Reminder, body: string, now = Date.now())
 	if (now - reminder.due > lateAfterMs) {
 		notes.push(`due ${stamp(reminder.due, 'R')}`);
 	}
-	const note = notes.length > 0 ? `\n-# ${notes.join(', ').replace(/^./, c => c.toUpperCase())}` : '';
-	return `⏰ ${ping}${body.trim()}${note}`;
+	const note = notes.length > 0 ? `\n-# ${defuse(notes.join(', ').replace(/^./, c => c.toUpperCase()))}` : '';
+	return `⏰ ${ping}${text}${note}`;
 }

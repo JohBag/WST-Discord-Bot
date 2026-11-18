@@ -93,6 +93,8 @@ describe('reminder store', () => {
 		assert.equal(addReminder(store, base({ target: 'channel' }), true).number, 2);
 		assert.throws(() => addReminder(store, base({ target: 'role', roleId: 'r' }), false), new UserError('Only officers can set reminders for the channel or a role.'));
 		assert.equal(store.next, 3);
+		assert.equal(addReminder(store, base({ target: 'channel', text: '@here raid invites' }), true).text, 'raid invites');
+		assert.throws(() => addReminder(store, base({ text: '@everyone' }), false), new UserError('What should I remind about?'));
 	});
 
 	it('should stop a member at 10 reminders', () => {
@@ -154,7 +156,7 @@ describe('reminder text', () => {
 		const role = confirmationCard({ ...reminder, target: 'role', roleId: 'r1' }).toJSON();
 		assert.deepEqual(role.fields![1], { name: 'For', value: '<@&r1>', inline: true });
 		assert.equal(role.footer?.text, 'Set by Kapi');
-		assert.deepEqual(confirmationCard({ ...reminder, target: 'channel' }).toJSON().fields![1], { name: 'For', value: '<#c1>', inline: true });
+		assert.deepEqual(confirmationCard({ ...reminder, target: 'channel' }).toJSON().fields![1], { name: 'For', value: '@here in <#c1>', inline: true });
 	});
 
 	it('should turn the card grey once sent, with when it went out and a link, or cancelled, struck out', () => {
@@ -208,21 +210,30 @@ describe('reminder text', () => {
 
 	it('should ping only the one it is for, whatever the text says', () => {
 		const sent = firedMessage(reminder, 'Flask time, @everyone <@u9>', now + 2 * hour);
-		assert.equal(sent.content, '⏰ <@u1> Flask time, @everyone <@u9>');
-		assert.deepEqual(sent.allowedMentions, { users: ['u1'], roles: [], repliedUser: false });
+		assert.equal(sent.content, '⏰ <@u1> Flask time, @​everyone <@u9>');
+		assert.deepEqual(sent.allowedMentions, { parse: [], users: ['u1'], roles: [], repliedUser: false });
 		assert.equal(sent.reply, undefined);
 		const role = firedMessage({ ...reminder, target: 'role', roleId: 'r1', messageId: 'm1' }, 'Reset tonight.', now + 2 * hour);
 		assert.equal(role.content, '⏰ <@&r1> Reset tonight.\n-# Reminder from Kapi');
-		assert.deepEqual(role.allowedMentions, { users: [], roles: ['r1'], repliedUser: false });
+		assert.deepEqual(role.allowedMentions, { parse: [], users: [], roles: ['r1'], repliedUser: false });
 		assert.deepEqual(role.reply, { messageReference: 'm1', failIfNotExists: false });
+	});
+
+	it('should ping @here for a channel reminder, and only the @here in front', () => {
+		const sent = firedMessage({ ...reminder, target: 'channel' }, 'Meeting now, @everyone and @here!', now + 2 * hour);
+		assert.equal(sent.content, '⏰ @here Meeting now, @​everyone and @​here!\n-# Reminder from Kapi');
+		assert.deepEqual(sent.allowedMentions, { parse: ['everyone'], users: [], roles: [], repliedUser: false });
+		assert.deepEqual(confirmationCard({ ...reminder, target: 'channel' }).toJSON().fields![1], { name: 'For', value: '@here in <#c1>', inline: true });
+		const sneaky = firedContent({ ...reminder, target: 'channel', userName: '@everyone' }, 'Hi', reminder.due);
+		assert.equal(sneaky, '⏰ @here Hi\n-# Reminder from @​everyone');
 	});
 
 	it('should say who set a channel or role reminder, and when a late one was due', () => {
 		const channel: Reminder = { ...reminder, target: 'channel' };
-		assert.equal(firedContent(channel, 'Reset tonight.', reminder.due), '⏰ Reset tonight.\n-# Reminder from Kapi');
+		assert.equal(firedContent(channel, 'Reset tonight.', reminder.due), '⏰ @here Reset tonight.\n-# Reminder from Kapi');
 		assert.equal(firedContent({ ...reminder, target: 'role', roleId: 'r1', messageId: 'm1' }, 'Keys!', reminder.due), '⏰ <@&r1> Keys!\n-# Reminder from Kapi');
 		assert.equal(firedContent(reminder, 'Flasks!', reminder.due + 3 * hour), `⏰ <@u1> Flasks!\n-# Due <t:${due}:R>`);
-		assert.equal(firedContent(channel, 'Reset tonight.', reminder.due + 3 * hour), `⏰ Reset tonight.\n-# Reminder from Kapi, due <t:${due}:R>`);
+		assert.equal(firedContent(channel, 'Reset tonight.', reminder.due + 3 * hour), `⏰ @here Reset tonight.\n-# Reminder from Kapi, due <t:${due}:R>`);
 	});
 
 	it('should tell the model who set it, how long ago, and for whom', () => {

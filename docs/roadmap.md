@@ -9,7 +9,8 @@ Members ask Botty to remind them of something later, with `/remind` or in chat, 
 what's set.
 
 - **Who it's for.** Anyone can set a reminder for themselves. Officers can also set one for the
-  channel (no ping) or a role (pings the role). Reminding another member isn't offered.
+  channel (pings @here, the members online, changed from no ping after the local test, 2026-11-18)
+  or a role (pings the role). Both need the bot to be able to ping it, checked when it's set. Reminding another member isn't offered.
 - **`/remind`** takes a time and what to remind about, with an optional For (Me, or This channel
   for officers) and Role (officers: pings that role). One command with a dropdown, not one per
   target (changed after the first local test, 2026-11-17). Times are a duration (`2h`, `1d 3h`, `in half an hour`, `1.5h`) or a clock time and day in EU

@@ -49,7 +49,8 @@ export function addReminder(store: ReminderStore, reminder: Omit<Reminder, 'numb
 	if (reminder.target !== 'member' && !isOfficer) {
 		throw new UserError('Only officers can set reminders for the channel or a role.');
 	}
-	const text = reminder.text.trim();
+	// The ping goes in front when it fires, so one typed into the text would show twice
+	const text = reminder.text.trim().replace(/^(@(here|everyone)[\s,:]*)+/i, '').trim();
 	if (!text) {
 		throw new UserError('What should I remind about?');
 	}

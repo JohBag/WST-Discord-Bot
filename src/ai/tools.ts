@@ -78,7 +78,7 @@ export const tools: ToolDefinition[] = [
 				for: {
 					type: 'string',
 					enum: ['asker', 'channel', 'role'],
-					description: 'Who it is for: the asker (default), everyone in the channel, or a role. Only officers can set channel and role reminders.',
+					description: 'Who it is for: the asker (default), everyone in the channel (pings @here), or a role. Only officers can set channel and role reminders.',
 				},
 				role: {
 					type: 'string',
